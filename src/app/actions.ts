@@ -26,14 +26,13 @@ const formSchema = z.object({
     .optional(),
 }).refine(
   (data) => {
-    // We need either clientData (non-empty) or at least one attachment.
     const hasClientData = data.clientData && data.clientData.trim().length > 0;
     const hasAttachments = data.attachments && data.attachments.length > 0;
     return hasClientData || hasAttachments;
   },
   {
     message: "Por favor, forneça as informações financeiras ou anexe um ou mais documentos para análise.",
-    path: ["clientData"], // Where to show the error
+    path: ["clientData"],
   }
 );
 
@@ -72,32 +71,12 @@ export async function getAnalysis(
        attachedDocuments = await Promise.all(validAttachments.map(fileToDataURI));
     }
 
-    const webhookUrl = "http://localhost:5678/webhook-test/Tributo Med.con";
-
-    // Concurrently call AI and webhook
-    const [aiResponse, webhookResponse] = await Promise.all([
-      generateTaxScenarios({ clientType, clientData, attachedDocuments }),
-      fetch(encodeURI(webhookUrl), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientType, clientData }),
-      }),
-    ]);
-
-    let webhookData: unknown;
-    if (webhookResponse.ok) {
-      webhookData = await webhookResponse.json();
-    } else {
-      webhookData = {
-        error: `Webhook failed with status ${webhookResponse.status}`,
-        details: await webhookResponse.text(),
-      }
-    }
+    const aiResponse = await generateTaxScenarios({ clientType, clientData, attachedDocuments });
 
     return {
       aiResponse,
       transcribedText: aiResponse.transcribedText,
-      webhookResponse: JSON.stringify(webhookData, null, 2), // Serialize the response
+      webhookResponse: "A chamada ao webhook foi removida temporariamente.",
     };
   } catch (error) {
     console.error(error);
