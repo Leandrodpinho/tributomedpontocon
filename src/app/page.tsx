@@ -52,14 +52,14 @@ function WebhookResponseDisplay({ response }: { response: string | undefined }) 
             )
         }
         return (
-            <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
+            <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-sans">
                 {response}
             </pre>
         )
     } catch (e) {
         // Not a JSON, just display as text
         return (
-            <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
+            <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-sans">
                 {response}
             </pre>
         )

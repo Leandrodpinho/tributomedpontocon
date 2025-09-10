@@ -22,6 +22,7 @@ const formSchema = z.object({
     .optional(),
   attachments: z
     .array(fileSchema)
+    .min(1, "Por favor, anexe pelo menos um arquivo.")
     .optional(),
 }).refine(
   (data) => {
@@ -56,8 +57,10 @@ export async function getAnalysis(
   });
 
   if (!validatedFields.success) {
+    const fieldErrors = validatedFields.error.flatten().fieldErrors;
+    const errorMessage = fieldErrors.clientData?.[0] || fieldErrors.attachments?.[0] || 'Erro de validação.';
     return {
-      error: validatedFields.error.flatten().fieldErrors.clientData?.[0] || 'Erro de validação.',
+      error: errorMessage,
     };
   }
 
