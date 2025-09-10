@@ -14,7 +14,6 @@ import {z} from 'genkit';
 const GenerateTaxScenariosInputSchema = z.object({
   clientData: z.string().optional().describe('The client financial and operational information (revenue, etc.)'),
   payrollExpenses: z.string().optional().describe('As despesas com a folha de pagamento do cliente.'),
-  cpp: z.string().optional().describe('A alíquota da Contribuição Previdenciária Patronal (CPP).'),
   attachedDocuments: z.array(z.string()).optional().describe('Relevant documents like tax declarations and Simples Nacional extracts as a data URI.'),
   clientType: z.enum(['Novo aberturas de empresa', 'Transferências de contabilidade']).describe('The type of client.'),
 });
@@ -53,7 +52,6 @@ Você receberá o tipo de cliente e informações financeiras.
 
 Tipo de Cliente: {{{clientType}}}
 {{#if payrollExpenses}}Folha Salarial Bruta: {{{payrollExpenses}}}{{/if}}
-{{#if cpp}}CPP: {{{cpp}}}{{/if}}
 
 {{#if clientData}}
 Dados do Cliente (texto): {{{clientData}}}
@@ -65,7 +63,7 @@ Documentos Anexados:
 - Documento: {{media url=this}}
 {{/each}}
 
-Se houver documentos anexados, você DEVE primeiro transcrever as informações financeiras e operacionais de TODOS eles em um único texto consolidado. Este texto transcrito deve ser colocado no campo 'transcribedText'. Use essa informação transcrita (juntamente com qualquer texto fornecido pelo usuário e os campos de folha salarial/CPP) para realizar a análise completa. Se apenas texto for fornecido, use-o para a análise e deixe 'transcribedText' vazio.
+Se houver documentos anexados, você DEVE primeiro transcrever as informações financeiras e operacionais de TODOS eles em um único texto consolidado. Este texto transcrito deve ser colocado no campo 'transcribedText'. Use essa informação transcrita (juntamente com qualquer texto fornecido pelo usuário e o campo de folha salarial) para realizar a análise completa. Se apenas texto for fornecido, use-o para a análise e deixe 'transcribedText' vazio.
 {{else}}
 {{#if clientData}}
 {{! Nenhuma instrução especial necessária se apenas clientData for fornecido. }}
@@ -77,6 +75,7 @@ Você DEVE pedir ao usuário para fornecer dados em texto ou documentos.
 Com base em todas as informações disponíveis e na legislação de 2025:
 1.  **Extração e Análise de Faturamento:** Identifique e extraia o faturamento mensal do cliente e preencha o campo 'monthlyRevenue'. Formate como "R$ XX.XXX,XX".
 2.  **Geração de Cenários Tributários:** Gere de 2 a 4 cenários detalhados (Simples Nacional Anexo III, Anexo V, Lucro Presumido). Para cada cenário:
+    *   **Cálculo do CPP:** Você DEVE calcular a Contribuição Previdenciária Patronal (CPP) aplicável a cada regime. Não a receberá como entrada.
     *   **Fator R:** Se aplicável (Simples Nacional), calcule o valor de pró-labore necessário para atingir a razão de 28% (folha de salários / faturamento). Deixe claro no campo 'description' qual valor foi usado.
     *   **Impostos:** Preencha 'taxRate' (alíquota efetiva) e 'taxValue' (valor do imposto).
     *   **Encargos:** Calcule e preencha 'inssRate' (alíquota do INSS sobre o pró-labore/salário) e 'irRate' (alíquota do Imposto de Renda na fonte).

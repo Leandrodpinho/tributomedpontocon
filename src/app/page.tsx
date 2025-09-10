@@ -92,16 +92,10 @@ export default function Home() {
                 </RadioGroup>
               </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="payrollExpenses">Folha Salarial Bruta</Label>
+               <div className="space-y-2">
+                  <Label htmlFor="payrollExpenses">Folha Salarial Bruta (Opcional)</Label>
                   <Input id="payrollExpenses" name="payrollExpenses" type="number" placeholder="R$ 5.000,00" />
                 </div>
-                 <div className="space-y-2">
-                  <Label htmlFor="cpp">CPP (Contribuição Previdenciária Patronal)</Label>
-                  <Input id="cpp" name="cpp" type="number" placeholder="20%" />
-                </div>
-              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="clientData">

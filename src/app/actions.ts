@@ -18,7 +18,6 @@ const formSchema = z.object({
   ]),
   clientData: z.string().optional(),
   payrollExpenses: z.string().optional(),
-  cpp: z.string().optional(),
   attachments: z.array(fileSchema).optional(),
 });
 
@@ -36,7 +35,6 @@ export async function getAnalysis(
   const attachments = formData.getAll("attachments").filter(f => f instanceof File && f.size > 0) as File[];
   const clientData = formData.get("clientData") as string;
   const payrollExpenses = formData.get("payrollExpenses") as string;
-  const cpp = formData.get("cpp") as string;
   const clientType = formData.get("clientType");
 
 
@@ -53,7 +51,6 @@ export async function getAnalysis(
     clientType: clientType,
     clientData: clientData,
     payrollExpenses: payrollExpenses,
-    cpp: cpp,
     attachments: hasAttachments ? attachments : undefined,
   });
   
@@ -68,7 +65,6 @@ export async function getAnalysis(
     clientType: validClientType, 
     clientData: validClientData, 
     payrollExpenses: validPayrollExpenses,
-    cpp: validCpp,
     attachments: validAttachments 
   } = validatedFields.data;
 
@@ -82,7 +78,6 @@ export async function getAnalysis(
       clientType: validClientType, 
       clientData: validClientData, 
       payrollExpenses: validPayrollExpenses,
-      cpp: validCpp,
       attachedDocuments 
     });
 
