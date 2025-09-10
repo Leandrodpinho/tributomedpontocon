@@ -29,7 +29,12 @@ import { SubmitButton } from "@/components/submit-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 
-const initialState: AnalysisState = {};
+const initialState: AnalysisState = {
+  aiResponse: undefined,
+  transcribedText: undefined,
+  webhookResponse: undefined,
+  error: undefined,
+};
 
 function WebhookResponseDisplay({ response }: { response: string | undefined }) {
     if (!response) {
