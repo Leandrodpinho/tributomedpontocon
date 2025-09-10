@@ -26,8 +26,6 @@ import {
 } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal } from "lucide-react";
 
 const initialState: AnalysisState = {
   aiResponse: undefined,
@@ -35,42 +33,6 @@ const initialState: AnalysisState = {
   webhookResponse: undefined,
   error: undefined,
 };
-
-function WebhookResponseDisplay({ response }: { response: string | undefined }) {
-    if (!response) {
-        return <p className="text-sm text-muted-foreground">Nenhuma resposta do webhook.</p>;
-    }
-
-    try {
-        const parsed = JSON.parse(response);
-        if (parsed.error) {
-            return (
-                <Alert variant="destructive">
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Erro no Webhook</AlertTitle>
-                    <AlertDescription>
-                        <pre className="whitespace-pre-wrap text-sm font-sans">
-                            {JSON.stringify(parsed, null, 2)}
-                        </pre>
-                    </AlertDescription>
-                </Alert>
-            )
-        }
-        return (
-            <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-sans">
-                {response}
-            </pre>
-        )
-    } catch (e) {
-        // Not a JSON, just display as text
-        return (
-            <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-sans">
-                {response}
-            </pre>
-        )
-    }
-}
-
 
 export default function Home() {
   const [state, formAction] = useActionState(getAnalysis, initialState);
@@ -160,21 +122,19 @@ export default function Home() {
           </form>
         </Card>
 
-        {(state.aiResponse || state.webhookResponse) && (
+        {state.aiResponse && (
           <Card className="shadow-lg animate-in fade-in-50">
             <CardHeader>
               <CardTitle>Resultados da Análise</CardTitle>
               <CardDescription>
-                Abaixo estão os cenários gerados pela IA e a resposta do
-                webhook.
+                Abaixo estão os cenários gerados pela IA.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="scenarios">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="scenarios">Cenários Tributários</TabsTrigger>
                   <TabsTrigger value="irpf">Impacto no IRPF</TabsTrigger>
-                  <TabsTrigger value="webhook">Resposta do Webhook</TabsTrigger>
                 </TabsList>
                 <TabsContent value="scenarios" className="mt-4 p-4 border rounded-md min-h-[200px] bg-background">
                   {state.aiResponse?.taxScenarios ? (
@@ -193,9 +153,6 @@ export default function Home() {
                   ) : (
                     <p className="text-sm text-muted-foreground">Nenhum impacto de IRPF calculado.</p>
                   )}
-                </TabsContent>
-                <TabsContent value="webhook" className="mt-4 p-4 border rounded-md min-h-[200px] bg-muted/50">
-                    <WebhookResponseDisplay response={state.webhookResponse}/>
                 </TabsContent>
               </Tabs>
             </CardContent>
