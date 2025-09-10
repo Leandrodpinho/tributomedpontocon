@@ -6,7 +6,6 @@ import { generateTaxScenarios, type GenerateTaxScenariosOutput } from "@/ai/flow
 export interface AnalysisState {
   aiResponse?: GenerateTaxScenariosOutput;
   transcribedText?: string;
-  webhookResponse?: string;
   error?: string;
 }
 
@@ -17,24 +16,9 @@ const formSchema = z.object({
     "Novo aberturas de empresa",
     "Transferências de contabilidade",
   ]),
-  clientData: z
-    .string()
-    .optional(),
-  attachments: z
-    .array(fileSchema)
-    .min(1, "Por favor, anexe pelo menos um arquivo.")
-    .optional(),
-}).refine(
-  (data) => {
-    const hasClientData = data.clientData && data.clientData.trim().length > 0;
-    const hasAttachments = data.attachments && data.attachments.length > 0;
-    return hasClientData || hasAttachments;
-  },
-  {
-    message: "Por favor, forneça as informações financeiras ou anexe um ou mais documentos para análise.",
-    path: ["clientData"],
-  }
-);
+  clientData: z.string().optional(),
+  attachments: z.array(fileSchema).optional(),
+});
 
 
 async function fileToDataURI(file: File) {
@@ -48,22 +32,32 @@ export async function getAnalysis(
   formData: FormData
 ): Promise<AnalysisState> {
   const attachments = formData.getAll("attachments").filter(f => f instanceof File && f.size > 0) as File[];
+  const clientData = formData.get("clientData") as string;
+  const clientType = formData.get("clientType");
+
+  const hasClientData = clientData && clientData.trim().length > 0;
+  const hasAttachments = attachments && attachments.length > 0;
+
+  if (!hasClientData && !hasAttachments) {
+    return {
+       error: "Por favor, forneça as informações financeiras ou anexe um ou mais documentos para análise."
+    };
+  }
 
   const validatedFields = formSchema.safeParse({
-    clientType: formData.get("clientType"),
-    clientData: formData.get("clientData"),
-    attachments: attachments.length > 0 ? attachments : undefined,
+    clientType: clientType,
+    clientData: clientData,
+    attachments: hasAttachments ? attachments : undefined,
   });
 
   if (!validatedFields.success) {
-    const fieldErrors = validatedFields.error.flatten().fieldErrors;
-    const errorMessage = fieldErrors.clientData?.[0] || fieldErrors.attachments?.[0] || 'Erro de validação.';
+    const errorMessage = validatedFields.error.flatten().fieldErrors.attachments?.[0] || 'Erro de validação nos anexos.';
     return {
       error: errorMessage,
     };
   }
 
-  const { clientType, clientData, attachments: validAttachments } = validatedFields.data;
+  const { clientType: validClientType, clientData: validClientData, attachments: validAttachments } = validatedFields.data;
 
   try {
     let attachedDocuments: string[] | undefined = undefined;
@@ -71,12 +65,11 @@ export async function getAnalysis(
        attachedDocuments = await Promise.all(validAttachments.map(fileToDataURI));
     }
 
-    const aiResponse = await generateTaxScenarios({ clientType, clientData, attachedDocuments });
+    const aiResponse = await generateTaxScenarios({ clientType: validClientType, clientData: validClientData, attachedDocuments });
 
     return {
       aiResponse,
       transcribedText: aiResponse.transcribedText,
-      webhookResponse: "A chamada ao webhook foi removida temporariamente.",
     };
   } catch (error) {
     console.error(error);
