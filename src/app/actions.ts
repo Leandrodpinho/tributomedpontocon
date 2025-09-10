@@ -70,17 +70,17 @@ export async function getAnalysis(
     if (validAttachments && validAttachments.length > 0) {
        attachedDocuments = await Promise.all(validAttachments.map(fileToDataURI));
     }
-    
+
     // Concurrently call AI and webhook
     const [aiResponse, webhookResponse] = await Promise.all([
       generateTaxScenarios({ clientType, clientData, attachedDocuments }),
-      fetch("http://localhost:5678/webhook-test/Tributo%20Med.con", {
+      fetch("https://n8n.mavenlabs.com.br/webhook-test/chatadv", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clientType, clientData }),
       }),
     ]);
-    
+
     let webhookData: unknown;
     if (webhookResponse.ok) {
       webhookData = await webhookResponse.json();
