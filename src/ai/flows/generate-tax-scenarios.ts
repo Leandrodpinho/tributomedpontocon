@@ -72,8 +72,8 @@ Com base em todas as informações disponíveis:
 1.  Identifique e extraia o faturamento mensal do cliente e preencha no campo 'monthlyRevenue'. Formate como "R$ XX.XXX,XX".
 2.  Gere de 2 a 4 cenários tributários detalhados (Simples Nacional Anexo III, Anexo V, Lucro Presumido, etc.). Para cada cenário, preencha o nome, a alíquota efetiva, o valor do imposto e uma breve descrição (ex: "Considerando Fator R"). Coloque-os no campo 'scenarios'.
 3.  Analise o impacto no IRPF (Reflexo no IRPF) e preencha no campo 'irpfImpact'.
-4.  Forneça uma recomendação clara e direta sobre qual o melhor cenário no campo 'recommendation'.
-5.  Diferencie seu conselho com base se o cliente é uma 'Novo aberturas de empresa' ou uma 'Transferências de contabilidade'.
+4.  Forneça uma recomendação clara, analítica e direta sobre qual o melhor cenário no campo 'recommendation'. Justifique sua decisão com base nos números, no impacto do IRPF e nos objetivos de longo prazo do cliente. Aja como um consultor financeiro, ajudando na tomada de decisão.
+5.  Diferencie seu conselho com base se o cliente é uma 'Novo aberturas de empresa' ou uma 'Transferências de contabilidade'. Para transferências, considere os custos e a complexidade da migração. Para novas empresas, foque na estrutura ideal desde o início.
 
 Sua resposta deve ser estruturada estritamente de acordo com o JSON de saída.`,
 });
