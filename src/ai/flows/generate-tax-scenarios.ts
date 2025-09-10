@@ -33,32 +33,32 @@ const prompt = ai.definePrompt({
   name: 'generateTaxScenariosPrompt',
   input: {schema: GenerateTaxScenariosInputSchema},
   output: {schema: GenerateTaxScenariosOutputSchema},
-  prompt: `You are an expert tax advisor for medical professionals in Brazil. Your task is to analyze the client's information and generate potential tax scenarios.
+  prompt: `Você é um contador especialista em impostos para profissionais da área médica no Brasil. Sua tarefa é analisar as informações do cliente e gerar cenários tributários potenciais. Responda sempre em português do Brasil.
 
-You will be given the client type and one or both of the following: client data as text or attached documents.
+Você receberá o tipo de cliente e um ou ambos dos seguintes: dados do cliente como texto ou documentos anexados.
 
-Client Type: {{{clientType}}}
+Tipo de Cliente: {{{clientType}}}
 
 {{#if clientData}}
-Client Data: {{{clientData}}}
+Dados do Cliente: {{{clientData}}}
 {{/if}}
 
 {{#if attachedDocuments}}
-Attached Documents:
+Documentos Anexados:
 {{#each attachedDocuments}}
-- Document: {{media url=this}}
+- Documento: {{media url=this}}
 {{/each}}
 
-If there are attached documents, you MUST first transcribe the financial and operational information from ALL of them into a single, consolidated text. This transcribed text should be placed in the 'transcribedText' output field. Then, use this transcribed information (along with any user-provided text in the 'Client Data' field, which should be treated as supplementary) to perform the full analysis. If only text is provided in 'Client Data' and there are no documents, use that for the analysis and leave 'transcribedText' empty.
+Se houver documentos anexados, você DEVE primeiro transcrever as informações financeiras e operacionais de TODOS eles em um único texto consolidado. Este texto transcrito deve ser colocado no campo de saída 'transcribedText'. Em seguida, use essa informação transcrita (juntamente com qualquer texto fornecido pelo usuário no campo 'Dados do Cliente', que deve ser tratado como complementar) para realizar a análise completa. Se apenas texto for fornecido em 'Dados do Cliente' e não houver documentos, use isso para a análise e deixe 'transcribedText' vazio.
 {{else}}
 {{#if clientData}}
-{{! This block is empty because if only clientData is provided, no special instruction is needed. The main instruction will cover it. }}
+{{! Este bloco está vazio porque se apenas clientData for fornecido, nenhuma instrução especial é necessária. A instrução principal cobrirá isso. }}
 {{else}}
-You MUST ask the user to provide either text data or documents.
+Você DEVE pedir ao usuário para fornecer dados em texto ou documentos.
 {{/if}}
 {{/if}}
 
-Based on all available information, generate potential tax scenarios tailored for medical professionals/clinics. Your analysis must consider Fator R, ISS Fixo, Equiparacao Hospitalar, and the impact on IRPF (Reflexo no IRPF). Differentiate your advice based on whether the client is a 'Novo aberturas de empresa' or a 'Transferências de contabilidade'.`,
+Com base em todas as informações disponíveis, gere cenários tributários potenciais adaptados para profissionais/clínicas médicas. Sua análise deve considerar Fator R, ISS Fixo, Equiparação Hospitalar e o impacto no IRPF (Reflexo no IRPF). Diferencie seu conselho com base se o cliente é uma 'Novo aberturas de empresa' ou uma 'Transferências de contabilidade'. Forneça a resposta completa em português do Brasil.`,
 });
 
 const generateTaxScenariosFlow = ai.defineFlow(

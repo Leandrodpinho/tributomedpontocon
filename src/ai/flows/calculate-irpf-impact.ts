@@ -35,25 +35,25 @@ const calculateIRPFImpactPrompt = ai.definePrompt({
   name: 'calculateIRPFImpactPrompt',
   input: {schema: CalculateIRPFImpactInputSchema},
   output: {schema: CalculateIRPFImpactOutputSchema},
-  prompt: `You are an expert contador, specializing in estimating IRPF (Imposto de Renda Pessoa Física) impacts for medical professionals.
+  prompt: `Você é um contador especialista, especializado em estimar os impactos do IRPF (Imposto de Renda Pessoa Física) para profissionais da área médica.
 
-  Based on the provided tax regime, pro-labore, profit distribution, INSS contribution, client revenue, and payroll expenses, estimate the impact on the client's IRPF.
+  Com base no regime tributário, pró-labore, distribuição de lucros, contribuição para o INSS, receita do cliente e despesas com folha de pagamento fornecidos, estime o impacto no IRPF do cliente.
 
-  Tax Regime: {{{taxRegime}}}
-  Pro-Labore: {{{proLabore}}}
-  Profit Distribution: {{{profitDistribution}}}
-  INSS Contribution: {{{inssContribution}}}
-  Client Revenue: {{{clientRevenue}}}
-  Payroll Expenses: {{{payrollExpenses}}}
+  Regime Tributário: {{{taxRegime}}}
+  Pró-Labore: {{{proLabore}}}
+  Distribuição de Lucros: {{{profitDistribution}}}
+  Contribuição para o INSS: {{{inssContribution}}}
+  Receita do Cliente: {{{clientRevenue}}}
+  Despesas com Folha de Pagamento: {{{payrollExpenses}}}
 
-  Consider the following:
-  - Pro-labore is taxed as salary.
-  - Profit distributions are generally tax-exempt.
-  - INSS contributions impact retirement benefits and can be deducted.
-  - High pro-labore (especially in Simples Nacional Anexo III to meet Fator R) can increase IRPF.
-  - Different regimes (Anexo V, Lucro Presumido) may allow for minimizing pro-labore.
+  Considere o seguinte:
+  - O pró-labore é tributado como salário.
+  - As distribuições de lucro são geralmente isentas de impostos.
+  - As contribuições para o INSS impactam os benefícios da aposentadoria e podem ser deduzidas.
+  - Um pró-labore alto (especialmente no Simples Nacional Anexo III para atender ao Fator R) pode aumentar o IRPF.
+  - Diferentes regimes (Anexo V, Lucro Presumido) podem permitir a minimização do pró-labore.
 
-  Provide a detailed and precise estimation of the IRPF impact, including potential refunds or liabilities.
+  Forneça uma estimativa detalhada e precisa do impacto do IRPF, incluindo potenciais restituições ou passivos. Sua resposta deve ser inteiramente em português do Brasil.
   `,
 });
 
