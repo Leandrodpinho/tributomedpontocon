@@ -51,7 +51,9 @@ Attached Documents:
 
 If the 'Client Data' field is empty or insufficient, you MUST first transcribe the financial and operational information from ALL attached documents into a single, consolidated text. This transcribed text should be placed in the 'transcribedText' output field. Then, use this transcribed information (along with any user-provided text in 'Client Data') to perform the full analysis. If 'Client Data' is provided and sufficient, you may still use the documents to supplement the analysis, and the 'transcribedText' field should contain a summary of the key information from the documents.
 {{else}}
-{{#if (not clientData)}}
+{{#if clientData}}
+{{! This block is empty because if only clientData is provided, no special instruction is needed. The main instruction will cover it. }}
+{{else}}
 You MUST ask the user to provide either text data or documents.
 {{/if}}
 {{/if}}
