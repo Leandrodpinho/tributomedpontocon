@@ -28,7 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 
 const initialState: AnalysisState = {
-  isLoading: undefined,
+  isLoading: false,
 };
 
 export default function Home() {

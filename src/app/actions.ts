@@ -47,7 +47,6 @@ export async function getAnalysis(
   prevState: AnalysisState,
   formData: FormData
 ): Promise<AnalysisState> {
-
   const attachments = formData.getAll("attachments").filter(f => f instanceof File && f.size > 0) as File[];
 
   const validatedFields = formSchema.safeParse({
@@ -74,7 +73,7 @@ export async function getAnalysis(
     // Concurrently call AI and webhook
     const [aiResponse, webhookResponse] = await Promise.all([
       generateTaxScenarios({ clientType, clientData, attachedDocuments }),
-      fetch("https://n8n.mavenlabs.com.br/webhook-test/chatadv", {
+      fetch("http://localhost:5678/webhook-test/Tributo Med.con", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clientType, clientData }),
