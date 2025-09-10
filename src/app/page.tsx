@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useActionState } from "react";
+import { useEffect, useActionState, useRef } from "react";
 import { getAnalysis, type AnalysisState } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { LogoIcon } from "@/components/icons/logo";
@@ -32,6 +32,9 @@ const initialState: AnalysisState = {};
 export default function Home() {
   const [state, formAction] = useActionState(getAnalysis, initialState);
   const { toast } = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
+  const clientDataRef = useRef<HTMLTextAreaElement>(null);
+
 
   useEffect(() => {
     if (state.error) {
@@ -42,6 +45,12 @@ export default function Home() {
       });
     }
   }, [state.error, toast]);
+
+  useEffect(() => {
+    if (state.transcribedText && clientDataRef.current) {
+        clientDataRef.current.value = state.transcribedText;
+    }
+  }, [state.transcribedText]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -62,7 +71,7 @@ export default function Home() {
               otimizar a carga fiscal.
             </CardDescription>
           </CardHeader>
-          <form action={formAction}>
+          <form action={formAction} ref={formRef}>
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label>Tipo de Cliente</Label>
@@ -85,19 +94,20 @@ export default function Home() {
                 <Textarea
                   id="clientData"
                   name="clientData"
+                  ref={clientDataRef}
                   placeholder="Ex: Faturamento mensal, despesas com folha de pagamento, regime tributário atual, número de sócios, etc."
                   rows={5}
                 />
                 <p className="text-sm text-muted-foreground">
-                  Forneça os detalhes aqui ou anexe um documento abaixo.
+                  Forneça os detalhes aqui ou anexe um ou mais documentos abaixo.
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="attachment">Anexar Documentos</Label>
-                <Input id="attachment" name="attachment" type="file" />
+                <Label htmlFor="attachments">Anexar Documentos</Label>
+                <Input id="attachments" name="attachments" type="file" multiple />
                 <p className="text-sm text-muted-foreground">
-                  Anexe declarações, extratos do Simples Nacional, etc. A análise pode ser feita a partir do anexo.
+                  Anexe declarações, extratos do Simples Nacional, etc. (múltiplos arquivos são permitidos). A análise pode ser feita a partir dos anexos.
                 </p>
               </div>
             </CardContent>

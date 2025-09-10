@@ -5,10 +5,13 @@ import { generateTaxScenarios, type GenerateTaxScenariosOutput } from "@/ai/flow
 
 export interface AnalysisState {
   aiResponse?: GenerateTaxScenariosOutput;
+  transcribedText?: string;
   webhookResponse?: unknown;
   error?: string;
   isLoading?: boolean;
 }
+
+const fileSchema = z.instanceof(File).refine(file => file.size > 0, { message: "O arquivo não pode estar vazio." });
 
 const formSchema = z.object({
   clientType: z.enum([
@@ -18,17 +21,17 @@ const formSchema = z.object({
   clientData: z
     .string()
     .optional(),
-  attachment: z
-    .instanceof(File)
+  attachments: z
+    .array(fileSchema)
     .optional(),
 }).refine(
   (data) => {
     const hasClientData = data.clientData && data.clientData.trim().length >= 10;
-    const hasAttachment = data.attachment && data.attachment.size > 0;
-    return hasClientData || hasAttachment;
+    const hasAttachments = data.attachments && data.attachments.length > 0;
+    return hasClientData || hasAttachments;
   },
   {
-    message: "Por favor, forneça as informações financeiras ou anexe um documento para análise.",
+    message: "Por favor, forneça as informações financeiras ou anexe um ou mais documentos para análise.",
     path: ["clientData"], // Where to show the error
   }
 );
@@ -44,10 +47,13 @@ export async function getAnalysis(
   prevState: AnalysisState,
   formData: FormData
 ): Promise<AnalysisState> {
+
+  const attachments = formData.getAll("attachments").filter(f => f instanceof File && f.size > 0) as File[];
+
   const validatedFields = formSchema.safeParse({
     clientType: formData.get("clientType"),
     clientData: formData.get("clientData"),
-    attachment: formData.get("attachment"),
+    attachments: attachments.length > 0 ? attachments : undefined,
   });
 
   if (!validatedFields.success) {
@@ -57,12 +63,12 @@ export async function getAnalysis(
     };
   }
 
-  const { clientType, clientData, attachment } = validatedFields.data;
+  const { clientType, clientData, attachments: validAttachments } = validatedFields.data;
 
   try {
-    let attachedDocuments: string | undefined = undefined;
-    if (attachment && attachment.size > 0) {
-      attachedDocuments = await fileToDataURI(attachment);
+    let attachedDocuments: string[] | undefined = undefined;
+    if (validAttachments && validAttachments.length > 0) {
+       attachedDocuments = await Promise.all(validAttachments.map(fileToDataURI));
     }
     
     // Concurrently call AI and webhook
@@ -87,6 +93,7 @@ export async function getAnalysis(
 
     return {
       aiResponse,
+      transcribedText: aiResponse.transcribedText,
       webhookResponse: webhookData,
       isLoading: false,
     };
