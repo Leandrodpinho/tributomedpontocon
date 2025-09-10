@@ -17,6 +17,8 @@ const formSchema = z.object({
     "Transferências de contabilidade",
   ]),
   clientData: z.string().optional(),
+  payrollExpenses: z.string().optional(),
+  cpp: z.string().optional(),
   attachments: z.array(fileSchema).optional(),
 });
 
@@ -33,7 +35,10 @@ export async function getAnalysis(
 ): Promise<AnalysisState> {
   const attachments = formData.getAll("attachments").filter(f => f instanceof File && f.size > 0) as File[];
   const clientData = formData.get("clientData") as string;
+  const payrollExpenses = formData.get("payrollExpenses") as string;
+  const cpp = formData.get("cpp") as string;
   const clientType = formData.get("clientType");
+
 
   const hasClientData = clientData && clientData.trim().length > 0;
   const hasAttachments = attachments && attachments.length > 0;
@@ -43,21 +48,29 @@ export async function getAnalysis(
        error: "Por favor, forneça as informações financeiras ou anexe um ou mais documentos para análise."
     };
   }
-
+  
   const validatedFields = formSchema.safeParse({
     clientType: clientType,
     clientData: clientData,
+    payrollExpenses: payrollExpenses,
+    cpp: cpp,
     attachments: hasAttachments ? attachments : undefined,
   });
-
+  
   if (!validatedFields.success) {
-    const errorMessage = validatedFields.error.flatten().fieldErrors.attachments?.[0] || 'Erro de validação nos anexos.';
+    const errorMessage = validatedFields.error.flatten().fieldErrors.attachments?.[0] || 'Erro de validação nos campos.';
     return {
       error: errorMessage,
     };
   }
 
-  const { clientType: validClientType, clientData: validClientData, attachments: validAttachments } = validatedFields.data;
+  const { 
+    clientType: validClientType, 
+    clientData: validClientData, 
+    payrollExpenses: validPayrollExpenses,
+    cpp: validCpp,
+    attachments: validAttachments 
+  } = validatedFields.data;
 
   try {
     let attachedDocuments: string[] | undefined = undefined;
@@ -65,7 +78,13 @@ export async function getAnalysis(
        attachedDocuments = await Promise.all(validAttachments.map(fileToDataURI));
     }
 
-    const aiResponse = await generateTaxScenarios({ clientType: validClientType, clientData: validClientData, attachedDocuments });
+    const aiResponse = await generateTaxScenarios({ 
+      clientType: validClientType, 
+      clientData: validClientData, 
+      payrollExpenses: validPayrollExpenses,
+      cpp: validCpp,
+      attachedDocuments 
+    });
 
     return {
       aiResponse,

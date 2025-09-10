@@ -64,7 +64,10 @@ export function AnalysisPresentation({ analysis }: AnalysisPresentationProps) {
                       {scenario.taxValue}
                     </p>
                     <p className="text-sm font-semibold text-foreground">
-                      Alíquota: {scenario.taxRate}
+                      Alíquota Efetiva: {scenario.taxRate}
+                    </p>
+                     <p className="text-xs text-muted-foreground mt-1">
+                      INSS: {scenario.inssRate} | IR: {scenario.irRate}
                     </p>
                      <p className="text-xs text-muted-foreground mt-2">{scenario.description}</p>
                   </CardContent>

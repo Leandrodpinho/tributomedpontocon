@@ -92,6 +92,17 @@ export default function Home() {
                 </RadioGroup>
               </div>
 
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="payrollExpenses">Folha Salarial Bruta</Label>
+                  <Input id="payrollExpenses" name="payrollExpenses" type="number" placeholder="R$ 5.000,00" />
+                </div>
+                 <div className="space-y-2">
+                  <Label htmlFor="cpp">CPP (Contribuição Previdenciária Patronal)</Label>
+                  <Input id="cpp" name="cpp" type="number" placeholder="20%" />
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="clientData">
                   Informações Financeiras e Operacionais (Opcional se anexo)
@@ -100,7 +111,7 @@ export default function Home() {
                   id="clientData"
                   name="clientData"
                   ref={clientDataRef}
-                  placeholder="Ex: Faturamento mensal, despesas com folha de pagamento, regime tributário atual, número de sócios, etc."
+                  placeholder="Ex: Faturamento mensal, número de sócios, etc. Use este campo para complementar ou em vez de anexar documentos."
                   rows={5}
                 />
                 <p className="text-sm text-muted-foreground">
@@ -143,7 +154,7 @@ export default function Home() {
                 <TabsContent value="scenarios" className="mt-4 p-4 border rounded-md min-h-[200px] bg-background">
                   {state.aiResponse?.scenarios ? (
                      <pre className="whitespace-pre-wrap text-sm text-foreground font-sans">
-                      {state.aiResponse.scenarios.map(s => `${s.name} (${s.taxRate}): ${s.taxValue}\n${s.description}`).join('\n\n')}
+                      {state.aiResponse.scenarios.map(s => `${s.name} (${s.taxRate}): ${s.taxValue}\n(INSS: ${s.inssRate}, IR: ${s.irRate})\n${s.description}`).join('\n\n')}
                     </pre>
                   ) : (
                     <p className="text-sm text-muted-foreground">Nenhum cenário gerado.</p>

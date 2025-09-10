@@ -12,7 +12,9 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateTaxScenariosInputSchema = z.object({
-  clientData: z.string().optional().describe('The client financial and operational information (revenue, payroll, current tax regime, etc.)'),
+  clientData: z.string().optional().describe('The client financial and operational information (revenue, etc.)'),
+  payrollExpenses: z.string().optional().describe('As despesas com a folha de pagamento do cliente.'),
+  cpp: z.string().optional().describe('A alíquota da Contribuição Previdenciária Patronal (CPP).'),
   attachedDocuments: z.array(z.string()).optional().describe('Relevant documents like tax declarations and Simples Nacional extracts as a data URI.'),
   clientType: z.enum(['Novo aberturas de empresa', 'Transferências de contabilidade']).describe('The type of client.'),
 });
@@ -22,6 +24,8 @@ const ScenarioDetailSchema = z.object({
   name: z.string().describe('O nome do cenário (ex: "Simples Nacional Anexo III").'),
   taxRate: z.string().describe('A alíquota efetiva ou porcentagem do imposto (ex: "10,75%").'),
   taxValue: z.string().describe('O valor do imposto a ser pago (ex: "R$ 1.270,15").'),
+  inssRate: z.string().describe('A alíquota do INSS para este cenário.'),
+  irRate: z.string().describe('A alíquota do Imposto de Renda (IR) para este cenário.'),
   description: z.string().describe('Uma breve descrição ou observação sobre o cenário.'),
 });
 
@@ -43,14 +47,16 @@ const prompt = ai.definePrompt({
   name: 'generateTaxScenariosPrompt',
   input: {schema: GenerateTaxScenariosInputSchema},
   output: {schema: GenerateTaxScenariosOutputSchema},
-  prompt: `Você é um contador especialista em impostos para profissionais da área médica no Brasil. Sua tarefa é analisar as informações do cliente e gerar um planejamento tributário detalhado. Responda sempre em português do Brasil.
+  prompt: `Você é um contador especialista em impostos para profissionais da área médica no Brasil, atualizado com a legislação vigente de 2025. Sua tarefa é analisar as informações do cliente e gerar um planejamento tributário detalhado e analítico. Responda sempre em português do Brasil.
 
-Você receberá o tipo de cliente e um ou ambos dos seguintes: dados do cliente como texto ou documentos anexados.
+Você receberá o tipo de cliente e informações financeiras.
 
 Tipo de Cliente: {{{clientType}}}
+{{#if payrollExpenses}}Folha Salarial Bruta: {{{payrollExpenses}}}{{/if}}
+{{#if cpp}}CPP: {{{cpp}}}{{/if}}
 
 {{#if clientData}}
-Dados do Cliente: {{{clientData}}}
+Dados do Cliente (texto): {{{clientData}}}
 {{/if}}
 
 {{#if attachedDocuments}}
@@ -59,21 +65,25 @@ Documentos Anexados:
 - Documento: {{media url=this}}
 {{/each}}
 
-Se houver documentos anexados, você DEVE primeiro transcrever as informações financeiras e operacionais de TODOS eles em um único texto consolidado. Este texto transcrito deve ser colocado no campo de saída 'transcribedText'. Em seguida, use essa informação transcrita (juntamente com qualquer texto fornecido pelo usuário no campo 'Dados do Cliente', que deve ser tratado como complementar) para realizar a análise completa. Se apenas texto for fornecido em 'Dados do Cliente' e não houver documentos, use isso para a análise e deixe 'transcribedText' vazio.
+Se houver documentos anexados, você DEVE primeiro transcrever as informações financeiras e operacionais de TODOS eles em um único texto consolidado. Este texto transcrito deve ser colocado no campo 'transcribedText'. Use essa informação transcrita (juntamente com qualquer texto fornecido pelo usuário e os campos de folha salarial/CPP) para realizar a análise completa. Se apenas texto for fornecido, use-o para a análise e deixe 'transcribedText' vazio.
 {{else}}
 {{#if clientData}}
-{{! Este bloco está vazio porque se apenas clientData for fornecido, nenhuma instrução especial é necessária. A instrução principal cobrirá isso. }}
+{{! Nenhuma instrução especial necessária se apenas clientData for fornecido. }}
 {{else}}
 Você DEVE pedir ao usuário para fornecer dados em texto ou documentos.
 {{/if}}
 {{/if}}
 
-Com base em todas as informações disponíveis:
-1.  Identifique e extraia o faturamento mensal do cliente e preencha no campo 'monthlyRevenue'. Formate como "R$ XX.XXX,XX".
-2.  Gere de 2 a 4 cenários tributários detalhados (Simples Nacional Anexo III, Anexo V, Lucro Presumido, etc.). Para cada cenário, preencha o nome, a alíquota efetiva, o valor do imposto e uma breve descrição (ex: "Considerando Fator R"). Coloque-os no campo 'scenarios'.
-3.  Analise o impacto no IRPF (Reflexo no IRPF) e preencha no campo 'irpfImpact'.
-4.  Forneça uma recomendação clara, analítica e direta sobre qual o melhor cenário no campo 'recommendation'. Justifique sua decisão com base nos números, no impacto do IRPF e nos objetivos de longo prazo do cliente. Aja como um consultor financeiro, ajudando na tomada de decisão.
-5.  Diferencie seu conselho com base se o cliente é uma 'Novo aberturas de empresa' ou uma 'Transferências de contabilidade'. Para transferências, considere os custos e a complexidade da migração. Para novas empresas, foque na estrutura ideal desde o início.
+Com base em todas as informações disponíveis e na legislação de 2025:
+1.  **Extração e Análise de Faturamento:** Identifique e extraia o faturamento mensal do cliente e preencha o campo 'monthlyRevenue'. Formate como "R$ XX.XXX,XX".
+2.  **Geração de Cenários Tributários:** Gere de 2 a 4 cenários detalhados (Simples Nacional Anexo III, Anexo V, Lucro Presumido). Para cada cenário:
+    *   **Fator R:** Se aplicável (Simples Nacional), calcule o valor de pró-labore necessário para atingir a razão de 28% (folha de salários / faturamento). Deixe claro no campo 'description' qual valor foi usado.
+    *   **Impostos:** Preencha 'taxRate' (alíquota efetiva) e 'taxValue' (valor do imposto).
+    *   **Encargos:** Calcule e preencha 'inssRate' (alíquota do INSS sobre o pró-labore/salário) e 'irRate' (alíquota do Imposto de Renda na fonte).
+    *   Coloque os resultados no campo 'scenarios'.
+3.  **Impacto no IRPF:** Analise o impacto no IRPF do sócio (Reflexo no IRPF), considerando o pró-labore e a distribuição de lucros de cada cenário. Preencha no campo 'irpfImpact'.
+4.  **Recomendação Consultiva:** Forneça uma recomendação clara, analítica e direta sobre qual o melhor cenário no campo 'recommendation'. Justifique sua decisão com base nos números (imposto total, IRPF, economia), na complexidade e nos objetivos de longo prazo do cliente. Aja como um consultor financeiro, ajudando na tomada de decisão.
+5.  **Diferenciação por Cliente:** Adapte seu conselho com base se o cliente é uma 'Novo aberturas de empresa' (foco na estrutura ideal inicial) ou uma 'Transferências de contabilidade' (considere custos e complexidade da migração).
 
 Sua resposta deve ser estruturada estritamente de acordo com o JSON de saída.`,
 });
