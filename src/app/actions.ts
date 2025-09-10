@@ -57,7 +57,7 @@ export async function getAnalysis(
     // Concurrently call AI and webhook
     const [aiResponse, webhookResponse] = await Promise.all([
       generateTaxScenarios({ clientType, clientData, attachedDocuments }),
-      fetch("https://n8n.mavenlabs.com.br/webhook-test/chatadv", {
+      fetch("http://localhost:5678/webhook-test/Tributo%20Med.con", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clientType, clientData }),
