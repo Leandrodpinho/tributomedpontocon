@@ -26,8 +26,46 @@ import {
 } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from "lucide-react";
 
 const initialState: AnalysisState = {};
+
+function WebhookResponseDisplay({ response }: { response: string | undefined }) {
+    if (!response) {
+        return <p className="text-sm text-muted-foreground">Nenhuma resposta do webhook.</p>;
+    }
+
+    try {
+        const parsed = JSON.parse(response);
+        if (parsed.error) {
+            return (
+                <Alert variant="destructive">
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Erro no Webhook</AlertTitle>
+                    <AlertDescription>
+                        <pre className="whitespace-pre-wrap text-sm font-sans">
+                            {JSON.stringify(parsed, null, 2)}
+                        </pre>
+                    </AlertDescription>
+                </Alert>
+            )
+        }
+        return (
+            <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
+                {response}
+            </pre>
+        )
+    } catch (e) {
+        // Not a JSON, just display as text
+        return (
+            <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
+                {response}
+            </pre>
+        )
+    }
+}
+
 
 export default function Home() {
   const [state, formAction] = useActionState(getAnalysis, initialState);
@@ -152,9 +190,7 @@ export default function Home() {
                   )}
                 </TabsContent>
                 <TabsContent value="webhook" className="mt-4 p-4 border rounded-md min-h-[200px] bg-muted/50">
-                  <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
-                    {state.webhookResponse ? state.webhookResponse : "Nenhuma resposta do webhook."}
-                  </pre>
+                    <WebhookResponseDisplay response={state.webhookResponse}/>
                 </TabsContent>
               </Tabs>
             </CardContent>

@@ -6,7 +6,7 @@ import { generateTaxScenarios, type GenerateTaxScenariosOutput } from "@/ai/flow
 export interface AnalysisState {
   aiResponse?: GenerateTaxScenariosOutput;
   transcribedText?: string;
-  webhookResponse?: string; // Changed to string
+  webhookResponse?: string;
   error?: string;
 }
 
@@ -25,7 +25,8 @@ const formSchema = z.object({
     .optional(),
 }).refine(
   (data) => {
-    const hasClientData = data.clientData && data.clientData.trim().length >= 10;
+    // We need either clientData (non-empty) or at least one attachment.
+    const hasClientData = data.clientData && data.clientData.trim().length > 0;
     const hasAttachments = data.attachments && data.attachments.length > 0;
     return hasClientData || hasAttachments;
   },
@@ -68,10 +69,12 @@ export async function getAnalysis(
        attachedDocuments = await Promise.all(validAttachments.map(fileToDataURI));
     }
 
+    const webhookUrl = "http://localhost:5678/webhook-test/Tributo Med.con";
+
     // Concurrently call AI and webhook
     const [aiResponse, webhookResponse] = await Promise.all([
       generateTaxScenarios({ clientType, clientData, attachedDocuments }),
-      fetch("http://localhost:5678/webhook-test/Tributo Med.con", {
+      fetch(encodeURI(webhookUrl), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clientType, clientData }),
