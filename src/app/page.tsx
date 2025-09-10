@@ -59,7 +59,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <LogoIcon className="h-6 w-6" />
           <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Tributo Med<span className="text-primary">.con</span> Analyzer
+            Tributo Med<span className="text-primary">.con</span>
           </h1>
         </div>
       </header>
