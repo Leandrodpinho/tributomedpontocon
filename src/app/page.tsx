@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
-import { useFormState } from "react-dom";
+import { useEffect, useActionState } from "react";
 import { getAnalysis, type AnalysisState } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { LogoIcon } from "@/components/icons/logo";
@@ -13,15 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -40,7 +30,7 @@ import { SubmitButton } from "@/components/submit-button";
 const initialState: AnalysisState = {};
 
 export default function Home() {
-  const [state, formAction] = useFormState(getAnalysis, initialState);
+  const [state, formAction] = useActionState(getAnalysis, initialState);
   const { toast } = useToast();
 
   useEffect(() => {
