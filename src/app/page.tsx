@@ -58,7 +58,7 @@ export default function Home() {
           <CardHeader>
             <CardTitle>Análise Tributária Personalizada</CardTitle>
             <CardDescription>
-              Insira as informações do cliente para gerar cenários tributários e
+              Insira as informações do cliente ou anexe um documento para gerar cenários tributários e
               otimizar a carga fiscal.
             </CardDescription>
           </CardHeader>
@@ -80,25 +80,24 @@ export default function Home() {
 
               <div className="space-y-2">
                 <Label htmlFor="clientData">
-                  Informações Financeiras e Operacionais
+                  Informações Financeiras e Operacionais (Opcional se anexo)
                 </Label>
                 <Textarea
                   id="clientData"
                   name="clientData"
                   placeholder="Ex: Faturamento mensal, despesas com folha de pagamento, regime tributário atual, número de sócios, etc."
                   rows={5}
-                  required
                 />
                 <p className="text-sm text-muted-foreground">
-                  Quanto mais detalhes, mais precisa será a análise.
+                  Forneça os detalhes aqui ou anexe um documento abaixo.
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="attachment">Anexar Documentos (Opcional)</Label>
+                <Label htmlFor="attachment">Anexar Documentos</Label>
                 <Input id="attachment" name="attachment" type="file" />
                 <p className="text-sm text-muted-foreground">
-                  Anexe declarações, extratos do Simples Nacional, etc.
+                  Anexe declarações, extratos do Simples Nacional, etc. A análise pode ser feita a partir do anexo.
                 </p>
               </div>
             </CardContent>

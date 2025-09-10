@@ -17,11 +17,22 @@ const formSchema = z.object({
   ]),
   clientData: z
     .string()
-    .min(10, "Por favor, forneça detalhes suficientes para a análise."),
+    .optional(),
   attachment: z
     .instanceof(File)
     .optional(),
-});
+}).refine(
+  (data) => {
+    const hasClientData = data.clientData && data.clientData.trim().length >= 10;
+    const hasAttachment = data.attachment && data.attachment.size > 0;
+    return hasClientData || hasAttachment;
+  },
+  {
+    message: "Por favor, forneça as informações financeiras ou anexe um documento para análise.",
+    path: ["clientData"], // Where to show the error
+  }
+);
+
 
 async function fileToDataURI(file: File) {
   const arrayBuffer = await file.arrayBuffer();
