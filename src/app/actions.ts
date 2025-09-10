@@ -8,7 +8,6 @@ export interface AnalysisState {
   transcribedText?: string;
   webhookResponse?: unknown;
   error?: string;
-  isLoading?: boolean;
 }
 
 const fileSchema = z.instanceof(File).refine(file => file.size > 0, { message: "O arquivo não pode estar vazio." });
@@ -58,7 +57,6 @@ export async function getAnalysis(
   if (!validatedFields.success) {
     return {
       error: validatedFields.error.flatten().fieldErrors.clientData?.[0] || 'Erro de validação.',
-      isLoading: false,
     };
   }
 
@@ -94,14 +92,12 @@ export async function getAnalysis(
       aiResponse,
       transcribedText: aiResponse.transcribedText,
       webhookResponse: webhookData,
-      isLoading: false,
     };
   } catch (error) {
     console.error(error);
     const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
     return {
       error: `Falha ao processar a análise: ${errorMessage}`,
-      isLoading: false,
     };
   }
 }

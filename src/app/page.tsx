@@ -27,9 +27,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 
-const initialState: AnalysisState = {
-  isLoading: false,
-};
+const initialState: AnalysisState = {};
 
 export default function Home() {
   const [state, formAction] = useActionState(getAnalysis, initialState);
@@ -119,7 +117,7 @@ export default function Home() {
           </form>
         </Card>
 
-        {state.isLoading === false && (state.aiResponse || state.webhookResponse) && (
+        {(state.aiResponse || state.webhookResponse) && (
           <Card className="shadow-lg animate-in fade-in-50">
             <CardHeader>
               <CardTitle>Resultados da Análise</CardTitle>
