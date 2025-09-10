@@ -4,6 +4,7 @@ import { useEffect, useActionState, useRef } from "react";
 import { getAnalysis, type AnalysisState } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { LogoIcon } from "@/components/icons/logo";
+import { AnalysisPresentation } from "@/components/analysis-presentation";
 import {
   Card,
   CardContent,
@@ -30,7 +31,6 @@ import { SubmitButton } from "@/components/submit-button";
 const initialState: AnalysisState = {
   aiResponse: undefined,
   transcribedText: undefined,
-  webhookResponse: undefined,
   error: undefined,
 };
 
@@ -127,19 +127,23 @@ export default function Home() {
             <CardHeader>
               <CardTitle>Resultados da Análise</CardTitle>
               <CardDescription>
-                Abaixo estão os cenários gerados pela IA.
+                Abaixo estão os cenários gerados pela IA, em formato de texto e apresentação.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="scenarios">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="scenarios">Cenários Tributários</TabsTrigger>
+              <Tabs defaultValue="presentation">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="presentation">Apresentação</TabsTrigger>
+                  <TabsTrigger value="scenarios">Cenários (Texto)</TabsTrigger>
                   <TabsTrigger value="irpf">Impacto no IRPF</TabsTrigger>
                 </TabsList>
+                <TabsContent value="presentation">
+                   <AnalysisPresentation analysis={state.aiResponse} />
+                </TabsContent>
                 <TabsContent value="scenarios" className="mt-4 p-4 border rounded-md min-h-[200px] bg-background">
-                  {state.aiResponse?.taxScenarios ? (
+                  {state.aiResponse?.scenarios ? (
                      <pre className="whitespace-pre-wrap text-sm text-foreground font-sans">
-                      {state.aiResponse.taxScenarios}
+                      {state.aiResponse.scenarios.map(s => `${s.name} (${s.taxRate}): ${s.taxValue}\n${s.description}`).join('\n\n')}
                     </pre>
                   ) : (
                     <p className="text-sm text-muted-foreground">Nenhum cenário gerado.</p>

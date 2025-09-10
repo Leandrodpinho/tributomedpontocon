@@ -18,12 +18,22 @@ const GenerateTaxScenariosInputSchema = z.object({
 });
 export type GenerateTaxScenariosInput = z.infer<typeof GenerateTaxScenariosInputSchema>;
 
+const ScenarioDetailSchema = z.object({
+  name: z.string().describe('O nome do cenário (ex: "Simples Nacional Anexo III").'),
+  taxRate: z.string().describe('A alíquota efetiva ou porcentagem do imposto (ex: "10,75%").'),
+  taxValue: z.string().describe('O valor do imposto a ser pago (ex: "R$ 1.270,15").'),
+  description: z.string().describe('Uma breve descrição ou observação sobre o cenário.'),
+});
+
 const GenerateTaxScenariosOutputSchema = z.object({
-  transcribedText: z.string().describe('The transcribed financial and operational information from the attached documents.'),
-  taxScenarios: z.string().describe('The potential tax scenarios tailored for medical professionals and clinics.'),
-  irpfImpact: z.string().describe('The estimated impact of different tax regimes on the client\'s IRPF.'),
+  transcribedText: z.string().describe('As informações financeiras e operacionais transcritas dos documentos anexados.'),
+  scenarios: z.array(ScenarioDetailSchema).describe('Uma lista de cenários tributários detalhados.'),
+  irpfImpact: z.string().describe("O impacto estimado dos diferentes regimes tributários no IRPF do cliente."),
+  recommendation: z.string().describe('A recomendação final sobre o melhor cenário tributário.'),
+  monthlyRevenue: z.string().describe('O faturamento mensal identificado para o cliente.'),
 });
 export type GenerateTaxScenariosOutput = z.infer<typeof GenerateTaxScenariosOutputSchema>;
+
 
 export async function generateTaxScenarios(input: GenerateTaxScenariosInput): Promise<GenerateTaxScenariosOutput> {
   return generateTaxScenariosFlow(input);
@@ -33,7 +43,7 @@ const prompt = ai.definePrompt({
   name: 'generateTaxScenariosPrompt',
   input: {schema: GenerateTaxScenariosInputSchema},
   output: {schema: GenerateTaxScenariosOutputSchema},
-  prompt: `Você é um contador especialista em impostos para profissionais da área médica no Brasil. Sua tarefa é analisar as informações do cliente e gerar cenários tributários potenciais. Responda sempre em português do Brasil.
+  prompt: `Você é um contador especialista em impostos para profissionais da área médica no Brasil. Sua tarefa é analisar as informações do cliente e gerar um planejamento tributário detalhado. Responda sempre em português do Brasil.
 
 Você receberá o tipo de cliente e um ou ambos dos seguintes: dados do cliente como texto ou documentos anexados.
 
@@ -58,7 +68,14 @@ Você DEVE pedir ao usuário para fornecer dados em texto ou documentos.
 {{/if}}
 {{/if}}
 
-Com base em todas as informações disponíveis, gere cenários tributários potenciais adaptados para profissionais/clínicas médicas. Sua análise deve considerar Fator R, ISS Fixo, Equiparação Hospitalar e o impacto no IRPF (Reflexo no IRPF). Diferencie seu conselho com base se o cliente é uma 'Novo aberturas de empresa' ou uma 'Transferências de contabilidade'. Forneça a resposta completa em português do Brasil.`,
+Com base em todas as informações disponíveis:
+1.  Identifique e extraia o faturamento mensal do cliente e preencha no campo 'monthlyRevenue'. Formate como "R$ XX.XXX,XX".
+2.  Gere de 2 a 4 cenários tributários detalhados (Simples Nacional Anexo III, Anexo V, Lucro Presumido, etc.). Para cada cenário, preencha o nome, a alíquota efetiva, o valor do imposto e uma breve descrição (ex: "Considerando Fator R"). Coloque-os no campo 'scenarios'.
+3.  Analise o impacto no IRPF (Reflexo no IRPF) e preencha no campo 'irpfImpact'.
+4.  Forneça uma recomendação clara e direta sobre qual o melhor cenário no campo 'recommendation'.
+5.  Diferencie seu conselho com base se o cliente é uma 'Novo aberturas de empresa' ou uma 'Transferências de contabilidade'.
+
+Sua resposta deve ser estruturada estritamente de acordo com o JSON de saída.`,
 });
 
 const generateTaxScenariosFlow = ai.defineFlow(
