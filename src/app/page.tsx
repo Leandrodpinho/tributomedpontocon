@@ -153,7 +153,7 @@ export default function Home() {
                 </TabsContent>
                 <TabsContent value="webhook" className="mt-4 p-4 border rounded-md min-h-[200px] bg-muted/50">
                   <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
-                    {state.webhookResponse ? JSON.stringify(state.webhookResponse, null, 2) : "Nenhuma resposta do webhook."}
+                    {state.webhookResponse ? state.webhookResponse : "Nenhuma resposta do webhook."}
                   </pre>
                 </TabsContent>
               </Tabs>

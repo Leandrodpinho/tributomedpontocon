@@ -6,7 +6,7 @@ import { generateTaxScenarios, type GenerateTaxScenariosOutput } from "@/ai/flow
 export interface AnalysisState {
   aiResponse?: GenerateTaxScenariosOutput;
   transcribedText?: string;
-  webhookResponse?: unknown;
+  webhookResponse?: string; // Changed to string
   error?: string;
 }
 
@@ -91,7 +91,7 @@ export async function getAnalysis(
     return {
       aiResponse,
       transcribedText: aiResponse.transcribedText,
-      webhookResponse: webhookData,
+      webhookResponse: JSON.stringify(webhookData, null, 2), // Serialize the response
     };
   } catch (error) {
     console.error(error);
