@@ -95,10 +95,10 @@ export default function Home() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                    <Label htmlFor="payrollExpenses">Folha Salarial Bruta (CLT, Opcional)</Label>
+                    <Label htmlFor="payrollExpenses">Folha Salarial Bruta (CLT)</Label>
                     <Input id="payrollExpenses" name="payrollExpenses" type="text" placeholder="Ex: 5000.00 (use ponto)" />
                     <p className="text-sm text-muted-foreground">
-                      Crucial para o cálculo do Fator R no Simples Nacional.
+                      Opcional. Crucial para o cálculo do Fator R no Simples Nacional.
                     </p>
                   </div>
                 <div className="space-y-2">
@@ -112,17 +112,17 @@ export default function Home() {
 
               <div className="space-y-2">
                 <Label htmlFor="clientData">
-                  Informações Financeiras e Operacionais (Opcional se anexo)
+                  Informações Financeiras e Operacionais
                 </Label>
                 <Textarea
                   id="clientData"
                   name="clientData"
                   ref={clientDataRef}
-                  placeholder="Ex: Faturamento mensal, número de sócios, etc. Use este campo para complementar ou em vez de anexar documentos."
+                  placeholder="Ex: Faturamento mensal de R$ 10.000,00, um único sócio. Ou cole o texto de documentos aqui."
                   rows={5}
                 />
                 <p className="text-sm text-muted-foreground">
-                  Forneça os detalhes aqui ou anexe um ou mais documentos abaixo.
+                   Forneça os detalhes aqui ou anexe documentos abaixo. Um dos dois é obrigatório.
                 </p>
               </div>
 
@@ -130,7 +130,7 @@ export default function Home() {
                 <Label htmlFor="attachments">Anexar Documentos</Label>
                 <Input id="attachments" name="attachments" type="file" multiple />
                 <p className="text-sm text-muted-foreground">
-                  Anexe declarações, extratos do Simples Nacional, etc. (múltiplos arquivos são permitidos). A análise pode ser feita a partir dos anexos.
+                  Opcional. Anexe declarações, extratos do Simples, etc. A IA pode extrair os dados dos anexos.
                 </p>
               </div>
             </CardContent>
@@ -158,19 +158,30 @@ export default function Home() {
                    <AnalysisPresentation analysis={state.aiResponse} />
                 </TabsContent>
                 <TabsContent value="details" className="mt-4">
-                  <ScrollArea className="h-[500px] p-4 border rounded-md">
+                  <ScrollArea className="h-[600px] p-4 border rounded-md">
                      <div className="space-y-6 text-sm text-foreground font-sans">
                         <div>
-                          <h3 className="font-bold text-lg mb-2">Resumo Executivo</h3>
+                          <h3 className="font-bold text-lg mb-2 text-primary">Resumo Executivo e Recomendações</h3>
                           <p className="whitespace-pre-wrap">{state.aiResponse.executiveSummary}</p>
                         </div>
+                        
+                        <div className="border-t border-border my-4"></div>
+
                         {state.aiResponse.scenarios.map((scenario, index) => (
-                           <div key={index} className="space-y-4">
-                              <h4 className="font-bold text-md text-primary">{scenario.name}</h4>
-                              <p><span className="font-semibold">Imposto Total:</span> {scenario.totalTaxValue} ({scenario.effectiveRate} efetiva)</p>
-                              <p><span className="font-semibold">Lucro Líquido para o Sócio:</span> <span className="text-green-400 font-bold">{scenario.netProfitDistribution}</span></p>
+                           <div key={index} className="space-y-4 pt-4">
+                              <h4 className="font-bold text-lg text-primary">{scenario.name}</h4>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="font-semibold">Imposto Total:</p>
+                                    <p className="text-destructive font-bold text-xl">{scenario.totalTaxValue} ({scenario.effectiveRate} efetiva)</p>
+                                </div>
+                                <div>
+                                    <p className="font-semibold">Lucro Líquido para o Sócio:</p>
+                                    <p className="text-green-400 font-bold text-xl">{scenario.netProfitDistribution}</p>
+                                </div>
+                              </div>
                               
-                              <h5 className="font-semibold mt-2">Detalhamento dos Tributos:</h5>
+                              <h5 className="font-semibold mt-4 text-base">Detalhamento dos Tributos:</h5>
                                <Table>
                                   <TableHeader>
                                     <TableRow>
@@ -190,16 +201,24 @@ export default function Home() {
                                   </TableBody>
                                 </Table>
 
-                                <h5 className="font-semibold mt-2">Análise do Pró-Labore:</h5>
-                                <p>
-                                  Base: {scenario.proLaboreAnalysis.baseValue} | 
-                                  INSS: {scenario.proLaboreAnalysis.inssValue} | 
-                                  IRRF: {scenario.proLaboreAnalysis.irrfValue} | 
-                                  Líquido: <span className="font-bold">{scenario.proLaboreAnalysis.netValue}</span>
-                                </p>
+                                <h5 className="font-semibold mt-4 text-base">Análise do Pró-Labore:</h5>
+                                <div className="p-4 border rounded-md bg-secondary/50">
+                                    <p>
+                                    <span className="font-semibold">Valor Bruto:</span> {scenario.proLaboreAnalysis.baseValue}
+                                    </p>
+                                    <p>
+                                    <span className="font-semibold text-red-400">INSS (sócio):</span> {scenario.proLaboreAnalysis.inssValue}
+                                    </p>
+                                     <p>
+                                    <span className="font-semibold text-red-400">IRRF:</span> {scenario.proLaboreAnalysis.irrfValue}
+                                    </p>
+                                    <p className="mt-2">
+                                    <span className="font-bold">Valor Líquido Recebido:</span> <span className="font-bold text-lg">{scenario.proLaboreAnalysis.netValue}</span>
+                                    </p>
+                                </div>
                                 
-                                <p className="text-xs text-muted-foreground mt-2">
-                                  <span className="font-semibold">Notas:</span> {scenario.notes}
+                                <p className="text-xs text-muted-foreground mt-4 italic">
+                                  <span className="font-semibold">Notas da IA:</span> {scenario.notes}
                                 </p>
                            </div>
                         ))}
