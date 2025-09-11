@@ -4,9 +4,13 @@ import type { GenerateTaxScenariosOutput, ScenarioDetail } from '@/ai/flows/gene
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BarChart, Briefcase, ChevronRight, FileText, GanttChart, Target } from 'lucide-react';
+import { BarChart, Briefcase, ChevronRight, Download, FileText, GanttChart, Printer, Target } from 'lucide-react';
 import { ScenarioComparisonChart } from './scenario-comparison-chart';
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { MarkdownRenderer } from './markdown-renderer';
+import { saveAs } from 'file-saver';
+import htmlToDocx from 'html-to-docx';
 
 
 // Helper to parse currency strings like "R$ 1.234,56" into numbers
@@ -38,6 +42,21 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
     const annualSavings = monthlySavings * 12;
     const economyPercentage = bestScenario && worstScenario && parseCurrency(worstScenario.totalTaxValue) > 0 ? (monthlySavings / parseCurrency(worstScenario.totalTaxValue)) * 100 : 0;
 
+    const handlePrint = () => {
+        window.print();
+    };
+
+    const handleDownloadDocx = async () => {
+        const reportElement = document.getElementById('report-content');
+        if (reportElement) {
+            const fileBuffer = await htmlToDocx(reportElement.outerHTML, undefined, {
+                font: 'Arial',
+                fontSize: 12,
+            });
+            saveAs(fileBuffer as Blob, `Relatorio_Tributario_${clientName.replace(/\s/g, '_')}.docx`);
+        }
+    };
+
 
     const SideNavItem = ({ icon, label, href }: { icon: React.ReactNode, label: string, href: string }) => (
         <a href={href} className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-primary/10">
@@ -62,7 +81,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
 
     return (
         <div className="grid min-h-[calc(100vh-4rem)] w-full lg:grid-cols-[280px_1fr]">
-            <div className="hidden border-r bg-muted/40 lg:block">
+            <div className="hidden border-r bg-muted/40 lg:block print:hidden">
                 <div className="flex h-full max-h-screen flex-col gap-2 sticky top-16">
                     <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
                         <div className="flex items-center gap-2 font-semibold">
@@ -80,12 +99,23 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                     </div>
                 </div>
             </div>
-            <div className="flex flex-col">
-                <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-                    <div className="flex items-center">
+            <div className="flex flex-col" id="report-content">
+                <header className="flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 print:hidden">
+                     <div className="flex items-center gap-2">
                         <h1 className="text-lg font-semibold md:text-2xl">{clientName} | Doctor.con</h1>
+                     </div>
+                     <div className="ml-auto flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={handlePrint}>
+                            <Printer className="h-4 w-4" />
+                            <span className="ml-2 hidden sm:inline">Imprimir / Salvar PDF</span>
+                        </Button>
+                        <Button size="sm" onClick={handleDownloadDocx}>
+                            <Download className="h-4 w-4" />
+                            <span className="ml-2 hidden sm:inline">Baixar Relatório (Word)</span>
+                        </Button>
                     </div>
-
+                </header>
+                <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
                     {/* DASH Section */}
                     <div id="dash" className="space-y-6 animate-in fade-in-50">
                         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
@@ -239,7 +269,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                                  <CardTitle>Conclusão da IA</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <p className="whitespace-pre-wrap text-sm">{analysis.executiveSummary}</p>
+                                <MarkdownRenderer content={analysis.executiveSummary} />
                             </CardContent>
                         </Card>
                     </div>

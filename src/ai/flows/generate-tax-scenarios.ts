@@ -51,7 +51,7 @@ const GenerateTaxScenariosOutputSchema = z.object({
   transcribedText: z.string().optional().describe('As informações financeiras e operacionais transcritas dos documentos anexados.'),
   monthlyRevenue: z.string().describe('O faturamento mensal identificado para o cliente.'),
   scenarios: z.array(ScenarioDetailSchema).describe('Uma lista de cenários tributários detalhados, incluindo projeções de receita.'),
-  executiveSummary: z.string().describe('Resumo executivo com a recomendação final sobre o melhor cenário para o faturamento atual, e análise sobre os pontos de inflexão com base nas projeções de receita.'),
+  executiveSummary: z.string().describe('Resumo executivo em Markdown com a recomendação final sobre o melhor cenário para o faturamento atual, e análise sobre os pontos de inflexão com base nas projeções de receita. Use ** para negrito nos títulos.'),
 });
 export type GenerateTaxScenariosOutput = z.infer<typeof GenerateTaxScenariosOutputSchema>;
 
@@ -107,7 +107,7 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
             *   'effectiveRateOnProfit': (Impostos Totais da Empresa / Lucro Bruto Antes dos Impostos da Empresa) * 100.
             *   'taxCostPerEmployee': Se houver folha CLT, calcule (Impostos Totais da Empresa / Número de funcionários). Assuma 1 funcionário se o valor da folha for > 0, a menos que especificado.
 
-3.  **Resumo Executivo e Análise de Projeção:** No campo 'executiveSummary', escreva uma análise em três partes:
+3.  **Resumo Executivo e Análise de Projeção:** No campo 'executiveSummary', escreva uma análise em três partes, usando **Markdown para formatar os títulos em negrito**.
     *   **Recomendação para o Cenário Atual:** Indique qual regime é mais vantajoso para o faturamento atual (em R$ e %), e por quê. Se o nome da empresa/CNPJ foi fornecido, mencione-o. Aja como um consultor. Se foi informada uma folha, compare os cenários com e sem ela, explicando o impacto financeiro da contratação.
     *   **Análise das Projeções:** Com base nos cenários de +20% e +50%, analise os pontos de inflexão. Mostre a partir de qual faturamento o Lucro Presumido (ou Equiparado) pode se tornar mais vantajoso.
     *   **Pontos de Atenção e Oportunidades:** Mencione a importância de verificar a alíquota de ISS do município do cliente. Comente sobre a possibilidade de benefícios como a equiparação hospitalar e a necessidade de assessoria para garantir a elegibilidade.
