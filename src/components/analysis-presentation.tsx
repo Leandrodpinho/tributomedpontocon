@@ -1,7 +1,7 @@
 'use client';
 
 import type { GenerateTaxScenariosOutput } from '@/ai/flows/generate-tax-scenarios';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Carousel,
   CarouselContent,
@@ -9,7 +9,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
-import { Briefcase, FileText, Target, TrendingUp, Wallet } from 'lucide-react';
+import { Target, TrendingUp, Wallet } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 
@@ -25,7 +25,7 @@ const Slide = ({
   className?: string;
 }) => (
   <div
-    className={`flex h-full min-h-[450px] w-full flex-col justify-center rounded-lg bg-secondary/30 p-8 text-center ${className}`}
+    className={`flex h-full min-h-[500px] w-full flex-col justify-center rounded-lg bg-secondary/30 p-8 text-center ${className}`}
   >
     {children}
   </div>
@@ -76,6 +76,27 @@ export function AnalysisPresentation({ analysis }: AnalysisPresentationProps) {
                       </CardContent>
                   </Card>
               </div>
+
+               <Card className="bg-background/70 mt-4 text-left">
+                <CardHeader className='pb-2'>
+                  <CardTitle className='text-base'>Análise do Pró-Labore</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm">
+                  <p>
+                    <span className="font-semibold">Valor Bruto:</span> {scenario.proLaboreAnalysis.baseValue}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-red-400">INSS (11%):</span> {scenario.proLaboreAnalysis.inssValue}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-red-400">IRRF:</span> {scenario.proLaboreAnalysis.irrfValue}
+                  </p>
+                  <p>
+                    <span className="font-bold">Valor Líquido:</span> {scenario.proLaboreAnalysis.netValue}
+                  </p>
+                </CardContent>
+              </Card>
+
 
               <div className="mt-4 text-left">
                 <h3 className="font-semibold text-foreground mb-2">Detalhamento dos Tributos</h3>

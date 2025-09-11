@@ -79,12 +79,14 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
 
 2.  **Geração de Cenários Detalhados (Simples Nacional Anexo III/V, Lucro Presumido):** Para cada cenário no array 'scenarios':
     *   **Cálculo dos Tributos:** Calcule o valor de cada tributo (IRPJ, CSLL, PIS, COFINS, ISS) e, quando aplicável (Simples Anexo III com Fator R, Lucro Presumido), a CPP. No Lucro Presumido, a CPP (INSS Patronal) é de 20% sobre a folha de pagamento (CLT + pró-labore). Preencha o array 'taxBreakdown' para cada um, com nome, alíquota e valor.
-    *   **Fator R e Pró-Labore (Simples Nacional):** A folha de pagamento para o Fator R é a soma da folha salarial CLT (se informada) e do pró-labore. Determine o pró-labore *mínimo* necessário para que o total da folha alcance 28% do faturamento, permitindo a tributação pelo Anexo III. Se a folha CLT já for suficiente, use um pró-labore simbólico/mínimo legal. Na 'notes', explique a estratégia usada (ex: "Pró-labore ajustado para R$X para alcançar o Fator R e tributar pelo Anexo III.").
-    *   **Análise do Pró-Labore:** Para o valor de pró-labore definido em cada cenário, calcule o INSS (contribuição do sócio, 11%) e o IRRF (conforme tabela progressiva). Preencha 'proLaboreAnalysis' com os valores base, INSS, IRRF e o valor líquido.
+    *   **Análise do Pró-Labore (Item 3 do Checklist):**
+        *   **Estratégia do Fator R (Simples Nacional):** A folha de pagamento para o Fator R é a soma da folha salarial CLT (se informada) e do pró-labore. Determine o pró-labore *mínimo* necessário para que o total da folha alcance 28% do faturamento, permitindo a tributação pelo Anexo III.
+        *   **Definição do Pró-Labore:** No cenário do Anexo III, use este pró-labore calculado. Nos outros cenários (Anexo V, Lucro Presumido), use o pró-labore mínimo legal, a menos que uma estratégia diferente seja mais benéfica. Na 'notes', explique a estratégia usada (ex: "Pró-labore ajustado para R$X para alcançar o Fator R e tributar pelo Anexo III.").
+        *   **Cálculo de Encargos do Sócio:** Para o valor de pró-labore definido em cada cenário, calcule o INSS (contribuição do sócio, 11%) e o IRRF (conforme tabela progressiva, após deduzir o INSS). Preencha 'proLaboreAnalysis' com os valores base, INSS, IRRF e o valor líquido.
     *   **Totalização:** Calcule e preencha 'totalTaxValue' (soma de todos os impostos da empresa) e 'effectiveRate'.
-    *   **Lucro Líquido Final:** Calcule o 'netProfitDistribution', que é o faturamento menos os impostos da empresa, menos os custos do pró-labore (valor bruto + encargos se houver, mas aqui focamos no INSS/IRRF do sócio para simplificar o lucro distribuível). Este é o dinheiro que realmente sobra para o sócio.
+    *   **Lucro Líquido Final (Distribuição de Lucros):** Calcule o 'netProfitDistribution', que é o faturamento menos os impostos da empresa e menos o CUSTO TOTAL do pró-labore para a empresa (valor bruto + encargos patronais, se houver). Este é o dinheiro que realmente sobra para o sócio.
 
-3.  **Resumo Executivo e Recomendação:** No campo 'executiveSummary', escreva um resumo claro e direto. Indique qual regime é mais vantajoso (em R$ e %), e por quê. Aja como um consultor, fornecendo uma recomendação estratégica e os próximos passos. Adapte o conselho se for 'Novo aberturas de empresa' (foco em estrutura inicial) ou 'Transferências de contabilidade' (foco em custos de migração).
+3.  **Resumo Executivo e Recomendação:** No campo 'executiveSummary', escreva um resumo claro e direto. Indique qual regime é mais vantajoso (em R$ e %), e por quê. Aja como um consultor, avaliando o equilíbrio entre a economia de impostos, a complexidade de cada regime e o impacto no pró-labore vs. distribuição de lucros. Adapte o conselho se for 'Novo aberturas de empresa' ou 'Transferências de contabilidade'.
 
 Sua resposta deve seguir estritamente a estrutura do JSON de saída. Seja analítico e preciso.`,
 });
@@ -100,5 +102,3 @@ const generateTaxScenariosFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    
