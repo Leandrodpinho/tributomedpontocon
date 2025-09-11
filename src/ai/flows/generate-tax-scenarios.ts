@@ -75,7 +75,7 @@ Conteúdo dos Documentos Anexados:
 Primeiro, use as informações financeiras de 'clientData' e 'documentsAsText' como a fonte primária de dados. Popule o campo 'transcribedText' com o conteúdo de 'documentsAsText'.
 {{/if}}
 
-Com base em todas as informações e na legislação de 2025, execute a seguinte análise V2.1:
+Com base em todas as informações e na legislação de 2025, execute a seguinte análise V2.2:
 
 1.  **Análise de Faturamento:** Extraia o faturamento mensal e preencha o campo 'monthlyRevenue' (formato "R$ XX.XXX,XX").
 
@@ -85,12 +85,12 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
     *   Adicione TODOS os cenários gerados ao array 'scenarios'. No campo 'name' de cada cenário, especifique o regime, o faturamento, e se inclui folha salarial.
     *   **Para cada cenário:**
         *   **Cálculo dos Tributos:** Calcule o valor de cada tributo (IRPJ, CSLL, PIS, COFINS, ISS) e, quando aplicável (Simples Anexo III com Fator R, Lucro Presumido), a CPP. No Lucro Presumido, a CPP (INSS Patronal) é de 20% sobre a folha de pagamento (CLT + pró-labore). **Para o ISS no Lucro Presumido, use a alíquota de {{{issRate}}}% informada (ou 4% se não for fornecida)**. Avise na 'notes' que a alíquota pode variar. Preencha o array 'taxBreakdown' para cada um, com nome, alíquota e valor. Siga estritamente o formato para cada tributo.
-        *   **Análise do Pró-Labore:**
+        *   **Análise do Pró-Labore (Base 2025):**
             *   **Estratégia do Fator R (Simples Nacional):** Determine o pró-labore *mínimo* necessário para que a folha total (CLT + pró-labore) alcance 28% do faturamento, permitindo a tributação pelo Anexo III.
-            *   **Definição do Pró-Labore:** No cenário do Anexo III, use este pró-labore calculado. Nos outros cenários (Anexo V, Lucro Presumido), use o pró-labore mínimo legal (salário mínimo nacional). Na 'notes', explique a estratégia usada.
-            *   **Cálculo de Encargos do Sócio:** Para o valor de pró-labore definido, calcule o INSS (11%) e o IRRF (conforme tabela progressiva). Preencha 'proLaboreAnalysis' com os valores base, INSS, IRRF e o valor líquido.
+            *   **Definição do Pró-Labore:** No cenário do Anexo III, use este pró-labore calculado. Nos outros cenários (Anexo V, Lucro Presumido), use o pró-labore mínimo legal (salário mínimo nacional projetado para 2025 de R$ 1.502,00). Na 'notes', explique a estratégia usada.
+            *   **Cálculo de Encargos do Sócio:** Para o valor de pró-labore definido, calcule o INSS (11%) e o IRRF (conforme tabela progressiva de 2025). Preencha 'proLaboreAnalysis' com os valores base, INSS, IRRF e o valor líquido.
         *   **Totalização:** Calcule e preencha 'totalTaxValue' e 'effectiveRate'.
-        *   **Lucro Líquido Final (Distribuição de Lucros):** Calcule o 'netProfitDistribution': Faturamento - (Soma de todos os impostos da empresa) - (Valor Bruto do Pró-Labore).
+        *   **Lucro Líquido Final (Distribuição de Lucros):** Calcule o 'netProfitDistribution': Faturamento - (Soma de todos os impostos da empresa) - (Valor Bruto do Pró-Labore). A folha de pagamento de funcionários (CLT) não deve ser deduzida neste campo, pois representa um custo operacional que já foi considerado para a definição do lucro antes da distribuição.
         *   **Notas:** Ao detalhar os custos da folha, mencione nas notas quais encargos (ex: INSS patronal, FGTS) foram considerados além do salário bruto.
         *   **Indicadores Financeiros:** Calcule e preencha os seguintes campos:
             *   'effectiveRateOnProfit': (Impostos Totais da Empresa / Lucro Bruto Antes dos Impostos da Empresa) * 100.
