@@ -109,7 +109,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
     );
 
     return (
-        <div className="grid min-h-[calc(100vh-4rem)] w-full lg:grid-cols-[280px_1fr]">
+        <div className="grid min-h-[calc(100vh-4rem)] w-full lg:grid-cols-[280px_1fr] print:block">
             <div className="hidden border-r bg-muted/40 lg:block no-print">
                 <div className="flex h-full max-h-screen flex-col gap-2 sticky top-16">
                     <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
@@ -128,7 +128,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                     </div>
                 </div>
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-col print:w-full">
                 <header className="flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 no-print">
                      <div className="flex items-center gap-2">
                         <h1 className="text-lg font-semibold md:text-2xl">{clientName} | Doctor.con</h1>
@@ -144,7 +144,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                         </Button>
                     </div>
                 </header>
-                <main id="report-content" className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+                <main id="report-content" className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 print:p-0 print:m-0 print:gap-0">
                     {/* DASH Section */}
                     <div id="dash" className="space-y-6 animate-in fade-in-50">
                         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
