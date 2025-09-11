@@ -22,9 +22,31 @@ const CalculateIRPFImpactInputSchema = z.object({
 });
 export type CalculateIRPFImpactInput = z.infer<typeof CalculateIRPFImpactInputSchema>;
 
-const CalculateIRPFImpactOutputSchema = z.object({
-  irpfImpact: z.string().describe('The estimated impact on the client\u2019s IRPF (Imposto de Renda Pessoa Física).'),
+const simulacaoInput: GenerateTaxScenariosInput = {
+  clientType: 'Novo aberturas de empresa',
+  clientData: 'Faturamento mensal estimado de R$ 25.000,00. Atividade de clínica médica, sem funcionários no momento.',
+  payrollExpenses: 0, // Usando número em vez de string, como sugiro abaixo
+  issRate: 4.0, // Alíquota de Montes Claros, como no prompt
+  companyName: 'Clínica Saúde Plena',
+};
+const simulacaoInput: GenerateTaxScenariosInput = {
+  clientType: 'Novo aberturas de empresa',
+  clientData: 'Faturamento mensal estimado de R$ 25.000,00. Atividade de clínica médica, sem funcionários no momento.',
+  payrollExpenses: 0, // Usando número em vez de string, como sugiro abaixo
+  issRate: 4.0, // Alíquota de Montes Claros, como no prompt
+  companyName: 'Clínica Saúde Plena',
+};
+const IRPFImpactDetailSchema = z.object({
+  taxableIncome: z.number().describe('Base de cálculo do IRPF (renda tributável).'),
+  taxBracket: z.string().describe('Faixa da alíquota do IRPF aplicada (ex: "27,5%").'),
+  irpfDue: z.number().describe('Valor do IRPF devido.'),
+  deductions: z.number().describe('Total de deduções consideradas (ex: INSS).'),
+  netImpact: z.number().describe('Valor final a pagar ou a restituir.'),
+  summary: z.string().describe('Um resumo explicativo do impacto no IRPF do cliente.'),
 });
+
+const CalculateIRPFImpactOutputSchema = z.object({
+  ;
 export type CalculateIRPFImpactOutput = z.infer<typeof CalculateIRPFImpactOutputSchema>;
 
 export async function calculateIRPFImpact(input: CalculateIRPFImpactInput): Promise<CalculateIRPFImpactOutput> {
@@ -53,9 +75,7 @@ const calculateIRPFImpactPrompt = ai.definePrompt({
   - Um pró-labore alto (especialmente no Simples Nacional Anexo III para atender ao Fator R) pode aumentar o IRPF.
   - Diferentes regimes (Anexo V, Lucro Presumido) podem permitir a minimização do pró-labore.
 
-  Forneça uma estimativa detalhada e precisa do impacto do IRPF, incluindo potenciais restituições ou passivos. Sua resposta deve ser inteiramente em português do Brasil.
-  `,
-});
+
 
 const calculateIRPFImpactFlow = ai.defineFlow(
   {
