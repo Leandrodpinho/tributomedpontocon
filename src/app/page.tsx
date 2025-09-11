@@ -203,7 +203,7 @@ export default function Home() {
                                     <TableRow>
                                       <TableHead>Tributo</TableHead>
                                       <TableHead>Alíquota</TableHead>
-                                      <TableHead>Valor</TableHead>
+                                      <TableHead className="text-right">Valor</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
@@ -211,26 +211,30 @@ export default function Home() {
                                         <TableRow key={taxIdx}>
                                           <TableCell>{tax.name}</TableCell>
                                           <TableCell>{tax.rate}</TableCell>
-                                          <TableCell>{tax.value}</TableCell>
+                                          <TableCell className="text-right">{tax.value}</TableCell>
                                         </TableRow>
                                      ))}
                                   </TableBody>
                                 </Table>
 
                                 <h5 className="font-semibold mt-4 text-base">Análise do Pró-Labore:</h5>
-                                <div className="p-4 border rounded-md bg-secondary/50">
-                                    <p>
-                                    <span className="font-semibold">Valor Bruto:</span> {scenario.proLaboreAnalysis.baseValue}
-                                    </p>
-                                    <p>
-                                    <span className="font-semibold text-red-400">INSS (sócio):</span> {scenario.proLaboreAnalysis.inssValue}
-                                    </p>
-                                     <p>
-                                    <span className="font-semibold text-red-400">IRRF:</span> {scenario.proLaboreAnalysis.irrfValue}
-                                    </p>
-                                    <p className="mt-2">
-                                    <span className="font-bold">Valor Líquido Recebido:</span> <span className="font-bold text-lg">{scenario.proLaboreAnalysis.netValue}</span>
-                                    </p>
+                                <div className="p-4 border rounded-md bg-secondary/50 space-y-1">
+                                    <div className="flex justify-between">
+                                      <span className="font-semibold">Valor Bruto:</span> 
+                                      <span>{scenario.proLaboreAnalysis.baseValue}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="font-semibold text-red-400">INSS (sócio):</span>
+                                      <span className="text-red-400">{scenario.proLaboreAnalysis.inssValue}</span>
+                                    </div>
+                                     <div className="flex justify-between">
+                                      <span className="font-semibold text-red-400">IRRF:</span>
+                                      <span className="text-red-400">{scenario.proLaboreAnalysis.irrfValue}</span>
+                                    </div>
+                                    <div className="flex justify-between font-bold pt-2">
+                                      <span>Valor Líquido Recebido:</span>
+                                      <span className="text-lg">{scenario.proLaboreAnalysis.netValue}</span>
+                                    </div>
                                 </div>
                                 
                                 <p className="text-xs text-muted-foreground mt-4 italic">
