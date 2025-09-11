@@ -2,6 +2,7 @@
 "use server";
 
 import { generateTaxScenarios, type GenerateTaxScenariosOutput } from "@/ai/flows/generate-tax-scenarios";
+import { extractTextFromImage } from "@/ai/flows/extract-text-from-image";
 
 export interface AnalysisState {
   aiResponse: GenerateTaxScenariosOutput | null;
@@ -27,7 +28,7 @@ export async function getAnalysis(
   const clientType = formData.get("clientType") as "Novo aberturas de empresa" | "Transferências de contabilidade";
 
   try {
-    // 1. Validate input first
+    // 1. Validate input: ensure at least some data is present
     const validFiles = attachmentFiles.filter((file) => file && file.size > 0);
     const hasClientData = clientData && clientData.trim().length > 0;
     const hasAttachments = validFiles.length > 0;
@@ -39,19 +40,32 @@ export async function getAnalysis(
         error: "Por favor, forneça as informações financeiras ou anexe um ou mais documentos para análise.",
       };
     }
+    
+    // 2. Process attachments by extracting text from each one
+    let allDocumentsText = "";
+    if (hasAttachments) {
+      const textExtractionPromises = validFiles.map(async (file) => {
+        try {
+          const dataUri = await fileToDataURI(file);
+          const result = await extractTextFromImage({ document: dataUri });
+          return result.extractedText;
+        } catch (e) {
+          console.error(`Failed to extract text from file: ${file.name}`, e);
+          return `[Erro ao processar o arquivo: ${file.name}]`;
+        }
+      });
 
-    // 2. Process files only after validation has passed
-    const attachments = await Promise.all(
-        validFiles.map(file => fileToDataURI(file))
-      );
+      const extractedTexts = await Promise.all(textExtractionPromises);
+      allDocumentsText = extractedTexts.join("\n\n---\n\n");
+    }
 
-    // 3. Call the AI flow
+    // 3. Call the main AI flow with all data consolidated
     const aiResponse = await generateTaxScenarios({
       clientType: clientType,
       clientData: clientData ?? "",
       payrollExpenses: payrollExpenses ?? "",
       issRate: issRate ?? "",
-      attachedDocuments: attachments,
+      documentsAsText: allDocumentsText,
     });
     
     // 4. Guarantees that the return is pure, serializable JSON
@@ -61,7 +75,7 @@ export async function getAnalysis(
 
     return {
       aiResponse: serializableResponse,
-      transcribedText: serializableResponse?.transcribedText ?? null,
+      transcribedText: serializableResponse?.transcribedText ?? allDocumentsText,
       error: null,
     };
 

@@ -15,7 +15,7 @@ const GenerateTaxScenariosInputSchema = z.object({
   clientData: z.string().optional().describe('The client financial and operational information (revenue, etc.)'),
   payrollExpenses: z.string().optional().describe('As despesas com a folha de pagamento do cliente (CLT).'),
   issRate: z.string().optional().describe('A alíquota de ISS a ser utilizada no cálculo, em porcentagem (ex: "4.0").'),
-  attachedDocuments: z.array(z.string()).optional().describe('Relevant documents like tax declarations and Simples Nacional extracts as a data URI.'),
+  documentsAsText: z.string().optional().describe('The consolidated transcribed text from all attached documents.'),
   clientType: z.enum(['Novo aberturas de empresa', 'Transferências de contabilidade']).describe('The type of client.'),
 });
 export type GenerateTaxScenariosInput = z.infer<typeof GenerateTaxScenariosInputSchema>;
@@ -69,12 +69,10 @@ Tipo de Cliente: {{{clientType}}}
 {{#if payrollExpenses}}Folha Salarial Bruta (CLT): {{{payrollExpenses}}}{{/if}}
 {{#if issRate}}Alíquota de ISS a ser usada: {{{issRate}}}%{{else}}Alíquota de ISS a ser usada: 4% (padrão Montes Claros){{/if}}
 {{#if clientData}}Dados do Cliente (texto): {{{clientData}}}{{/if}}
-{{#if attachedDocuments}}
-Documentos Anexados:
-{{#each attachedDocuments}}
-- Documento: {{media url=this}}
-{{/each}}
-Primeiro, transcreva as informações financeiras de TODOS os documentos no campo 'transcribedText'. Use este texto consolidado como a fonte primária de dados.
+{{#if documentsAsText}}
+Conteúdo dos Documentos Anexados:
+{{{documentsAsText}}}
+Primeiro, use as informações financeiras de 'clientData' e 'documentsAsText' como a fonte primária de dados. Popule o campo 'transcribedText' com o conteúdo de 'documentsAsText'.
 {{/if}}
 
 Com base em todas as informações e na legislação de 2025, execute a seguinte análise V2.0:
