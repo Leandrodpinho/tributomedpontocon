@@ -89,7 +89,7 @@ export default function Home() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                         <Label htmlFor="payrollExpenses">Folha Salarial Bruta (CLT)</Label>
-                        <Input id="payrollExpenses" name="payrollExpenses" type="text" placeholder="Ex: 5000.00 (use ponto)" />
+                        <Input id="payrollExpenses" name="payrollExpenses" type="number" step="0.01" placeholder="Ex: 5000.00 (use ponto)" />
                         <p className="text-sm text-muted-foreground">
                         Opcional. Crucial para o cálculo do Fator R no Simples Nacional.
                         </p>
