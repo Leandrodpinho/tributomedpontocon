@@ -81,8 +81,8 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
 
 2.  **Geração de Cenários (Faturamento Atual e Projeções):**
     *   **Calcule os cenários para 3 níveis de faturamento:** o faturamento atual, um cenário com +20% e um com +50%.
-    *   Para cada nível de faturamento, gere os cenários tributários (Simples Nacional Anexo III/V, Lucro Presumido).
-    *   Adicione TODOS os cenários gerados (para faturamento atual e projeções) ao array 'scenarios'. No campo 'name' de cada cenário, especifique o regime E o faturamento correspondente (ex: "Simples Nacional Anexo III com Faturamento de R$ 12.000,00").
+    *   **Para cada nível de faturamento, gere os cenários tributários (Simples Nacional Anexo III/V, Lucro Presumido). Se uma folha salarial foi fornecida, gere cenários COM e SEM essa folha para comparar o impacto da contratação. No nome do cenário, indique claramente a situação (ex: "Simples Nacional Anexo III - Com Folha CLT").**
+    *   Adicione TODOS os cenários gerados ao array 'scenarios'. No campo 'name' de cada cenário, especifique o regime, o faturamento, e se inclui folha salarial.
     *   **Para cada cenário:**
         *   **Cálculo dos Tributos:** Calcule o valor de cada tributo (IRPJ, CSLL, PIS, COFINS, ISS) e, quando aplicável (Simples Anexo III com Fator R, Lucro Presumido), a CPP. No Lucro Presumido, a CPP (INSS Patronal) é de 20% sobre a folha de pagamento (CLT + pró-labore). **Para o ISS no Lucro Presumido, use a alíquota de {{{issRate}}}% informada (ou 4% se não for fornecida)**. Avise na 'notes' que a alíquota pode variar. Preencha o array 'taxBreakdown' para cada um, com nome, alíquota e valor. Siga estritamente o formato para cada tributo.
         *   **Análise do Pró-Labore:**
@@ -90,12 +90,12 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
             *   **Definição do Pró-Labore:** No cenário do Anexo III, use este pró-labore calculado. Nos outros cenários (Anexo V, Lucro Presumido), use o pró-labore mínimo legal. Na 'notes', explique a estratégia usada.
             *   **Cálculo de Encargos do Sócio:** Para o valor de pró-labore definido, calcule o INSS (11%) e o IRRF (conforme tabela progressiva). Preencha 'proLaboreAnalysis' com os valores base, INSS, IRRF e o valor líquido.
         *   **Totalização:** Calcule e preencha 'totalTaxValue' e 'effectiveRate'.
-        *   **Lucro Líquido Final (Distribuição de Lucros):** Calcule o 'netProfitDistribution': Faturamento - (Soma de todos os impostos da empresa) - (Valor Bruto do Pró-Labore) - (CPP/INSS Patronal, se aplicável).
+        *   **Lucro Líquido Final (Distribuição de Lucros):** Calcule o 'netProfitDistribution': Faturamento - (Soma de todos os impostos da empresa) - (Folha de Pagamento CLT, se houver) - (Valor Bruto do Pró-Labore) - (CPP/INSS Patronal, se aplicável).
 
 3.  **Resumo Executivo e Análise de Projeção:** No campo 'executiveSummary', escreva uma análise em três partes:
-    *   **Recomendação para o Cenário Atual:** Indique qual regime é mais vantajoso para o faturamento atual (em R$ e %), e por quê. Aja como um consultor, avaliando o equilíbrio entre economia, complexidade e objetivos do cliente.
-    *   **Análise das Projeções:** Com base nos cenários de +20% e +50%, analise os pontos de inflexão. Mostre a partir de qual faturamento o Lucro Presumido pode se tornar mais vantajoso, ou como o aumento da receita impacta as alíquotas do Simples.
-    *   **Pontos de Atenção e Oportunidades:** Mencione a importância de verificar a alíquota de ISS do município do cliente, pois uma alíquota menor pode alterar a recomendação. Comente sobre a possibilidade de benefícios como a equiparação hospitalar, que reduz drasticamente as bases de IRPJ e CSLL no Lucro Presumido, e que deve ser avaliada por um contador.
+    *   **Recomendação para o Cenário Atual:** Indique qual regime é mais vantajoso para o faturamento atual (em R$ e %), e por quê. Aja como um consultor. Se foi informada uma folha, compare os cenários com e sem ela, explicando o impacto da contratação.
+    *   **Análise das Projeções:** Com base nos cenários de +20% e +50%, analise os pontos de inflexão. Mostre a partir de qual faturamento o Lucro Presumido pode se tornar mais vantajoso.
+    *   **Pontos de Atenção e Oportunidades:** Mencione a importância de verificar a alíquota de ISS do município do cliente. Comente sobre a possibilidade de benefícios como a equiparação hospitalar, que reduz drasticamente as bases de IRPJ e CSLL no Lucro Presumido.
 
 Sua resposta deve seguir estritamente a estrutura do JSON de saída. Seja analítico e preciso.`,
 });
