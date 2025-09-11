@@ -9,7 +9,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
-import { Target, TrendingUp, Wallet } from 'lucide-react';
+import { Target, TrendingUp, Wallet, PieChart } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScenarioComparisonChart } from '@/components/scenario-comparison-chart';
 
@@ -26,7 +26,7 @@ const Slide = ({
   className?: string;
 }) => (
   <div
-    className={`flex h-full min-h-[550px] w-full flex-col justify-center rounded-lg bg-secondary/30 p-8 text-center ${className}`}
+    className={`flex h-full min-h-[550px] w-full flex-col justify-center rounded-lg bg-secondary/30 p-6 md:p-8 text-center ${className}`}
   >
     {children}
   </div>
@@ -41,7 +41,9 @@ const parseCurrency = (value: string): number => {
 export function AnalysisPresentation({ analysis }: AnalysisPresentationProps) {
   if (!analysis) return null;
 
-  const chartData = analysis.scenarios.map(scenario => ({
+  const currentRevenueScenarios = analysis.scenarios.filter(s => s.name.includes(analysis.monthlyRevenue));
+
+  const chartData = currentRevenueScenarios.map(scenario => ({
     name: scenario.name.replace(/ com Faturamento de R\$ \d+\.\d+,\d+/i, ''), // Simplify name for chart
     totalTax: parseCurrency(scenario.totalTaxValue),
     netProfit: parseCurrency(scenario.netProfitDistribution),
@@ -54,7 +56,7 @@ export function AnalysisPresentation({ analysis }: AnalysisPresentationProps) {
          {/* Slide 0: Visual Comparison Chart */}
          <CarouselItem>
             <Slide className="justify-start">
-                 <h2 className="mb-4 text-2xl font-bold text-foreground">Comparativo Visual dos Cenários</h2>
+                 <h2 className="mb-4 text-2xl font-bold text-foreground">Comparativo Visual (Faturamento Atual)</h2>
                  <p className="text-sm text-muted-foreground mb-4">Análise da Carga Tributária vs. Lucro Líquido para o Sócio.</p>
                  <Card className='bg-background/70 pt-6'>
                     <CardContent>
@@ -68,7 +70,7 @@ export function AnalysisPresentation({ analysis }: AnalysisPresentationProps) {
         <CarouselItem>
           <Slide>
             <Target className="mx-auto h-12 w-12 text-primary" />
-            <h2 className="mt-4 mb-2 text-2xl font-bold text-foreground">Resumo Executivo</h2>
+            <h2 className="mt-4 mb-2 text-2xl font-bold text-foreground">Resumo Executivo e Projeções</h2>
             <p className="whitespace-pre-wrap text-sm font-medium text-foreground/80 max-w-prose mx-auto">
               {analysis.executiveSummary}
             </p>
@@ -82,7 +84,7 @@ export function AnalysisPresentation({ analysis }: AnalysisPresentationProps) {
         {analysis.scenarios?.map((scenario, index) => (
           <CarouselItem key={index}>
             <Slide className="justify-start">
-              <h2 className="mb-4 text-2xl font-bold text-foreground">{scenario.name}</h2>
+              <h2 className="mb-4 text-xl md:text-2xl font-bold text-foreground">{scenario.name}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
                   <Card className="bg-background/70">
                       <CardHeader className='pb-2'>
@@ -99,61 +101,68 @@ export function AnalysisPresentation({ analysis }: AnalysisPresentationProps) {
                       </CardHeader>
                       <CardContent>
                           <p className="text-3xl font-bold text-green-400">{scenario.netProfitDistribution}</p>
-                           <p className="text-sm text-muted-foreground">Disponível após impostos</p>
+                           <p className="text-sm text-muted-foreground">Disponível após impostos e pró-labore</p>
                       </CardContent>
                   </Card>
               </div>
 
-               <Card className="bg-background/70 mt-4 text-left">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4 text-left">
+              <Card className="bg-background/70">
                 <CardHeader className='pb-2'>
                   <CardTitle className='text-base'>Análise do Pró-Labore</CardTitle>
                 </CardHeader>
-                <CardContent className="text-sm">
-                  <p>
+                <CardContent className="text-sm space-y-1">
+                   <p>
                     <span className="font-semibold">Valor Bruto:</span> {scenario.proLaboreAnalysis.baseValue}
                   </p>
                   <p>
-                    <span className="font-semibold text-red-400">INSS (sócio):</span> {scenario.proLaboreAnalysis.inssValue}
+                    <span className="font-semibold text-red-400">INSS (11%):</span> {scenario.proLaboreAnalysis.inssValue}
                   </p>
                   <p>
                     <span className="font-semibold text-red-400">IRRF:</span> {scenario.proLaboreAnalysis.irrfValue}
                   </p>
-                  <p>
-                    <span className="font-bold">Valor Líquido:</span> {scenario.proLaboreAnalysis.netValue}
+                  <p className="font-bold pt-1">
+                    <span >Valor Líquido:</span> {scenario.proLaboreAnalysis.netValue}
                   </p>
                 </CardContent>
               </Card>
 
-
-              <div className="mt-4 text-left">
-                <h3 className="font-semibold text-foreground mb-2">Detalhamento dos Tributos</h3>
-                 <Table>
-                    <TableHeader>
-                        <TableRow>
-                        <TableHead>Tributo</TableHead>
-                        <TableHead>Valor</TableHead>
-                        <TableHead>Alíquota</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {scenario.taxBreakdown.map((tax, idx) => (
-                        <TableRow key={idx}>
-                            <TableCell>{tax.name}</TableCell>
-                            <TableCell>{tax.value}</TableCell>
-                            <TableCell>{tax.rate}</TableCell>
-                        </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-                 <p className="text-xs text-muted-foreground mt-2">{scenario.notes}</p>
-              </div>
+              <Card className="bg-background/70">
+                 <CardHeader className='pb-2'>
+                    <CardTitle className='text-base flex items-center gap-2'><PieChart className='text-primary'/>Detalhamento dos Tributos</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Table className="text-xs">
+                        <TableHeader>
+                            <TableRow>
+                            <TableHead className="h-8">Tributo</TableHead>
+                            <TableHead className="h-8 text-right">Valor</TableHead>
+                            <TableHead className="h-8 text-right">Alíquota</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {scenario.taxBreakdown.map((tax, idx) => (
+                            <TableRow key={idx} className="h-8">
+                                <TableCell className="py-1">{tax.name}</TableCell>
+                                <TableCell className="py-1 text-right">{tax.value}</TableCell>
+                                <TableCell className="py-1 text-right">{tax.rate}</TableCell>
+                            </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+              </Card>
+            </div>
+             <p className="text-xs text-muted-foreground mt-4 text-left italic">
+                <span className="font-semibold">Notas da IA:</span> {scenario.notes}
+            </p>
             </Slide>
           </CarouselItem>
         ))}
 
       </CarouselContent>
-      <CarouselPrevious className="absolute left-[-50px] top-1/2 -translate-y-1/2" />
-      <CarouselNext className="absolute right-[-50px] top-1/2 -translate-y-1/2" />
+      <CarouselPrevious className="hidden md:flex absolute left-[-50px] top-1/2 -translate-y-1/2" />
+      <CarouselNext className="hidden md:flex absolute right-[-50px] top-1/2 -translate-y-1/2" />
     </Carousel>
   );
 }
