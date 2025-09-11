@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useActionState, useRef } from "react";
-import { getAnalysis, type AnalysisState } from "@/app/actions";
+import { useEffect, useActionState, useRef, useState } from "react";
+import { getAnalysis, type AnalysisState, type FormPayload } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { LogoIcon } from "@/components/icons/logo";
 import { AnalysisPresentation } from "@/components/analysis-presentation";
@@ -32,17 +32,27 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 
 const initialState: AnalysisState = {
-  aiResponse: undefined,
-  transcribedText: undefined,
-  error: undefined,
+  aiResponse: null,
+  transcribedText: null,
+  error: null,
 };
+
+// Helper para converter File para Data URI
+async function fileToDataURI(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function Home() {
   const [state, formAction] = useActionState(getAnalysis, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const clientDataRef = useRef<HTMLTextAreaElement>(null);
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (state.error) {
@@ -52,13 +62,38 @@ export default function Home() {
         description: state.error,
       });
     }
-  }, [state.error, toast]);
+     setIsSubmitting(false);
+  }, [state, toast]);
 
   useEffect(() => {
     if (state.transcribedText && clientDataRef.current) {
         clientDataRef.current.value = state.transcribedText;
     }
   }, [state.transcribedText]);
+
+  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    const formData = new FormData(event.currentTarget);
+
+    const attachmentsInput = event.currentTarget.elements.namedItem("attachments") as HTMLInputElement;
+    const files = attachmentsInput?.files ? Array.from(attachmentsInput.files) : [];
+    
+    const attachmentDataUris = await Promise.all(
+        files.map(file => fileToDataURI(file))
+    );
+
+    const payload: FormPayload = {
+        clientType: formData.get("clientType") as FormPayload["clientType"],
+        clientData: formData.get("clientData") as string | undefined,
+        payrollExpenses: formData.get("payrollExpenses") as string | undefined,
+        issRate: formData.get("issRate") as string | undefined,
+        attachments: attachmentDataUris,
+    };
+    
+    formAction(payload);
+  };
+
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -78,7 +113,7 @@ export default function Home() {
               Insira as informações do cliente ou anexe um documento para gerar um planejamento tributário detalhado.
             </CardDescription>
           </CardHeader>
-          <form action={formAction} ref={formRef}>
+          <form onSubmit={handleFormSubmit} ref={formRef}>
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label>Tipo de Cliente</Label>
@@ -136,10 +171,27 @@ export default function Home() {
               </div>
             </CardContent>
             <CardFooter>
-              <SubmitButton />
+              <SubmitButton isSubmitting={isSubmitting} />
             </CardFooter>
           </form>
         </Card>
+
+        {isSubmitting && !state.aiResponse && !state.error &&(
+             <Card className="shadow-lg animate-pulse">
+                <CardHeader>
+                    <CardTitle>Analisando...</CardTitle>
+                    <CardDescription>A IA está processando os dados. Isso pode levar alguns instantes.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <div className="h-8 bg-muted rounded w-3/4"></div>
+                        <div className="h-4 bg-muted rounded w-1/2"></div>
+                        <div className="h-20 bg-muted rounded w-full"></div>
+                    </div>
+                </CardContent>
+            </Card>
+        )}
+
 
         {state.aiResponse && (
           <Card className="shadow-lg animate-in fade-in-50">
