@@ -1,3 +1,4 @@
+
 "use server";
 
 import { generateTaxScenarios, type GenerateTaxScenariosOutput } from "@/ai/flows/generate-tax-scenarios";
@@ -8,6 +9,7 @@ export interface AnalysisState {
   error: string | null;
 }
 
+// Helper function to convert a File to a data URI
 const fileToDataURI = async (file: File): Promise<string> => {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
@@ -18,19 +20,17 @@ export async function getAnalysis(
   prevState: AnalysisState,
   formData: FormData,
 ): Promise<AnalysisState> {
-  try {
-    const clientData = formData.get("clientData") as string | null;
-    const attachmentFiles = formData.getAll("attachments") as File[];
-    
-    // Server-side conversion of files to data URIs
-    const attachments = await Promise.all(
-        attachmentFiles
-          .filter((file) => file.size > 0)
-          .map((file) => fileToDataURI(file))
-      );
+  const clientData = formData.get("clientData") as string | null;
+  const attachmentFiles = formData.getAll("attachments") as File[];
+  const payrollExpenses = formData.get("payrollExpenses") as string | null;
+  const issRate = formData.get("issRate") as string | null;
+  const clientType = formData.get("clientType") as "Novo aberturas de empresa" | "Transferências de contabilidade";
 
+  try {
+    // 1. Validate input first
+    const validFiles = attachmentFiles.filter((file) => file && file.size > 0);
     const hasClientData = clientData && clientData.trim().length > 0;
-    const hasAttachments = attachments && attachments.length > 0;
+    const hasAttachments = validFiles.length > 0;
 
     if (!hasClientData && !hasAttachments) {
       return {
@@ -40,15 +40,21 @@ export async function getAnalysis(
       };
     }
 
+    // 2. Process files only after validation has passed
+    const attachments = await Promise.all(
+        validFiles.map(file => fileToDataURI(file))
+      );
+
+    // 3. Call the AI flow
     const aiResponse = await generateTaxScenarios({
-      clientType: (formData.get("clientType") as "Novo aberturas de empresa" | "Transferências de contabilidade"),
+      clientType: clientType,
       clientData: clientData ?? "",
-      payrollExpenses: (formData.get("payrollExpenses") as string) ?? "",
-      issRate: (formData.get("issRate") as string) ?? "",
+      payrollExpenses: payrollExpenses ?? "",
+      issRate: issRate ?? "",
       attachedDocuments: attachments,
     });
     
-    // Guarantees that the return is pure, serializable JSON
+    // 4. Guarantees that the return is pure, serializable JSON
     const serializableResponse: GenerateTaxScenariosOutput = JSON.parse(
       JSON.stringify(aiResponse)
     );
@@ -58,12 +64,15 @@ export async function getAnalysis(
       transcribedText: serializableResponse?.transcribedText ?? null,
       error: null,
     };
+
   } catch (error) {
     console.error("Detailed error in Server Action:", error);
     const errorMessage =
       error instanceof Error
         ? error.message
         : "Ocorreu um erro desconhecido no servidor.";
+    
+    // 5. Ensure the error return path is also a simple, serializable object
     return {
       aiResponse: null,
       transcribedText: null,
