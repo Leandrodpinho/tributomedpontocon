@@ -30,7 +30,6 @@ import { SubmitButton } from "@/components/submit-button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useFormStatus } from "react-dom";
 
 
 const initialState: AnalysisState = {
@@ -40,9 +39,8 @@ const initialState: AnalysisState = {
 };
 
 export default function Home() {
-  const [state, formAction] = useActionState(getAnalysis, initialState);
+  const [state, formAction, pending] = useActionState(getAnalysis, initialState);
   const { toast } = useToast();
-  const { pending } = useFormStatus();
 
   useEffect(() => {
     if (state.error) {
@@ -134,7 +132,7 @@ export default function Home() {
         </form>
         </Card>
 
-        {pending && !state.aiResponse && !state.error &&(
+        {pending && (
              <Card className="shadow-lg animate-pulse">
                 <CardHeader>
                     <CardTitle>Analisando...</CardTitle>
@@ -151,7 +149,7 @@ export default function Home() {
         )}
 
 
-        {state.aiResponse && (
+        {state.aiResponse && !pending && (
           <Card className="shadow-lg animate-in fade-in-50">
             <CardHeader>
               <CardTitle>Resultados da Análise V2.0</CardTitle>
