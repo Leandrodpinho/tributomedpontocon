@@ -29,6 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 const initialState: AnalysisState = {
   aiResponse: undefined,
@@ -170,14 +171,21 @@ export default function Home() {
                         {state.aiResponse.scenarios.map((scenario, index) => (
                            <div key={index} className="space-y-4 pt-4">
                               <h4 className="font-bold text-lg text-primary">{scenario.name}</h4>
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="font-semibold">Imposto Total:</p>
-                                    <p className="text-destructive font-bold text-xl">{scenario.totalTaxValue} ({scenario.effectiveRate} efetiva)</p>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="p-4 bg-secondary/30 rounded-lg">
+                                    <p className="font-semibold text-muted-foreground">Carga Tributária Total</p>
+                                    <p className="text-destructive font-bold text-2xl">{scenario.totalTaxValue}</p>
+                                    <Badge variant="secondary" className="mt-1">{scenario.effectiveRate} sobre Faturamento</Badge>
+                                    {scenario.effectiveRateOnProfit && (
+                                       <Badge variant="outline" className="mt-1 ml-2">{scenario.effectiveRateOnProfit} sobre Lucro</Badge>
+                                    )}
                                 </div>
-                                <div>
-                                    <p className="font-semibold">Lucro Líquido para o Sócio:</p>
-                                    <p className="text-green-400 font-bold text-xl">{scenario.netProfitDistribution}</p>
+                                <div className="p-4 bg-secondary/30 rounded-lg">
+                                    <p className="font-semibold text-muted-foreground">Lucro Líquido para o Sócio</p>
+                                    <p className="text-green-400 font-bold text-2xl">{scenario.netProfitDistribution}</p>
+                                     {scenario.taxCostPerEmployee && (
+                                        <p className="text-xs text-muted-foreground mt-1">Custo Tributário por Funcionário: {scenario.taxCostPerEmployee}</p>
+                                     )}
                                 </div>
                               </div>
                               

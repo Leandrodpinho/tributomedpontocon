@@ -37,6 +37,8 @@ const ScenarioDetailSchema = z.object({
   name: z.string().describe('O nome do cenário (ex: "Simples Nacional Anexo III com Faturamento de R$ 10.000,00").'),
   totalTaxValue: z.string().describe('O valor total do imposto a ser pago no regime (ex: "R$ 1.270,15").'),
   effectiveRate: z.string().describe('A alíquota efetiva total do regime (ex: "10,75%").'),
+  effectiveRateOnProfit: z.string().optional().describe('A alíquota efetiva sobre o lucro (Impostos / Lucro Bruto).'),
+  taxCostPerEmployee: z.string().optional().describe('O custo tributário médio por funcionário CLT.'),
   taxBreakdown: z.array(TaxDetailSchema).describe('Detalhamento da composição dos tributos dentro do regime.'),
   proLaboreAnalysis: ProLaboreAnalysisSchema.describe('Análise detalhada do impacto do pró-labore.'),
   netProfitDistribution: z.string().describe('Lucro líquido disponível para distribuição ao sócio após todos os impostos e encargos.'),
@@ -92,6 +94,9 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
         *   **Totalização:** Calcule e preencha 'totalTaxValue' e 'effectiveRate'.
         *   **Lucro Líquido Final (Distribuição de Lucros):** Calcule o 'netProfitDistribution': Faturamento - (Soma de todos os impostos da empresa) - (Folha de Pagamento CLT, se houver, **incluindo os encargos patronais como INSS e FGTS**) - (Valor Bruto do Pró-Labore) - (CPP/INSS Patronal sobre o Pró-Labore, se aplicável).
         *   **Notas:** Ao detalhar os custos da folha, mencione nas notas quais encargos (ex: INSS patronal, FGTS) foram considerados além do salário bruto.
+        *   **Indicadores Financeiros:** Calcule e preencha os seguintes campos:
+            *   'effectiveRateOnProfit': (Impostos Totais da Empresa / Lucro Bruto Antes dos Impostos da Empresa) * 100.
+            *   'taxCostPerEmployee': Se houver folha CLT, calcule (Impostos Totais da Empresa / Número de funcionários). Assuma 1 funcionário se o valor da folha for > 0, a menos que especificado.
 
 3.  **Resumo Executivo e Análise de Projeção:** No campo 'executiveSummary', escreva uma análise em três partes:
     *   **Recomendação para o Cenário Atual:** Indique qual regime é mais vantajoso para o faturamento atual (em R$ e %), e por quê. Aja como um consultor. Se foi informada uma folha, compare os cenários com e sem ela, explicando o impacto financeiro da contratação, incluindo os custos totais (salário + encargos).
@@ -112,5 +117,3 @@ const generateTaxScenariosFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    
