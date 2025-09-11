@@ -94,8 +94,11 @@ export default function Home() {
               </div>
 
                <div className="space-y-2">
-                  <Label htmlFor="payrollExpenses">Folha Salarial Bruta (Opcional)</Label>
+                  <Label htmlFor="payrollExpenses">Folha Salarial Bruta (CLT, Opcional)</Label>
                   <Input id="payrollExpenses" name="payrollExpenses" type="text" placeholder="Ex: 5000.00 (use ponto para decimais)" />
+                  <p className="text-sm text-muted-foreground">
+                    Este valor é crucial para o cálculo do Fator R no Simples Nacional.
+                  </p>
                 </div>
 
               <div className="space-y-2">
@@ -202,3 +205,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

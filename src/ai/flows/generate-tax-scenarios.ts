@@ -13,7 +13,7 @@ import {z} from 'genkit';
 
 const GenerateTaxScenariosInputSchema = z.object({
   clientData: z.string().optional().describe('The client financial and operational information (revenue, etc.)'),
-  payrollExpenses: z.string().optional().describe('As despesas com a folha de pagamento do cliente.'),
+  payrollExpenses: z.string().optional().describe('As despesas com a folha de pagamento do cliente (CLT).'),
   attachedDocuments: z.array(z.string()).optional().describe('Relevant documents like tax declarations and Simples Nacional extracts as a data URI.'),
   clientType: z.enum(['Novo aberturas de empresa', 'Transferências de contabilidade']).describe('The type of client.'),
 });
@@ -39,7 +39,7 @@ const ScenarioDetailSchema = z.object({
   taxBreakdown: z.array(TaxDetailSchema).describe('Detalhamento da composição dos tributos dentro do regime.'),
   proLaboreAnalysis: ProLaboreAnalysisSchema.describe('Análise detalhada do impacto do pró-labore.'),
   netProfitDistribution: z.string().describe('Lucro líquido disponível para distribuição ao sócio após todos os impostos e encargos.'),
-  notes: z.string().describe('Observações importantes sobre o cenário, como o uso do Fator R.'),
+  notes: z.string().describe('Observações importantes sobre o cenário, como o uso do Fator R ou o cálculo do INSS patronal.'),
 });
 
 const GenerateTaxScenariosOutputSchema = z.object({
@@ -78,11 +78,11 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
 1.  **Análise de Faturamento:** Extraia o faturamento mensal e preencha o campo 'monthlyRevenue' (formato "R$ XX.XXX,XX").
 
 2.  **Geração de Cenários Detalhados (Simples Nacional Anexo III/V, Lucro Presumido):** Para cada cenário no array 'scenarios':
-    *   **Cálculo dos Tributos:** Calcule o valor de cada tributo (IRPJ, CSLL, PIS, COFINS, ISS) e, quando aplicável (Simples Anexo III com Fator R, Lucro Presumido), a CPP. Preencha o array 'taxBreakdown' para cada um, com nome, alíquota e valor.
-    *   **Fator R e Pró-Labore:** No Simples, determine o pró-labore *mínimo* para atingir o Fator R de 28% (se a folha salarial não for suficiente). Use este valor no cálculo. Na 'notes', explique a estratégia usada (ex: "Pró-labore ajustado para R$X para alcançar o Fator R e tributar pelo Anexo III.").
-    *   **Análise do Pró-Labore:** Para o valor de pró-labore definido, calcule INSS (contribuição do sócio) e IRRF. Preencha 'proLaboreAnalysis' com os valores base, INSS, IRRF e o valor líquido.
+    *   **Cálculo dos Tributos:** Calcule o valor de cada tributo (IRPJ, CSLL, PIS, COFINS, ISS) e, quando aplicável (Simples Anexo III com Fator R, Lucro Presumido), a CPP. No Lucro Presumido, a CPP (INSS Patronal) é de 20% sobre a folha de pagamento (CLT + pró-labore). Preencha o array 'taxBreakdown' para cada um, com nome, alíquota e valor.
+    *   **Fator R e Pró-Labore (Simples Nacional):** A folha de pagamento para o Fator R é a soma da folha salarial CLT (se informada) e do pró-labore. Determine o pró-labore *mínimo* necessário para que o total da folha alcance 28% do faturamento, permitindo a tributação pelo Anexo III. Se a folha CLT já for suficiente, use um pró-labore simbólico/mínimo legal. Na 'notes', explique a estratégia usada (ex: "Pró-labore ajustado para R$X para alcançar o Fator R e tributar pelo Anexo III.").
+    *   **Análise do Pró-Labore:** Para o valor de pró-labore definido em cada cenário, calcule o INSS (contribuição do sócio, 11%) e o IRRF (conforme tabela progressiva). Preencha 'proLaboreAnalysis' com os valores base, INSS, IRRF e o valor líquido.
     *   **Totalização:** Calcule e preencha 'totalTaxValue' (soma de todos os impostos da empresa) e 'effectiveRate'.
-    *   **Lucro Líquido Final:** Calcule o 'netProfitDistribution', que é o faturamento menos os impostos da empresa, menos os custos do pró-labore (INSS e IRRF). Este é o dinheiro que realmente sobra para o sócio.
+    *   **Lucro Líquido Final:** Calcule o 'netProfitDistribution', que é o faturamento menos os impostos da empresa, menos os custos do pró-labore (valor bruto + encargos se houver, mas aqui focamos no INSS/IRRF do sócio para simplificar o lucro distribuível). Este é o dinheiro que realmente sobra para o sócio.
 
 3.  **Resumo Executivo e Recomendação:** No campo 'executiveSummary', escreva um resumo claro e direto. Indique qual regime é mais vantajoso (em R$ e %), e por quê. Aja como um consultor, fornecendo uma recomendação estratégica e os próximos passos. Adapte o conselho se for 'Novo aberturas de empresa' (foco em estrutura inicial) ou 'Transferências de contabilidade' (foco em custos de migração).
 
@@ -100,3 +100,5 @@ const generateTaxScenariosFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    
