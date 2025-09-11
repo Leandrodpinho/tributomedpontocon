@@ -110,7 +110,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
 
     return (
         <div className="grid min-h-[calc(100vh-4rem)] w-full lg:grid-cols-[280px_1fr]">
-            <div className="hidden border-r bg-muted/40 lg:block print:hidden">
+            <div className="hidden border-r bg-muted/40 lg:block no-print">
                 <div className="flex h-full max-h-screen flex-col gap-2 sticky top-16">
                     <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
                         <div className="flex items-center gap-2 font-semibold">
@@ -129,7 +129,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                 </div>
             </div>
             <div className="flex flex-col">
-                <header className="flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 print:hidden">
+                <header className="flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 no-print">
                      <div className="flex items-center gap-2">
                         <h1 className="text-lg font-semibold md:text-2xl">{clientName} | Doctor.con</h1>
                      </div>
@@ -307,3 +307,4 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
         </div>
     );
 }
+
