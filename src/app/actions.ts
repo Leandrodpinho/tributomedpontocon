@@ -3,6 +3,7 @@
 
 import { generateTaxScenarios, type GenerateTaxScenariosOutput } from "@/ai/flows/generate-tax-scenarios";
 import { extractTextFromImage } from "@/ai/flows/extract-text-from-image";
+import htmlToDocx from 'html-to-docx';
 
 export interface AnalysisState {
   aiResponse: GenerateTaxScenariosOutput | null;
@@ -97,5 +98,21 @@ export async function getAnalysis(
       transcribedText: null,
       error: `Falha ao processar a análise: ${errorMessage}`,
     };
+  }
+}
+
+export async function generateDocx(htmlContent: string): Promise<{ docx: string | null, error: string | null }> {
+  try {
+    const fileBuffer = await htmlToDocx(htmlContent, undefined, {
+      font: 'Arial',
+      fontSize: 12,
+    });
+    
+    // Return as a base64 string
+    return { docx: (fileBuffer as Buffer).toString('base64'), error: null };
+  } catch (error) {
+    console.error("Error generating DOCX:", error);
+    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido.";
+    return { docx: null, error: `Falha ao gerar o arquivo DOCX: ${errorMessage}` };
   }
 }

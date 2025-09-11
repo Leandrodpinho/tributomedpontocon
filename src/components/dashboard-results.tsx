@@ -10,7 +10,9 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { MarkdownRenderer } from './markdown-renderer';
 import { saveAs } from 'file-saver';
-import htmlToDocx from 'html-to-docx';
+import { generateDocx } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import React from 'react';
 
 
 // Helper to parse currency strings like "R$ 1.234,56" into numbers
@@ -25,6 +27,8 @@ type DashboardResultsProps = {
 };
 
 export function DashboardResults({ analysis, clientName }: DashboardResultsProps) {
+    const [isDownloading, setIsDownloading] = React.useState(false);
+    const { toast } = useToast();
     if (!analysis || !analysis.scenarios) return null;
 
     const currentRevenueScenarios = analysis.scenarios.filter(s => s.name.includes(analysis.monthlyRevenue));
@@ -47,13 +51,38 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
     };
 
     const handleDownloadDocx = async () => {
+        setIsDownloading(true);
         const reportElement = document.getElementById('report-content');
         if (reportElement) {
-            const fileBuffer = await htmlToDocx(reportElement.outerHTML, undefined, {
-                font: 'Arial',
-                fontSize: 12,
+          try {
+            const htmlContent = reportElement.outerHTML;
+            const result = await generateDocx(htmlContent);
+    
+            if (result.error || !result.docx) {
+              throw new Error(result.error || 'Failed to generate DOCX buffer.');
+            }
+            
+            // Convert base64 back to a Blob
+            const byteCharacters = atob(result.docx);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    
+            saveAs(blob, `Relatorio_Tributario_${clientName.replace(/\s/g, '_')}.docx`);
+    
+          } catch (error) {
+            console.error("Error downloading DOCX:", error);
+            toast({
+              variant: "destructive",
+              title: "Erro no Download",
+              description: error instanceof Error ? error.message : "Não foi possível gerar o arquivo Word.",
             });
-            saveAs(fileBuffer as Blob, `Relatorio_Tributario_${clientName.replace(/\s/g, '_')}.docx`);
+          } finally {
+            setIsDownloading(false);
+          }
         }
     };
 
@@ -99,7 +128,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                     </div>
                 </div>
             </div>
-            <div className="flex flex-col" id="report-content">
+            <div className="flex flex-col">
                 <header className="flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 print:hidden">
                      <div className="flex items-center gap-2">
                         <h1 className="text-lg font-semibold md:text-2xl">{clientName} | Doctor.con</h1>
@@ -109,13 +138,13 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                             <Printer className="h-4 w-4" />
                             <span className="ml-2 hidden sm:inline">Imprimir / Salvar PDF</span>
                         </Button>
-                        <Button size="sm" onClick={handleDownloadDocx}>
+                        <Button size="sm" onClick={handleDownloadDocx} disabled={isDownloading}>
                             <Download className="h-4 w-4" />
-                            <span className="ml-2 hidden sm:inline">Baixar Relatório (Word)</span>
+                            <span className="ml-2 hidden sm:inline">{isDownloading ? 'Gerando...' : 'Baixar Relatório (Word)'}</span>
                         </Button>
                     </div>
                 </header>
-                <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+                <main id="report-content" className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
                     {/* DASH Section */}
                     <div id="dash" className="space-y-6 animate-in fade-in-50">
                         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
@@ -278,4 +307,3 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
         </div>
     );
 }
-
