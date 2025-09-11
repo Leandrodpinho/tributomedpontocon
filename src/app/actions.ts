@@ -86,9 +86,12 @@ export async function getAnalysis(
       attachedDocuments 
     });
 
+    // Garante que o objeto retornado é serializável em JSON puro.
+    const serializableResponse = JSON.parse(JSON.stringify(aiResponse));
+
     return {
-      aiResponse,
-      transcribedText: aiResponse.transcribedText,
+      aiResponse: serializableResponse,
+      transcribedText: serializableResponse.transcribedText,
     };
   } catch (error) {
     console.error(error);
