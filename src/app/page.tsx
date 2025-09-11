@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useActionState, useRef } from "react";
-import { getAnalysis, type AnalysisState, type FormPayload } from "@/app/actions";
+import { useEffect, useActionState } from "react";
+import { getAnalysis, type AnalysisState } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { LogoIcon } from "@/components/icons/logo";
 import { AnalysisPresentation } from "@/components/analysis-presentation";
@@ -39,15 +39,6 @@ const initialState: AnalysisState = {
   error: null,
 };
 
-// Helper para converter File para Data URI
-async function fileToDataURI(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = (error) => reject(error);
-    reader.readAsDataURL(file);
-  });
-}
 
 function AnalysisForm({formAction}: {formAction: (payload: FormData) => void}) {
     const { pending } = useFormStatus();
