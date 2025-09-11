@@ -26,6 +26,9 @@ export async function getAnalysis(
   const payrollExpenses = formData.get("payrollExpenses") as string | null;
   const issRate = formData.get("issRate") as string | null;
   const clientType = formData.get("clientType") as "Novo aberturas de empresa" | "Transferências de contabilidade";
+  const companyName = formData.get("companyName") as string | null;
+  const cnpj = formData.get("cnpj") as string | null;
+
 
   try {
     // 1. Validate input: ensure at least some data is present
@@ -62,6 +65,8 @@ export async function getAnalysis(
     // 3. Call the main AI flow with all data consolidated
     const aiResponse = await generateTaxScenarios({
       clientType: clientType,
+      companyName: companyName ?? "",
+      cnpj: cnpj ?? "",
       clientData: clientData ?? "",
       payrollExpenses: payrollExpenses ?? "",
       issRate: issRate ?? "",

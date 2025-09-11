@@ -17,6 +17,8 @@ const GenerateTaxScenariosInputSchema = z.object({
   issRate: z.string().optional().describe('A alíquota de ISS a ser utilizada no cálculo, em porcentagem (ex: "4.0").'),
   documentsAsText: z.string().optional().describe('The consolidated transcribed text from all attached documents.'),
   clientType: z.enum(['Novo aberturas de empresa', 'Transferências de contabilidade']).describe('The type of client.'),
+  companyName: z.string().optional().describe('The name of the client\'s company.'),
+  cnpj: z.string().optional().describe('The CNPJ of the client\'s company.'),
 });
 export type GenerateTaxScenariosInput = z.infer<typeof GenerateTaxScenariosInputSchema>;
 
@@ -66,6 +68,8 @@ const prompt = ai.definePrompt({
 
 Você receberá dados de um cliente:
 Tipo de Cliente: {{{clientType}}}
+{{#if companyName}}Nome da Empresa: {{{companyName}}}{{/if}}
+{{#if cnpj}}CNPJ: {{{cnpj}}}{{/if}}
 {{#if payrollExpenses}}Folha Salarial Bruta (CLT): {{{payrollExpenses}}}{{/if}}
 {{#if issRate}}Alíquota de ISS a ser usada: {{{issRate}}}%{{else}}Alíquota de ISS a ser usada: 4% (padrão Montes Claros){{/if}}
 {{#if clientData}}Dados do Cliente (texto): {{{clientData}}}{{/if}}
@@ -82,7 +86,7 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
 2.  **Geração de Cenários (Faturamento Atual e Projeções):**
     *   **Calcule os cenários para 3 níveis de faturamento:** o faturamento atual, um cenário com +20% e um com +50%.
     *   **Para cada nível de faturamento, gere os cenários tributários (Simples Nacional Anexo III/V, Lucro Presumido, e Lucro Presumido com Equiparação Hospitalar). Se uma folha salarial foi fornecida, gere cenários COM e SEM essa folha para comparar o impacto da contratação. No nome do cenário, indique claramente a situação (ex: "Simples Nacional Anexo III - Com Folha CLT").**
-    *   Adicione TODOS os cenários gerados ao array 'scenarios'. No campo 'name' de cada cenário, especifique o regime, o faturamento, e se inclui folha salarial.
+    *   Adicione TODOS os cenários gerados ao array 'scenarios'. No campo 'name' de cada cenário, especifique o regime, o faturamento, e se inclui folha salarial. Se o nome da empresa foi fornecido, use-o no nome do cenário (ex: "Cenário para [Nome da Empresa]: Simples Nacional...").
     *   **Para cada cenário:**
         *   **Cálculo dos Tributos (Simples Nacional):**
             *   Calcule a Receita Bruta dos últimos 12 meses (RBT12). Para o faturamento atual, RBT12 = Faturamento Mensal * 12. Para as projeções, use a RBT12 projetada.
@@ -104,7 +108,7 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
             *   'taxCostPerEmployee': Se houver folha CLT, calcule (Impostos Totais da Empresa / Número de funcionários). Assuma 1 funcionário se o valor da folha for > 0, a menos que especificado.
 
 3.  **Resumo Executivo e Análise de Projeção:** No campo 'executiveSummary', escreva uma análise em três partes:
-    *   **Recomendação para o Cenário Atual:** Indique qual regime é mais vantajoso para o faturamento atual (em R$ e %), e por quê. Aja como um consultor. Se foi informada uma folha, compare os cenários com e sem ela, explicando o impacto financeiro da contratação.
+    *   **Recomendação para o Cenário Atual:** Indique qual regime é mais vantajoso para o faturamento atual (em R$ e %), e por quê. Se o nome da empresa/CNPJ foi fornecido, mencione-o. Aja como um consultor. Se foi informada uma folha, compare os cenários com e sem ela, explicando o impacto financeiro da contratação.
     *   **Análise das Projeções:** Com base nos cenários de +20% e +50%, analise os pontos de inflexão. Mostre a partir de qual faturamento o Lucro Presumido (ou Equiparado) pode se tornar mais vantajoso.
     *   **Pontos de Atenção e Oportunidades:** Mencione a importância de verificar a alíquota de ISS do município do cliente. Comente sobre a possibilidade de benefícios como a equiparação hospitalar e a necessidade de assessoria para garantir a elegibilidade.
 

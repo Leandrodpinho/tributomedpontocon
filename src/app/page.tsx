@@ -86,6 +86,17 @@ export default function Home() {
                     </RadioGroup>
                 </div>
 
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="companyName">Nome da Empresa</Label>
+                        <Input id="companyName" name="companyName" type="text" placeholder="Ex: Clínica Dr. João Silva" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="cnpj">CNPJ</Label>
+                        <Input id="cnpj" name="cnpj" type="text" placeholder="00.000.000/0001-00" />
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                         <Label htmlFor="payrollExpenses">Folha Salarial Bruta (CLT)</Label>
