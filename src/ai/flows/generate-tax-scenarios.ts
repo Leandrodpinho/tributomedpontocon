@@ -22,7 +22,7 @@ export type GenerateTaxScenariosInput = z.infer<typeof GenerateTaxScenariosInput
 
 const TaxDetailSchema = z.object({
   name: z.string().describe('Nome do tributo (ex: IRPJ, CSLL, PIS, COFINS, ISS, CPP).'),
-  rate: z.string().describe('Alíquota do tributo (ex: "4,80%").'),
+  rate: z.string().describe('Alíquota do tributo (ex: "4.0").'),
   value: z.string().describe('Valor do tributo (ex: "R$ 480,00").'),
 });
 
@@ -75,7 +75,7 @@ Conteúdo dos Documentos Anexados:
 Primeiro, use as informações financeiras de 'clientData' e 'documentsAsText' como a fonte primária de dados. Popule o campo 'transcribedText' com o conteúdo de 'documentsAsText'.
 {{/if}}
 
-Com base em todas as informações e na legislação de 2025, execute a seguinte análise V2.0:
+Com base em todas as informações e na legislação de 2025, execute a seguinte análise V2.1:
 
 1.  **Análise de Faturamento:** Extraia o faturamento mensal e preencha o campo 'monthlyRevenue' (formato "R$ XX.XXX,XX").
 
@@ -87,10 +87,10 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
         *   **Cálculo dos Tributos:** Calcule o valor de cada tributo (IRPJ, CSLL, PIS, COFINS, ISS) e, quando aplicável (Simples Anexo III com Fator R, Lucro Presumido), a CPP. No Lucro Presumido, a CPP (INSS Patronal) é de 20% sobre a folha de pagamento (CLT + pró-labore). **Para o ISS no Lucro Presumido, use a alíquota de {{{issRate}}}% informada (ou 4% se não for fornecida)**. Avise na 'notes' que a alíquota pode variar. Preencha o array 'taxBreakdown' para cada um, com nome, alíquota e valor. Siga estritamente o formato para cada tributo.
         *   **Análise do Pró-Labore:**
             *   **Estratégia do Fator R (Simples Nacional):** Determine o pró-labore *mínimo* necessário para que a folha total (CLT + pró-labore) alcance 28% do faturamento, permitindo a tributação pelo Anexo III.
-            *   **Definição do Pró-Labore:** No cenário do Anexo III, use este pró-labore calculado. Nos outros cenários (Anexo V, Lucro Presumido), use o pró-labore mínimo legal. Na 'notes', explique a estratégia usada.
+            *   **Definição do Pró-Labore:** No cenário do Anexo III, use este pró-labore calculado. Nos outros cenários (Anexo V, Lucro Presumido), use o pró-labore mínimo legal (salário mínimo nacional). Na 'notes', explique a estratégia usada.
             *   **Cálculo de Encargos do Sócio:** Para o valor de pró-labore definido, calcule o INSS (11%) e o IRRF (conforme tabela progressiva). Preencha 'proLaboreAnalysis' com os valores base, INSS, IRRF e o valor líquido.
         *   **Totalização:** Calcule e preencha 'totalTaxValue' e 'effectiveRate'.
-        *   **Lucro Líquido Final (Distribuição de Lucros):** Calcule o 'netProfitDistribution': Faturamento - (Soma de todos os impostos da empresa) - (Folha de Pagamento CLT, se houver, **incluindo os encargos patronais como INSS e FGTS**) - (Valor Bruto do Pró-Labore) - (CPP/INSS Patronal sobre o Pró-Labore, se aplicável).
+        *   **Lucro Líquido Final (Distribuição de Lucros):** Calcule o 'netProfitDistribution': Faturamento - (Soma de todos os impostos da empresa) - (Valor Bruto do Pró-Labore).
         *   **Notas:** Ao detalhar os custos da folha, mencione nas notas quais encargos (ex: INSS patronal, FGTS) foram considerados além do salário bruto.
         *   **Indicadores Financeiros:** Calcule e preencha os seguintes campos:
             *   'effectiveRateOnProfit': (Impostos Totais da Empresa / Lucro Bruto Antes dos Impostos da Empresa) * 100.
