@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const initialState: AnalysisState = {
   aiResponse: undefined,
@@ -70,10 +72,9 @@ export default function Home() {
       <main className="flex-1 w-full max-w-4xl mx-auto p-4 md:p-8 space-y-8">
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle>Análise Tributária Personalizada</CardTitle>
+            <CardTitle>Análise Tributária Personalizada v2.0</CardTitle>
             <CardDescription>
-              Insira as informações do cliente ou anexe um documento para gerar cenários tributários e
-              otimizar a carga fiscal.
+              Insira as informações do cliente ou anexe um documento para gerar um planejamento tributário detalhado.
             </CardDescription>
           </CardHeader>
           <form action={formAction} ref={formRef}>
@@ -94,7 +95,7 @@ export default function Home() {
 
                <div className="space-y-2">
                   <Label htmlFor="payrollExpenses">Folha Salarial Bruta (Opcional)</Label>
-                  <Input id="payrollExpenses" name="payrollExpenses" type="number" placeholder="R$ 5.000,00" />
+                  <Input id="payrollExpenses" name="payrollExpenses" type="text" placeholder="Ex: 5000.00 (use ponto para decimais)" />
                 </div>
 
               <div className="space-y-2">
@@ -130,38 +131,68 @@ export default function Home() {
         {state.aiResponse && (
           <Card className="shadow-lg animate-in fade-in-50">
             <CardHeader>
-              <CardTitle>Resultados da Análise</CardTitle>
+              <CardTitle>Resultados da Análise V2.0</CardTitle>
               <CardDescription>
-                Abaixo estão os cenários gerados pela IA, em formato de texto e apresentação.
+                Abaixo estão os cenários gerados pela IA, em formato de apresentação e texto detalhado.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="presentation">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="presentation">Apresentação</TabsTrigger>
-                  <TabsTrigger value="scenarios">Cenários (Texto)</TabsTrigger>
-                  <TabsTrigger value="irpf">Impacto no IRPF</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="presentation">Apresentação Visual</TabsTrigger>
+                  <TabsTrigger value="details">Análise Detalhada (Texto)</TabsTrigger>
                 </TabsList>
-                <TabsContent value="presentation">
+                <TabsContent value="presentation" className="mt-4">
                    <AnalysisPresentation analysis={state.aiResponse} />
                 </TabsContent>
-                <TabsContent value="scenarios" className="mt-4 p-4 border rounded-md min-h-[200px] bg-background">
-                  {state.aiResponse?.scenarios ? (
-                     <pre className="whitespace-pre-wrap text-sm text-foreground font-sans">
-                      {state.aiResponse.scenarios.map(s => `${s.name} (${s.taxRate}): ${s.taxValue}\n(INSS: ${s.inssRate}, IR: ${s.irRate})\n${s.description}`).join('\n\n')}
-                    </pre>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Nenhum cenário gerado.</p>
-                  )}
-                </TabsContent>
-                <TabsContent value="irpf" className="mt-4 p-4 border rounded-md min-h-[200px] bg-background">
-                   {state.aiResponse?.irpfImpact ? (
-                     <pre className="whitespace-pre-wrap text-sm text-foreground font-sans">
-                      {state.aiResponse.irpfImpact}
-                    </pre>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Nenhum impacto de IRPF calculado.</p>
-                  )}
+                <TabsContent value="details" className="mt-4">
+                  <ScrollArea className="h-[500px] p-4 border rounded-md">
+                     <div className="space-y-6 text-sm text-foreground font-sans">
+                        <div>
+                          <h3 className="font-bold text-lg mb-2">Resumo Executivo</h3>
+                          <p className="whitespace-pre-wrap">{state.aiResponse.executiveSummary}</p>
+                        </div>
+                        {state.aiResponse.scenarios.map((scenario, index) => (
+                           <div key={index} className="space-y-4">
+                              <h4 className="font-bold text-md text-primary">{scenario.name}</h4>
+                              <p><span className="font-semibold">Imposto Total:</span> {scenario.totalTaxValue} ({scenario.effectiveRate} efetiva)</p>
+                              <p><span className="font-semibold">Lucro Líquido para o Sócio:</span> <span className="text-green-400 font-bold">{scenario.netProfitDistribution}</span></p>
+                              
+                              <h5 className="font-semibold mt-2">Detalhamento dos Tributos:</h5>
+                               <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Tributo</TableHead>
+                                      <TableHead>Alíquota</TableHead>
+                                      <TableHead>Valor</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                     {scenario.taxBreakdown.map((tax, taxIdx) => (
+                                        <TableRow key={taxIdx}>
+                                          <TableCell>{tax.name}</TableCell>
+                                          <TableCell>{tax.rate}</TableCell>
+                                          <TableCell>{tax.value}</TableCell>
+                                        </TableRow>
+                                     ))}
+                                  </TableBody>
+                                </Table>
+
+                                <h5 className="font-semibold mt-2">Análise do Pró-Labore:</h5>
+                                <p>
+                                  Base: {scenario.proLaboreAnalysis.baseValue} | 
+                                  INSS: {scenario.proLaboreAnalysis.inssValue} | 
+                                  IRRF: {scenario.proLaboreAnalysis.irrfValue} | 
+                                  Líquido: <span className="font-bold">{scenario.proLaboreAnalysis.netValue}</span>
+                                </p>
+                                
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  <span className="font-semibold">Notas:</span> {scenario.notes}
+                                </p>
+                           </div>
+                        ))}
+                     </div>
+                  </ScrollArea>
                 </TabsContent>
               </Tabs>
             </CardContent>

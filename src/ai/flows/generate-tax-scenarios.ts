@@ -19,21 +19,34 @@ const GenerateTaxScenariosInputSchema = z.object({
 });
 export type GenerateTaxScenariosInput = z.infer<typeof GenerateTaxScenariosInputSchema>;
 
+const TaxDetailSchema = z.object({
+  name: z.string().describe('Nome do tributo (ex: IRPJ, CSLL, PIS, COFINS, ISS, CPP).'),
+  rate: z.string().describe('Alíquota do tributo (ex: "4,80%").'),
+  value: z.string().describe('Valor do tributo (ex: "R$ 480,00").'),
+});
+
+const ProLaboreAnalysisSchema = z.object({
+  baseValue: z.string().describe('Valor base do pró-labore utilizado no cálculo.'),
+  inssValue: z.string().describe('Valor da contribuição do INSS sobre o pró-labore.'),
+  irrfValue: z.string().describe('Valor do IRRF retido na fonte sobre o pró-labore.'),
+  netValue: z.string().describe('Valor líquido do pró-labore após deduções.'),
+});
+
 const ScenarioDetailSchema = z.object({
   name: z.string().describe('O nome do cenário (ex: "Simples Nacional Anexo III").'),
-  taxRate: z.string().describe('A alíquota efetiva ou porcentagem do imposto (ex: "10,75%").'),
-  taxValue: z.string().describe('O valor do imposto a ser pago (ex: "R$ 1.270,15").'),
-  inssRate: z.string().describe('A alíquota do INSS para este cenário.'),
-  irRate: z.string().describe('A alíquota do Imposto de Renda (IR) para este cenário.'),
-  description: z.string().describe('Uma breve descrição ou observação sobre o cenário.'),
+  totalTaxValue: z.string().describe('O valor total do imposto a ser pago no regime (ex: "R$ 1.270,15").'),
+  effectiveRate: z.string().describe('A alíquota efetiva total do regime (ex: "10,75%").'),
+  taxBreakdown: z.array(TaxDetailSchema).describe('Detalhamento da composição dos tributos dentro do regime.'),
+  proLaboreAnalysis: ProLaboreAnalysisSchema.describe('Análise detalhada do impacto do pró-labore.'),
+  netProfitDistribution: z.string().describe('Lucro líquido disponível para distribuição ao sócio após todos os impostos e encargos.'),
+  notes: z.string().describe('Observações importantes sobre o cenário, como o uso do Fator R.'),
 });
 
 const GenerateTaxScenariosOutputSchema = z.object({
-  transcribedText: z.string().describe('As informações financeiras e operacionais transcritas dos documentos anexados.'),
-  scenarios: z.array(ScenarioDetailSchema).describe('Uma lista de cenários tributários detalhados.'),
-  irpfImpact: z.string().describe("O impacto estimado dos diferentes regimes tributários no IRPF do cliente."),
-  recommendation: z.string().describe('A recomendação final sobre o melhor cenário tributário.'),
+  transcribedText: z.string().optional().describe('As informações financeiras e operacionais transcritas dos documentos anexados.'),
   monthlyRevenue: z.string().describe('O faturamento mensal identificado para o cliente.'),
+  scenarios: z.array(ScenarioDetailSchema).describe('Uma lista de cenários tributários detalhados.'),
+  executiveSummary: z.string().describe('Resumo executivo com a recomendação final sobre o melhor cenário, justificando a decisão com base na economia, complexidade e objetivos do cliente.'),
 });
 export type GenerateTaxScenariosOutput = z.infer<typeof GenerateTaxScenariosOutputSchema>;
 
@@ -46,45 +59,34 @@ const prompt = ai.definePrompt({
   name: 'generateTaxScenariosPrompt',
   input: {schema: GenerateTaxScenariosInputSchema},
   output: {schema: GenerateTaxScenariosOutputSchema},
-  prompt: `Você é um contador especialista em impostos para profissionais da área médica no Brasil, atualizado com a legislação vigente de 2025. Sua tarefa é analisar as informações do cliente e gerar um planejamento tributário detalhado e analítico. Responda sempre em português do Brasil.
+  prompt: `Você é um contador-chefe e consultor de negócios para profissionais da área médica no Brasil, atualizado com a legislação vigente de 2025. Sua tarefa é criar um planejamento tributário estratégico e profundo, que sirva como ferramenta para tomada de decisão. Responda sempre em português do Brasil.
 
-Você receberá o tipo de cliente e informações financeiras.
-
+Você receberá dados de um cliente:
 Tipo de Cliente: {{{clientType}}}
-{{#if payrollExpenses}}Folha Salarial Bruta: {{{payrollExpenses}}}{{/if}}
-
-{{#if clientData}}
-Dados do Cliente (texto): {{{clientData}}}
-{{/if}}
-
+{{#if payrollExpenses}}Folha Salarial Bruta (CLT): {{{payrollExpenses}}}{{/if}}
+{{#if clientData}}Dados do Cliente (texto): {{{clientData}}}{{/if}}
 {{#if attachedDocuments}}
 Documentos Anexados:
 {{#each attachedDocuments}}
 - Documento: {{media url=this}}
 {{/each}}
-
-Se houver documentos anexados, você DEVE primeiro transcrever as informações financeiras e operacionais de TODOS eles em um único texto consolidado. Este texto transcrito deve ser colocado no campo 'transcribedText'. Use essa informação transcrita (juntamente com qualquer texto fornecido pelo usuário e o campo de folha salarial) para realizar a análise completa. Se apenas texto for fornecido, use-o para a análise e deixe 'transcribedText' vazio.
-{{else}}
-{{#if clientData}}
-{{! Nenhuma instrução especial necessária se apenas clientData for fornecido. }}
-{{else}}
-Você DEVE pedir ao usuário para fornecer dados em texto ou documentos.
-{{/if}}
+Primeiro, transcreva as informações financeiras de TODOS os documentos no campo 'transcribedText'. Use este texto consolidado como a fonte primária de dados.
 {{/if}}
 
-Com base em todas as informações disponíveis e na legislação de 2025:
-1.  **Extração e Análise de Faturamento:** Identifique e extraia o faturamento mensal do cliente e preencha o campo 'monthlyRevenue'. Formate como "R$ XX.XXX,XX".
-2.  **Geração de Cenários Tributários:** Gere de 2 a 4 cenários detalhados (Simples Nacional Anexo III, Anexo V, Lucro Presumido). Para cada cenário:
-    *   **Cálculo do CPP:** Você DEVE calcular a Contribuição Previdenciária Patronal (CPP) aplicável a cada regime. Não a receberá como entrada.
-    *   **Fator R:** Se aplicável (Simples Nacional), calcule o valor de pró-labore necessário para atingir a razão de 28% (folha de salários / faturamento). Deixe claro no campo 'description' qual valor foi usado.
-    *   **Impostos:** Preencha 'taxRate' (alíquota efetiva) e 'taxValue' (valor do imposto).
-    *   **Encargos:** Calcule e preencha 'inssRate' (alíquota do INSS sobre o pró-labore/salário) e 'irRate' (alíquota do Imposto de Renda na fonte).
-    *   Coloque os resultados no campo 'scenarios'.
-3.  **Impacto no IRPF:** Analise o impacto no IRPF do sócio (Reflexo no IRPF), considerando o pró-labore e a distribuição de lucros de cada cenário. Preencha no campo 'irpfImpact'.
-4.  **Recomendação Consultiva:** Forneça uma recomendação clara, analítica e direta sobre qual o melhor cenário no campo 'recommendation'. Justifique sua decisão com base nos números (imposto total, IRPF, economia), na complexidade e nos objetivos de longo prazo do cliente. Aja como um consultor financeiro, ajudando na tomada de decisão.
-5.  **Diferenciação por Cliente:** Adapte seu conselho com base se o cliente é uma 'Novo aberturas de empresa' (foco na estrutura ideal inicial) ou uma 'Transferências de contabilidade' (considere custos e complexidade da migração).
+Com base em todas as informações e na legislação de 2025, execute a seguinte análise V2.0:
 
-Sua resposta deve ser estruturada estritamente de acordo com o JSON de saída.`,
+1.  **Análise de Faturamento:** Extraia o faturamento mensal e preencha o campo 'monthlyRevenue' (formato "R$ XX.XXX,XX").
+
+2.  **Geração de Cenários Detalhados (Simples Nacional Anexo III/V, Lucro Presumido):** Para cada cenário no array 'scenarios':
+    *   **Cálculo dos Tributos:** Calcule o valor de cada tributo (IRPJ, CSLL, PIS, COFINS, ISS) e, quando aplicável (Simples Anexo III com Fator R, Lucro Presumido), a CPP. Preencha o array 'taxBreakdown' para cada um, com nome, alíquota e valor.
+    *   **Fator R e Pró-Labore:** No Simples, determine o pró-labore *mínimo* para atingir o Fator R de 28% (se a folha salarial não for suficiente). Use este valor no cálculo. Na 'notes', explique a estratégia usada (ex: "Pró-labore ajustado para R$X para alcançar o Fator R e tributar pelo Anexo III.").
+    *   **Análise do Pró-Labore:** Para o valor de pró-labore definido, calcule INSS (contribuição do sócio) e IRRF. Preencha 'proLaboreAnalysis' com os valores base, INSS, IRRF e o valor líquido.
+    *   **Totalização:** Calcule e preencha 'totalTaxValue' (soma de todos os impostos da empresa) e 'effectiveRate'.
+    *   **Lucro Líquido Final:** Calcule o 'netProfitDistribution', que é o faturamento menos os impostos da empresa, menos os custos do pró-labore (INSS e IRRF). Este é o dinheiro que realmente sobra para o sócio.
+
+3.  **Resumo Executivo e Recomendação:** No campo 'executiveSummary', escreva um resumo claro e direto. Indique qual regime é mais vantajoso (em R$ e %), e por quê. Aja como um consultor, fornecendo uma recomendação estratégica e os próximos passos. Adapte o conselho se for 'Novo aberturas de empresa' (foco em estrutura inicial) ou 'Transferências de contabilidade' (foco em custos de migração).
+
+Sua resposta deve seguir estritamente a estrutura do JSON de saída. Seja analítico e preciso.`,
 });
 
 const generateTaxScenariosFlow = ai.defineFlow(
