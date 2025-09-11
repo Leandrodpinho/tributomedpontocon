@@ -65,7 +65,7 @@ const prompt = ai.definePrompt({
 Você receberá dados de um cliente:
 Tipo de Cliente: {{{clientType}}}
 {{#if payrollExpenses}}Folha Salarial Bruta (CLT): {{{payrollExpenses}}}{{/if}}
-{{#if issRate}}Alíquota de ISS a ser usada: {{{issRate}}}%{{else}}Alíquota de ISS a ser usada: 5% (padrão){{/if}}
+{{#if issRate}}Alíquota de ISS a ser usada: {{{issRate}}}%{{else}}Alíquota de ISS a ser usada: 4% (padrão Montes Claros){{/if}}
 {{#if clientData}}Dados do Cliente (texto): {{{clientData}}}{{/if}}
 {{#if attachedDocuments}}
 Documentos Anexados:
@@ -84,7 +84,7 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
     *   Para cada nível de faturamento, gere os cenários tributários (Simples Nacional Anexo III/V, Lucro Presumido).
     *   Adicione TODOS os cenários gerados (para faturamento atual e projeções) ao array 'scenarios'. No campo 'name' de cada cenário, especifique o regime E o faturamento correspondente (ex: "Simples Nacional Anexo III com Faturamento de R$ 12.000,00").
     *   **Para cada cenário:**
-        *   **Cálculo dos Tributos:** Calcule o valor de cada tributo (IRPJ, CSLL, PIS, COFINS, ISS) e, quando aplicável (Simples Anexo III com Fator R, Lucro Presumido), a CPP. No Lucro Presumido, a CPP (INSS Patronal) é de 20% sobre a folha de pagamento (CLT + pró-labore). **Para o ISS no Lucro Presumido, use a alíquota de {{{issRate}}}% informada (ou 5% se não for fornecida)**. Avise na 'notes' que a alíquota pode variar. Preencha o array 'taxBreakdown' para cada um, com nome, alíquota e valor.
+        *   **Cálculo dos Tributos:** Calcule o valor de cada tributo (IRPJ, CSLL, PIS, COFINS, ISS) e, quando aplicável (Simples Anexo III com Fator R, Lucro Presumido), a CPP. No Lucro Presumido, a CPP (INSS Patronal) é de 20% sobre a folha de pagamento (CLT + pró-labore). **Para o ISS no Lucro Presumido, use a alíquota de {{{issRate}}}% informada (ou 4% se não for fornecida)**. Avise na 'notes' que a alíquota pode variar. Preencha o array 'taxBreakdown' para cada um, com nome, alíquota e valor. Siga estritamente o formato para cada tributo.
         *   **Análise do Pró-Labore:**
             *   **Estratégia do Fator R (Simples Nacional):** Determine o pró-labore *mínimo* necessário para que a folha total (CLT + pró-labore) alcance 28% do faturamento, permitindo a tributação pelo Anexo III.
             *   **Definição do Pró-Labore:** No cenário do Anexo III, use este pró-labore calculado. Nos outros cenários (Anexo V, Lucro Presumido), use o pró-labore mínimo legal. Na 'notes', explique a estratégia usada.
@@ -111,3 +111,5 @@ const generateTaxScenariosFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    
