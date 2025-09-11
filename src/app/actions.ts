@@ -9,26 +9,27 @@ export interface AnalysisState {
   error: string | null;
 }
 
-const formSchema = z.object({
-  clientType: z.enum([
-    "Novo aberturas de empresa",
-    "Transferências de contabilidade",
-  ]),
-  clientData: z.string().optional(),
-  payrollExpenses: z.string().optional(),
-  issRate: z.string().optional(),
-  attachments: z.array(z.string()).optional(), // Agora esperamos um array de strings (data URIs)
-});
-
-export type FormPayload = z.infer<typeof formSchema>;
+const fileToDataURI = async (file: File): Promise<string> => {
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+  return `data:${file.type};base64,${buffer.toString("base64")}`;
+};
 
 export async function getAnalysis(
   prevState: AnalysisState,
-  payload: FormPayload,
+  formData: FormData,
 ): Promise<AnalysisState> {
   try {
-    const hasClientData = payload.clientData && payload.clientData.trim().length > 0;
-    const hasAttachments = payload.attachments && payload.attachments.length > 0;
+    const clientData = formData.get("clientData") as string | null;
+    const attachmentFiles = formData.getAll("attachments") as File[];
+    const attachments = await Promise.all(
+        attachmentFiles
+          .filter((file) => file.size > 0)
+          .map((file) => fileToDataURI(file))
+      );
+
+    const hasClientData = clientData && clientData.trim().length > 0;
+    const hasAttachments = attachments && attachments.length > 0;
 
     if (!hasClientData && !hasAttachments) {
       return {
@@ -38,32 +39,14 @@ export async function getAnalysis(
       };
     }
 
-    const validatedFields = formSchema.safeParse(payload);
-
-    if (!validatedFields.success) {
-      return {
-        aiResponse: null,
-        transcribedText: null,
-        error: "Erro de validação nos dados enviados.",
-      };
-    }
-
-    const {
-      clientType,
-      clientData,
-      payrollExpenses,
-      issRate,
-      attachments,
-    } = validatedFields.data;
-
     const aiResponse = await generateTaxScenarios({
-      clientType: clientType,
+      clientType: (formData.get("clientType") as "Novo aberturas de empresa" | "Transferências de contabilidade"),
       clientData: clientData ?? "",
-      payrollExpenses: payrollExpenses ?? "",
-      issRate: issRate ?? "",
+      payrollExpenses: (formData.get("payrollExpenses") as string) ?? "",
+      issRate: (formData.get("issRate") as string) ?? "",
       attachedDocuments: attachments,
     });
-
+    
     // 🔒 Garante que o retorno seja JSON puro e serializável
     const serializableResponse: GenerateTaxScenariosOutput = JSON.parse(
       JSON.stringify(aiResponse)

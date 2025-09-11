@@ -49,34 +49,11 @@ async function fileToDataURI(file: File): Promise<string> {
   });
 }
 
-function AnalysisForm({formAction}: {formAction: (payload: FormPayload) => void}) {
+function AnalysisForm({formAction}: {formAction: (payload: FormData) => void}) {
     const { pending } = useFormStatus();
-    const formRef = useRef<HTMLFormElement>(null);
-
-    const handleFormAction = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        const formData = new FormData(event.currentTarget);
-        
-        const attachmentsInput = event.currentTarget.elements.namedItem("attachments") as HTMLInputElement;
-        const files = attachmentsInput?.files ? Array.from(attachmentsInput.files) : [];
-        
-        const attachmentDataUris = await Promise.all(
-            files.map(file => fileToDataURI(file))
-        );
-
-        const payload: FormPayload = {
-            clientType: formData.get("clientType") as FormPayload["clientType"],
-            clientData: formData.get("clientData") as string | undefined,
-            payrollExpenses: formData.get("payrollExpenses") as string | undefined,
-            issRate: formData.get("issRate") as string | undefined,
-            attachments: attachmentDataUris,
-        };
-        
-        formAction(payload);
-    };
 
     return (
-        <form onSubmit={handleFormAction} ref={formRef}>
+        <form action={formAction}>
             <CardContent className="space-y-6">
                 <div className="space-y-2">
                     <Label>Tipo de Cliente</Label>
@@ -292,5 +269,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
