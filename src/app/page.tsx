@@ -65,7 +65,7 @@ export default function Home() {
       <main className="flex-1 w-full max-w-4xl mx-auto p-4 md:p-8 space-y-8">
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle>Análise Tributária Personalizada v2.0</CardTitle>
+            <CardTitle>Análise Tributária Personalizada v2.2</CardTitle>
             <CardDescription>
               Insira as informações do cliente ou anexe um documento para gerar um planejamento tributário detalhado.
             </CardDescription>
@@ -152,7 +152,7 @@ export default function Home() {
         {state.aiResponse && !pending && (
           <Card className="shadow-lg animate-in fade-in-50">
             <CardHeader>
-              <CardTitle>Resultados da Análise V2.0</CardTitle>
+              <CardTitle>Resultados da Análise V2.2</CardTitle>
               <CardDescription>
                 Abaixo estão os cenários gerados pela IA, em formato de apresentação e texto detalhado.
               </CardDescription>
