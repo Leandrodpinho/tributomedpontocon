@@ -82,7 +82,7 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
     *   Para cada nível de faturamento, gere os cenários tributários (Simples Nacional Anexo III/V, Lucro Presumido).
     *   Adicione TODOS os cenários gerados (para faturamento atual e projeções) ao array 'scenarios'. No campo 'name' de cada cenário, especifique o regime E o faturamento correspondente (ex: "Simples Nacional Anexo III com Faturamento de R$ 12.000,00").
     *   **Para cada cenário:**
-        *   **Cálculo dos Tributos:** Calcule o valor de cada tributo (IRPJ, CSLL, PIS, COFINS, ISS) e, quando aplicável (Simples Anexo III com Fator R, Lucro Presumido), a CPP. No Lucro Presumido, a CPP (INSS Patronal) é de 20% sobre a folha de pagamento (CLT + pró-labore). Preencha o array 'taxBreakdown' para cada um, com nome, alíquota e valor.
+        *   **Cálculo dos Tributos:** Calcule o valor de cada tributo (IRPJ, CSLL, PIS, COFINS, ISS) e, quando aplicável (Simples Anexo III com Fator R, Lucro Presumido), a CPP. No Lucro Presumido, a CPP (INSS Patronal) é de 20% sobre a folha de pagamento (CLT + pró-labore). **Para o ISS no Lucro Presumido, use uma alíquota de 5% como padrão**, mas avise na 'notes' que essa alíquota pode variar de 2% a 5% dependendo do município. Preencha o array 'taxBreakdown' para cada um, com nome, alíquota e valor.
         *   **Análise do Pró-Labore:**
             *   **Estratégia do Fator R (Simples Nacional):** Determine o pró-labore *mínimo* necessário para que a folha total (CLT + pró-labore) alcance 28% do faturamento, permitindo a tributação pelo Anexo III.
             *   **Definição do Pró-Labore:** No cenário do Anexo III, use este pró-labore calculado. Nos outros cenários (Anexo V, Lucro Presumido), use o pró-labore mínimo legal. Na 'notes', explique a estratégia usada.
@@ -90,9 +90,10 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
         *   **Totalização:** Calcule e preencha 'totalTaxValue' e 'effectiveRate'.
         *   **Lucro Líquido Final (Distribuição de Lucros):** Calcule o 'netProfitDistribution': Faturamento - (Soma de todos os impostos da empresa) - (Valor Bruto do Pró-Labore) - (CPP/INSS Patronal, se aplicável).
 
-3.  **Resumo Executivo e Análise de Projeção:** No campo 'executiveSummary', escreva uma análise em duas partes:
+3.  **Resumo Executivo e Análise de Projeção:** No campo 'executiveSummary', escreva uma análise em três partes:
     *   **Recomendação para o Cenário Atual:** Indique qual regime é mais vantajoso para o faturamento atual (em R$ e %), e por quê. Aja como um consultor, avaliando o equilíbrio entre economia, complexidade e objetivos do cliente.
-    *   **Análise das Projeções:** Com base nos cenários de +20% e +50%, analise os pontos de inflexão. Mostre a partir de qual faturamento o Lucro Presumido pode se tornar mais vantajoso, ou como o aumento da receita impacta as alíquotas do Simples. Dê recomendações estratégicas para o crescimento da empresa.
+    *   **Análise das Projeções:** Com base nos cenários de +20% e +50%, analise os pontos de inflexão. Mostre a partir de qual faturamento o Lucro Presumido pode se tornar mais vantajoso, ou como o aumento da receita impacta as alíquotas do Simples.
+    *   **Pontos de Atenção e Oportunidades:** Mencione a importância de verificar a alíquota de ISS do município do cliente, pois uma alíquota menor pode alterar a recomendação. Comente sobre a possibilidade de benefícios como a equiparação hospitalar, que reduz drasticamente as bases de IRPJ e CSLL no Lucro Presumido, e que deve ser avaliada por um contador.
 
 Sua resposta deve seguir estritamente a estrutura do JSON de saída. Seja analítico e preciso.`,
 });
@@ -108,5 +109,3 @@ const generateTaxScenariosFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    
