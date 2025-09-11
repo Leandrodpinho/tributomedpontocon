@@ -39,7 +39,6 @@ const initialState: AnalysisState = {
   error: null,
 };
 
-
 function AnalysisForm({formAction}: {formAction: (payload: FormData) => void}) {
     const { pending } = useFormStatus();
 
@@ -120,7 +119,7 @@ export default function Home() {
         description: state.error,
       });
     }
-  }, [state, toast]);
+  }, [state.error, toast]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -140,7 +139,66 @@ export default function Home() {
               Insira as informações do cliente ou anexe um documento para gerar um planejamento tributário detalhado.
             </CardDescription>
           </CardHeader>
-          <AnalysisForm formAction={formAction} />
+          <form action={formAction}>
+            <CardContent className="space-y-6">
+                <div className="space-y-2">
+                    <Label>Tipo de Cliente</Label>
+                    <RadioGroup name="clientType" defaultValue="Novo aberturas de empresa" className="flex items-center gap-4">
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Novo aberturas de empresa" id="new-company" />
+                        <Label htmlFor="new-company">Nova Abertura de Empresa</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Transferências de contabilidade" id="transfer" />
+                        <Label htmlFor="transfer">Transferência de Contabilidade</Label>
+                    </div>
+                    </RadioGroup>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="payrollExpenses">Folha Salarial Bruta (CLT)</Label>
+                        <Input id="payrollExpenses" name="payrollExpenses" type="text" placeholder="Ex: 5000.00 (use ponto)" />
+                        <p className="text-sm text-muted-foreground">
+                        Opcional. Crucial para o cálculo do Fator R no Simples Nacional.
+                        </p>
+                    </div>
+                    <div className="space-y-2">
+                    <Label htmlFor="issRate">Alíquota de ISS (%)</Label>
+                    <Input id="issRate" name="issRate" type="text" defaultValue="4.0" placeholder="Ex: 4.0 (use ponto)" />
+                    <p className="text-sm text-muted-foreground">
+                        Padrão de 4% (Montes Claros). Relevante para Lucro Presumido.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="clientData">
+                    Informações Financeiras e Operacionais
+                    </Label>
+                    <Textarea
+                    id="clientData"
+                    name="clientData"
+                    placeholder="Ex: Faturamento mensal de R$ 10.000,00, um único sócio. Ou cole o texto de documentos aqui."
+                    rows={5}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                    Forneça os detalhes aqui ou anexe documentos abaixo. Um dos dois é obrigatório.
+                    </p>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="attachments">Anexar Documentos</Label>
+                    <Input id="attachments" name="attachments" type="file" multiple />
+                    <p className="text-sm text-muted-foreground">
+                    Opcional. Anexe declarações, extratos do Simples, etc. A IA pode extrair os dados dos anexos.
+                    </p>
+                </div>
+            </CardContent>
+            <CardFooter>
+                <SubmitButton isSubmitting={pending} />
+            </CardFooter>
+        </form>
         </Card>
 
         {pending && !state.aiResponse && !state.error &&(
@@ -260,3 +318,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

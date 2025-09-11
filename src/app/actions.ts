@@ -1,6 +1,5 @@
 "use server";
 
-import { z } from "zod";
 import { generateTaxScenarios, type GenerateTaxScenariosOutput } from "@/ai/flows/generate-tax-scenarios";
 
 export interface AnalysisState {
@@ -22,6 +21,8 @@ export async function getAnalysis(
   try {
     const clientData = formData.get("clientData") as string | null;
     const attachmentFiles = formData.getAll("attachments") as File[];
+    
+    // Server-side conversion of files to data URIs
     const attachments = await Promise.all(
         attachmentFiles
           .filter((file) => file.size > 0)
@@ -47,7 +48,7 @@ export async function getAnalysis(
       attachedDocuments: attachments,
     });
     
-    // 🔒 Garante que o retorno seja JSON puro e serializável
+    // Guarantees that the return is pure, serializable JSON
     const serializableResponse: GenerateTaxScenariosOutput = JSON.parse(
       JSON.stringify(aiResponse)
     );
@@ -58,7 +59,7 @@ export async function getAnalysis(
       error: null,
     };
   } catch (error) {
-    console.error("Erro detalhado na Server Action:", error);
+    console.error("Detailed error in Server Action:", error);
     const errorMessage =
       error instanceof Error
         ? error.message
@@ -70,3 +71,5 @@ export async function getAnalysis(
     };
   }
 }
+
+    
