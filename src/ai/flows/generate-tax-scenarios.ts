@@ -33,7 +33,7 @@ const ProLaboreAnalysisSchema = z.object({
 });
 
 const ScenarioDetailSchema = z.object({
-  name: z.string().describe('O nome do cenário (ex: "Simples Nacional Anexo III").'),
+  name: z.string().describe('O nome do cenário (ex: "Simples Nacional Anexo III com Faturamento de R$ 10.000,00").'),
   totalTaxValue: z.string().describe('O valor total do imposto a ser pago no regime (ex: "R$ 1.270,15").'),
   effectiveRate: z.string().describe('A alíquota efetiva total do regime (ex: "10,75%").'),
   taxBreakdown: z.array(TaxDetailSchema).describe('Detalhamento da composição dos tributos dentro do regime.'),
@@ -45,8 +45,8 @@ const ScenarioDetailSchema = z.object({
 const GenerateTaxScenariosOutputSchema = z.object({
   transcribedText: z.string().optional().describe('As informações financeiras e operacionais transcritas dos documentos anexados.'),
   monthlyRevenue: z.string().describe('O faturamento mensal identificado para o cliente.'),
-  scenarios: z.array(ScenarioDetailSchema).describe('Uma lista de cenários tributários detalhados.'),
-  executiveSummary: z.string().describe('Resumo executivo com a recomendação final sobre o melhor cenário, justificando a decisão com base na economia, complexidade e objetivos do cliente.'),
+  scenarios: z.array(ScenarioDetailSchema).describe('Uma lista de cenários tributários detalhados, incluindo projeções de receita.'),
+  executiveSummary: z.string().describe('Resumo executivo com a recomendação final sobre o melhor cenário para o faturamento atual, e análise sobre os pontos de inflexão com base nas projeções de receita.'),
 });
 export type GenerateTaxScenariosOutput = z.infer<typeof GenerateTaxScenariosOutputSchema>;
 
@@ -77,16 +77,22 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
 
 1.  **Análise de Faturamento:** Extraia o faturamento mensal e preencha o campo 'monthlyRevenue' (formato "R$ XX.XXX,XX").
 
-2.  **Geração de Cenários Detalhados (Simples Nacional Anexo III/V, Lucro Presumido):** Para cada cenário no array 'scenarios':
-    *   **Cálculo dos Tributos:** Calcule o valor de cada tributo (IRPJ, CSLL, PIS, COFINS, ISS) e, quando aplicável (Simples Anexo III com Fator R, Lucro Presumido), a CPP. No Lucro Presumido, a CPP (INSS Patronal) é de 20% sobre a folha de pagamento (CLT + pró-labore). Preencha o array 'taxBreakdown' para cada um, com nome, alíquota e valor.
-    *   **Análise do Pró-Labore (Item 3 do Checklist):**
-        *   **Estratégia do Fator R (Simples Nacional):** A folha de pagamento para o Fator R é a soma da folha salarial CLT (se informada) e do pró-labore. Determine o pró-labore *mínimo* necessário para que o total da folha alcance 28% do faturamento, permitindo a tributação pelo Anexo III.
-        *   **Definição do Pró-Labore:** No cenário do Anexo III, use este pró-labore calculado. Nos outros cenários (Anexo V, Lucro Presumido), use o pró-labore mínimo legal, a menos que uma estratégia diferente seja mais benéfica. Na 'notes', explique a estratégia usada (ex: "Pró-labore ajustado para R$X para alcançar o Fator R e tributar pelo Anexo III.").
-        *   **Cálculo de Encargos do Sócio:** Para o valor de pró-labore definido em cada cenário, calcule o INSS (contribuição do sócio, 11%) e o IRRF (conforme tabela progressiva, após deduzir o INSS). Preencha 'proLaboreAnalysis' com os valores base, INSS, IRRF e o valor líquido.
-    *   **Totalização:** Calcule e preencha 'totalTaxValue' (soma de todos os impostos da empresa) e 'effectiveRate'.
-    *   **Lucro Líquido Final (Distribuição de Lucros):** Calcule o 'netProfitDistribution'. Este é o valor que realmente sobra para o sócio e é calculado como: Faturamento - (Soma de todos os impostos da empresa) - (Valor Bruto do Pró-Labore) - (CPP/INSS Patronal, se aplicável).
+2.  **Geração de Cenários (Faturamento Atual e Projeções):**
+    *   **Calcule os cenários para 3 níveis de faturamento:** o faturamento atual, um cenário com +20% e um com +50%.
+    *   Para cada nível de faturamento, gere os cenários tributários (Simples Nacional Anexo III/V, Lucro Presumido).
+    *   Adicione TODOS os cenários gerados (para faturamento atual e projeções) ao array 'scenarios'. No campo 'name' de cada cenário, especifique o regime E o faturamento correspondente (ex: "Simples Nacional Anexo III com Faturamento de R$ 12.000,00").
+    *   **Para cada cenário:**
+        *   **Cálculo dos Tributos:** Calcule o valor de cada tributo (IRPJ, CSLL, PIS, COFINS, ISS) e, quando aplicável (Simples Anexo III com Fator R, Lucro Presumido), a CPP. No Lucro Presumido, a CPP (INSS Patronal) é de 20% sobre a folha de pagamento (CLT + pró-labore). Preencha o array 'taxBreakdown' para cada um, com nome, alíquota e valor.
+        *   **Análise do Pró-Labore:**
+            *   **Estratégia do Fator R (Simples Nacional):** Determine o pró-labore *mínimo* necessário para que a folha total (CLT + pró-labore) alcance 28% do faturamento, permitindo a tributação pelo Anexo III.
+            *   **Definição do Pró-Labore:** No cenário do Anexo III, use este pró-labore calculado. Nos outros cenários (Anexo V, Lucro Presumido), use o pró-labore mínimo legal. Na 'notes', explique a estratégia usada.
+            *   **Cálculo de Encargos do Sócio:** Para o valor de pró-labore definido, calcule o INSS (11%) e o IRRF (conforme tabela progressiva). Preencha 'proLaboreAnalysis' com os valores base, INSS, IRRF e o valor líquido.
+        *   **Totalização:** Calcule e preencha 'totalTaxValue' e 'effectiveRate'.
+        *   **Lucro Líquido Final (Distribuição de Lucros):** Calcule o 'netProfitDistribution': Faturamento - (Soma de todos os impostos da empresa) - (Valor Bruto do Pró-Labore) - (CPP/INSS Patronal, se aplicável).
 
-3.  **Resumo Executivo e Recomendação:** No campo 'executiveSummary', escreva um resumo claro e direto. Indique qual regime é mais vantajoso (em R$ e %), e por quê. Aja como um consultor, avaliando o equilíbrio entre a economia de impostos, a complexidade de cada regime e o impacto no pró-labore vs. distribuição de lucros. Adapte o conselho se for 'Novo aberturas de empresa' ou 'Transferências de contabilidade'.
+3.  **Resumo Executivo e Análise de Projeção:** No campo 'executiveSummary', escreva uma análise em duas partes:
+    *   **Recomendação para o Cenário Atual:** Indique qual regime é mais vantajoso para o faturamento atual (em R$ e %), e por quê. Aja como um consultor, avaliando o equilíbrio entre economia, complexidade e objetivos do cliente.
+    *   **Análise das Projeções:** Com base nos cenários de +20% e +50%, analise os pontos de inflexão. Mostre a partir de qual faturamento o Lucro Presumido pode se tornar mais vantajoso, ou como o aumento da receita impacta as alíquotas do Simples. Dê recomendações estratégicas para o crescimento da empresa.
 
 Sua resposta deve seguir estritamente a estrutura do JSON de saída. Seja analítico e preciso.`,
 });
@@ -102,3 +108,5 @@ const generateTaxScenariosFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    
