@@ -4,7 +4,7 @@ import { useEffect, useActionState } from "react";
 import { getAnalysis, type AnalysisState } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { LogoIcon } from "@/components/icons/logo";
-import { AnalysisPresentation } from "@/components/analysis-presentation";
+import { DashboardResults } from "@/components/dashboard-results";
 import {
   Card,
   CardContent,
@@ -19,18 +19,8 @@ import {
   RadioGroup,
   RadioGroupItem,
 } from "@/components/ui/radio-group";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-
 
 const initialState: AnalysisState = {
   aiResponse: null,
@@ -62,7 +52,7 @@ export default function Home() {
           </h1>
         </div>
       </header>
-      <main className="flex-1 w-full max-w-4xl mx-auto p-4 md:p-8 space-y-8">
+      <main className="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 space-y-8">
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Análise Tributária Personalizada v2.2</CardTitle>
@@ -161,104 +151,7 @@ export default function Home() {
 
 
         {state.aiResponse && !pending && (
-          <Card className="shadow-lg animate-in fade-in-50">
-            <CardHeader>
-              <CardTitle>Resultados da Análise V2.2</CardTitle>
-              <CardDescription>
-                Abaixo estão os cenários gerados pela IA, em formato de apresentação e texto detalhado.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="presentation">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="presentation">Apresentação Visual</TabsTrigger>
-                  <TabsTrigger value="details">Análise Detalhada (Texto)</TabsTrigger>
-                </TabsList>
-                <TabsContent value="presentation" className="mt-4">
-                   <AnalysisPresentation analysis={state.aiResponse} />
-                </TabsContent>
-                <TabsContent value="details" className="mt-4">
-                  <ScrollArea className="h-[600px] p-4 border rounded-md">
-                     <div className="space-y-6 text-sm text-foreground font-sans">
-                        <div>
-                          <h3 className="font-bold text-lg mb-2 text-primary">Resumo Executivo e Recomendações</h3>
-                          <p className="whitespace-pre-wrap">{state.aiResponse.executiveSummary}</p>
-                        </div>
-                        
-                        <div className="border-t border-border my-4"></div>
-
-                        {state.aiResponse.scenarios.map((scenario, index) => (
-                           <div key={index} className="space-y-4 pt-4">
-                              <h4 className="font-bold text-lg text-primary">{scenario.name}</h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="p-4 bg-secondary/30 rounded-lg">
-                                    <p className="font-semibold text-muted-foreground">Carga Tributária Total</p>
-                                    <p className="text-destructive font-bold text-2xl">{scenario.totalTaxValue}</p>
-                                    <Badge variant="secondary" className="mt-1">{scenario.effectiveRate} sobre Faturamento</Badge>
-                                    {scenario.effectiveRateOnProfit && (
-                                       <Badge variant="outline" className="mt-1 ml-2">{scenario.effectiveRateOnProfit} sobre Lucro</Badge>
-                                    )}
-                                </div>
-                                <div className="p-4 bg-secondary/30 rounded-lg">
-                                    <p className="font-semibold text-muted-foreground">Lucro Líquido para o Sócio</p>
-                                    <p className="text-green-400 font-bold text-2xl">{scenario.netProfitDistribution}</p>
-                                     {scenario.taxCostPerEmployee && (
-                                        <p className="text-xs text-muted-foreground mt-1">Custo Tributário por Funcionário: {scenario.taxCostPerEmployee}</p>
-                                     )}
-                                </div>
-                              </div>
-                              
-                              <h5 className="font-semibold mt-4 text-base">Detalhamento dos Tributos:</h5>
-                               <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>Tributo</TableHead>
-                                      <TableHead>Alíquota</TableHead>
-                                      <TableHead className="text-right">Valor</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                     {scenario.taxBreakdown.map((tax, taxIdx) => (
-                                        <TableRow key={taxIdx}>
-                                          <TableCell>{tax.name}</TableCell>
-                                          <TableCell>{tax.rate}</TableCell>
-                                          <TableCell className="text-right">{tax.value}</TableCell>
-                                        </TableRow>
-                                     ))}
-                                  </TableBody>
-                                </Table>
-
-                                <h5 className="font-semibold mt-4 text-base">Análise do Pró-Labore:</h5>
-                                <div className="p-4 border rounded-md bg-secondary/50 space-y-1">
-                                    <div className="flex justify-between">
-                                      <span className="font-semibold">Valor Bruto:</span> 
-                                      <span>{scenario.proLaboreAnalysis.baseValue}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="font-semibold text-red-400">INSS (sócio):</span>
-                                      <span className="text-red-400">{scenario.proLaboreAnalysis.inssValue}</span>
-                                    </div>
-                                     <div className="flex justify-between">
-                                      <span className="font-semibold text-red-400">IRRF:</span>
-                                      <span className="text-red-400">{scenario.proLaboreAnalysis.irrfValue}</span>
-                                    </div>
-                                    <div className="flex justify-between font-bold pt-2">
-                                      <span>Valor Líquido Recebido:</span>
-                                      <span className="text-lg">{scenario.proLaboreAnalysis.netValue}</span>
-                                    </div>
-                                </div>
-                                
-                                <p className="text-xs text-muted-foreground mt-4 italic">
-                                  <span className="font-semibold">Notas da IA:</span> {scenario.notes}
-                                </p>
-                           </div>
-                        ))}
-                     </div>
-                  </ScrollArea>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+          <DashboardResults analysis={state.aiResponse} clientName={state.aiResponse.scenarios[0]?.name.split(':')[0].replace('Cenário para ','') || 'Cliente'} />
         )}
       </main>
     </div>
