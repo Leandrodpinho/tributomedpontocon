@@ -93,13 +93,22 @@ export default function Home() {
                 </RadioGroup>
               </div>
 
-               <div className="space-y-2">
-                  <Label htmlFor="payrollExpenses">Folha Salarial Bruta (CLT, Opcional)</Label>
-                  <Input id="payrollExpenses" name="payrollExpenses" type="text" placeholder="Ex: 5000.00 (use ponto para decimais)" />
-                  <p className="text-sm text-muted-foreground">
-                    Este valor é crucial para o cálculo do Fator R no Simples Nacional.
-                  </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                    <Label htmlFor="payrollExpenses">Folha Salarial Bruta (CLT, Opcional)</Label>
+                    <Input id="payrollExpenses" name="payrollExpenses" type="text" placeholder="Ex: 5000.00 (use ponto)" />
+                    <p className="text-sm text-muted-foreground">
+                      Crucial para o cálculo do Fator R no Simples Nacional.
+                    </p>
+                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="issRate">Alíquota de ISS (%)</Label>
+                  <Input id="issRate" name="issRate" type="text" defaultValue="4.0" placeholder="Ex: 4.0 (use ponto)" />
+                   <p className="text-sm text-muted-foreground">
+                      Padrão de 4% (Montes Claros). Relevante para Lucro Presumido.
+                    </p>
                 </div>
+               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="clientData">
@@ -205,5 +214,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
