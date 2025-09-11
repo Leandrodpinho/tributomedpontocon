@@ -33,49 +33,50 @@ export async function getAnalysis(
   prevState: AnalysisState,
   formData: FormData
 ): Promise<AnalysisState> {
-  const attachments = formData.getAll("attachments").filter(f => f instanceof File && f.size > 0) as File[];
-  const clientData = formData.get("clientData") as string;
-  const payrollExpenses = formData.get("payrollExpenses") as string;
-  const issRate = formData.get("issRate") as string;
-  const clientType = formData.get("clientType");
-
-
-  const hasClientData = clientData && clientData.trim().length > 0;
-  const hasAttachments = attachments && attachments.length > 0;
-
-  if (!hasClientData && !hasAttachments) {
-    return {
-       error: "Por favor, forneça as informações financeiras ou anexe um ou mais documentos para análise."
-    };
-  }
-  
-  const validatedFields = formSchema.safeParse({
-    clientType: clientType,
-    clientData: clientData,
-    payrollExpenses: payrollExpenses,
-    issRate: issRate,
-    attachments: hasAttachments ? attachments : undefined,
-  });
-  
-  if (!validatedFields.success) {
-    const errorMessage = validatedFields.error.flatten().fieldErrors.attachments?.[0] || 'Erro de validação nos campos.';
-    return {
-      error: errorMessage,
-    };
-  }
-
-  const { 
-    clientType: validClientType, 
-    clientData: validClientData, 
-    payrollExpenses: validPayrollExpenses,
-    issRate: validIssRate,
-    attachments: validAttachments 
-  } = validatedFields.data;
-
   try {
+    const attachments = formData.getAll("attachments").filter(f => f instanceof File && f.size > 0) as File[];
+    const clientData = formData.get("clientData") as string;
+    const payrollExpenses = formData.get("payrollExpenses") as string;
+    const issRate = formData.get("issRate") as string;
+    const clientType = formData.get("clientType");
+
+
+    const hasClientData = clientData && clientData.trim().length > 0;
+    const hasAttachments = attachments && attachments.length > 0;
+
+    if (!hasClientData && !hasAttachments) {
+      return {
+        error: "Por favor, forneça as informações financeiras ou anexe um ou mais documentos para análise."
+      };
+    }
+    
+    const validatedFields = formSchema.safeParse({
+      clientType: clientType,
+      clientData: clientData,
+      payrollExpenses: payrollExpenses,
+      issRate: issRate,
+      attachments: hasAttachments ? attachments : undefined,
+    });
+    
+    if (!validatedFields.success) {
+      const errorMessage = validatedFields.error.flatten().fieldErrors.attachments?.[0] || 'Erro de validação nos campos.';
+      return {
+        error: errorMessage,
+      };
+    }
+
+    const { 
+      clientType: validClientType, 
+      clientData: validClientData, 
+      payrollExpenses: validPayrollExpenses,
+      issRate: validIssRate,
+      attachments: validAttachments 
+    } = validatedFields.data;
+
+    
     let attachedDocuments: string[] | undefined = undefined;
     if (validAttachments && validAttachments.length > 0) {
-       attachedDocuments = await Promise.all(validAttachments.map(fileToDataURI));
+        attachedDocuments = await Promise.all(validAttachments.map(fileToDataURI));
     }
 
     const aiResponse = await generateTaxScenarios({ 
@@ -87,6 +88,9 @@ export async function getAnalysis(
     });
 
     // Garante que o objeto retornado é serializável em JSON puro.
+    // Isso evita o erro "An unexpected response was received from the server."
+    // que ocorre quando objetos complexos ou com tipos não-padrão (como 'undefined')
+    // são retornados de uma Server Action.
     const serializableResponse = JSON.parse(JSON.stringify(aiResponse));
 
     return {
@@ -94,8 +98,9 @@ export async function getAnalysis(
       transcribedText: serializableResponse.transcribedText,
     };
   } catch (error) {
-    console.error(error);
-    const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+    console.error("Erro detalhado na Server Action:", error);
+    // Garante que a mensagem de erro também seja uma string simples e serializável.
+    const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro desconhecido no servidor.";
     return {
       error: `Falha ao processar a análise: ${errorMessage}`,
     };
