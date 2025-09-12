@@ -30,6 +30,9 @@ export async function getAnalysis(
   const companyName = formData.get("companyName") as string | null;
   const cnpj = formData.get("cnpj") as string | null;
 
+  const payrollExpensesNum = payrollExpenses ? parseFloat(payrollExpenses) : undefined;
+  const issRateNum = issRate ? parseFloat(issRate) : undefined;
+
 
   try {
     // 1. Validate input: ensure at least some data is present
@@ -69,8 +72,8 @@ export async function getAnalysis(
       companyName: companyName ?? "",
       cnpj: cnpj ?? "",
       clientData: clientData ?? "",
-      payrollExpenses: payrollExpenses ?? "",
-      issRate: issRate ?? "",
+      payrollExpenses: payrollExpensesNum, // Usar o número convertido
+      issRate: issRateNum, // Usar o número convertido
       documentsAsText: allDocumentsText,
     });
     
@@ -108,8 +111,9 @@ export async function generateDocx(htmlContent: string): Promise<{ docx: string 
       fontSize: 12,
     });
     
-    // Return as a base64 string
-    return { docx: (fileBuffer as Buffer).toString('base64'), error: null };
+    // Converter ArrayBuffer para Buffer antes de chamar toString('base64')
+    const buffer = Buffer.from(fileBuffer as ArrayBuffer); // Cast para ArrayBuffer
+    return { docx: buffer.toString('base64'), error: null };
   } catch (error) {
     console.error("Error generating DOCX:", error);
     const errorMessage = error instanceof Error ? error.message : "Erro desconhecido.";
