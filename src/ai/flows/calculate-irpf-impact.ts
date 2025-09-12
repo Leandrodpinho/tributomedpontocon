@@ -22,20 +22,6 @@ const CalculateIRPFImpactInputSchema = z.object({
 });
 export type CalculateIRPFImpactInput = z.infer<typeof CalculateIRPFImpactInputSchema>;
 
-const simulacaoInput: GenerateTaxScenariosInput = {
-  clientType: 'Novo aberturas de empresa',
-  clientData: 'Faturamento mensal estimado de R$ 25.000,00. Atividade de clínica médica, sem funcionários no momento.',
-  payrollExpenses: 0, // Usando número em vez de string, como sugiro abaixo
-  issRate: 4.0, // Alíquota de Montes Claros, como no prompt
-  companyName: 'Clínica Saúde Plena',
-};
-const simulacaoInput: GenerateTaxScenariosInput = {
-  clientType: 'Novo aberturas de empresa',
-  clientData: 'Faturamento mensal estimado de R$ 25.000,00. Atividade de clínica médica, sem funcionários no momento.',
-  payrollExpenses: 0, // Usando número em vez de string, como sugiro abaixo
-  issRate: 4.0, // Alíquota de Montes Claros, como no prompt
-  companyName: 'Clínica Saúde Plena',
-};
 const IRPFImpactDetailSchema = z.object({
   taxableIncome: z.number().describe('Base de cálculo do IRPF (renda tributável).'),
   taxBracket: z.string().describe('Faixa da alíquota do IRPF aplicada (ex: "27,5%").'),
@@ -46,12 +32,9 @@ const IRPFImpactDetailSchema = z.object({
 });
 
 const CalculateIRPFImpactOutputSchema = z.object({
-  ;
+  impactDetails: IRPFImpactDetailSchema,
+});
 export type CalculateIRPFImpactOutput = z.infer<typeof CalculateIRPFImpactOutputSchema>;
-
-export async function calculateIRPFImpact(input: CalculateIRPFImpactInput): Promise<CalculateIRPFImpactOutput> {
-  return calculateIRPFImpactFlow(input);
-}
 
 const calculateIRPFImpactPrompt = ai.definePrompt({
   name: 'calculateIRPFImpactPrompt',
@@ -73,11 +56,10 @@ const calculateIRPFImpactPrompt = ai.definePrompt({
   - As distribuições de lucro são geralmente isentas de impostos.
   - As contribuições para o INSS impactam os benefícios da aposentadoria e podem ser deduzidas.
   - Um pró-labore alto (especialmente no Simples Nacional Anexo III para atender ao Fator R) pode aumentar o IRPF.
-  - Diferentes regimes (Anexo V, Lucro Presumido) podem permitir a minimização do pró-labore.
+  - Diferentes regimes (Anexo V, Lucro Presumido) podem permitir a minimização do pró-labore.`,
+});
 
-
-
-const calculateIRPFImpactFlow = ai.defineFlow(
+export const calculateIRPFImpactFlow = ai.defineFlow(
   {
     name: 'calculateIRPFImpactFlow',
     inputSchema: CalculateIRPFImpactInputSchema,
@@ -88,3 +70,7 @@ const calculateIRPFImpactFlow = ai.defineFlow(
     return output!;
   }
 );
+
+export async function calculateIRPFImpact(input: CalculateIRPFImpactInput): Promise<CalculateIRPFImpactOutput> {
+  return calculateIRPFImpactFlow(input);
+}
