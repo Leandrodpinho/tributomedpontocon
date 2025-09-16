@@ -36,20 +36,22 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
     const { toast } = useToast();
     if (!analysis || !analysis.scenarios) return null;
 
-    const currentRevenueScenarios = analysis.scenarios.filter(s => s.name.includes(formatCurrency(analysis.monthlyRevenue)));
+    const monthlyRevenueFormatted = analysis.monthlyRevenue ? formatCurrency(analysis.monthlyRevenue) : '';
+    const currentRevenueScenarios = analysis.scenarios.filter(s => s.name.includes(monthlyRevenueFormatted));
 
     const chartData = currentRevenueScenarios.map((scenario, index) => ({
         name: `Agrupamento ${index + 1}`,
-        scenarioName: scenario.name.replace(/ com Faturamento de R\$ \d+\.\d+,\d+/i, '').replace(/Cenário para .*?: /i, ''),
-        totalTax: scenario.totalTaxValue,
-        netProfit: scenario.netProfitDistribution,
+        scenarioName: scenario.name?.replace(/ com Faturamento de R\$ \d+\.\d+,\d+/i, '')?.replace(/Cenário para .*?: /i, '') || 'N/A',
+        totalTax: scenario.totalTaxValue || 0,
+        netProfit: scenario.netProfitDistribution || 0,
     }));
 
-    const bestScenario = [...currentRevenueScenarios].sort((a, b) => a.totalTaxValue - b.totalTaxValue)[0];
-    const worstScenario = [...currentRevenueScenarios].sort((a, b) => b.totalTaxValue - a.totalTaxValue)[0];
-    const monthlySavings = bestScenario && worstScenario ? worstScenario.totalTaxValue - bestScenario.totalTaxValue : 0;
+    const bestScenario = currentRevenueScenarios.length > 0 ? [...currentRevenueScenarios].sort((a, b) => a.totalTaxValue - b.totalTaxValue)[0] : undefined;
+    const worstScenario = currentRevenueScenarios.length > 0 ? [...currentRevenueScenarios].sort((a, b) => b.totalTaxValue - a.totalTaxValue)[0] : undefined;
+
+    const monthlySavings = (bestScenario?.totalTaxValue !== undefined && worstScenario?.totalTaxValue !== undefined) ? worstScenario.totalTaxValue - bestScenario.totalTaxValue : 0;
     const annualSavings = monthlySavings * 12;
-    const economyPercentage = bestScenario && worstScenario && worstScenario.totalTaxValue > 0 ? (monthlySavings / worstScenario.totalTaxValue) * 100 : 0;
+    const economyPercentage = (bestScenario?.totalTaxValue !== undefined && worstScenario?.totalTaxValue !== undefined && worstScenario.totalTaxValue > 0) ? (monthlySavings / worstScenario.totalTaxValue) * 100 : 0;
 
     const handlePrint = () => {
         window.print();
@@ -153,7 +155,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                     {/* DASH Section */}
                     <div id="dash" className="space-y-6 animate-in fade-in-50">
                         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-                            <KpiCard title="Melhor Opção" value={bestScenario?.name.replace(/Cenário para .*?: /i, '').split(' com Faturamento')[0] || 'N/A'} subValue="Menor carga tributária" />
+                            <KpiCard title="Melhor Opção" value={bestScenario?.name?.replace(/Cenário para .*?: /i, '')?.split(' com Faturamento')[0] || 'N/A'} subValue="Menor carga tributária" />
                             <KpiCard title="Economia Mensal" value={formatCurrency(monthlySavings)} subValue="Em relação ao pior cenário" />
                             <KpiCard title="Economia Anual" value={formatCurrency(annualSavings)} subValue="Projeção para 12 meses" />
                             <KpiCard title="% Economia Gerada" value={formatPercentage(economyPercentage / 100)} subValue="Potencial de economia" className="text-green-500" />
@@ -176,12 +178,12 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                                     </TableHeader>
                                     <TableBody>
                                         {currentRevenueScenarios.map((scenario, index) => (
-                                            <TableRow key={index} className={scenario.name === bestScenario.name ? 'bg-primary/10' : ''}>
-                                                <TableCell className='font-medium text-sm'>{`Agrupamento ${index + 1}`} <p className='text-xs text-muted-foreground'>{scenario.name.replace(/Cenário para .*?: /i, '').split(' com Faturamento')[0]}</p></TableCell>
-                                                <TableCell className='text-sm'>{formatCurrency(analysis.monthlyRevenue)}</TableCell>
-                                                <TableCell className='text-sm'>{formatCurrency(scenario.totalTaxValue)}</TableCell>
-                                                <TableCell className='text-sm'>{formatPercentage(scenario.effectiveRate / 100)}</TableCell>
-                                                <TableCell className='text-right font-bold text-sm'>{formatCurrency(scenario.netProfitDistribution)}</TableCell>
+                                            <TableRow key={index} className={scenario.name === bestScenario?.name ? 'bg-primary/10' : ''}>
+                                                <TableCell className='font-medium text-sm'>{`Agrupamento ${index + 1}`} <p className='text-xs text-muted-foreground'>{scenario.name?.replace(/Cenário para .*?: /i, '')?.split(' com Faturamento')[0] || 'N/A'}</p></TableCell>
+                                                <TableCell className='text-sm'>{formatCurrency(analysis.monthlyRevenue || 0)}</TableCell>
+                                                <TableCell className='text-sm'>{formatCurrency(scenario.totalTaxValue || 0)}</TableCell>
+                                                <TableCell className='text-sm'>{formatPercentage((scenario.effectiveRate || 0) / 100)}</TableCell>
+                                                <TableCell className='text-right font-bold text-sm'>{formatCurrency(scenario.netProfitDistribution || 0)}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -205,17 +207,17 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <div className="p-3 bg-secondary/30 rounded-lg">
                                             <p className="font-semibold text-muted-foreground text-xs">Carga Tributária Total</p>
-                                            <p className="text-destructive font-bold text-xl">{formatCurrency(scenario.totalTaxValue)}</p>
-                                            <Badge variant="secondary" className="mt-1 text-xs">{formatPercentage(scenario.effectiveRate / 100)} sobre Faturamento</Badge>
-                                            {scenario.effectiveRateOnProfit && (
-                                                <Badge variant="outline" className="mt-1 ml-2 text-xs">{formatPercentage(scenario.effectiveRateOnProfit / 100)} sobre Lucro</Badge>
+                                            <p className="text-destructive font-bold text-xl">{formatCurrency(scenario.totalTaxValue || 0)}</p>
+                                            <Badge variant="secondary" className="mt-1 text-xs">{formatPercentage((scenario.effectiveRate || 0) / 100)} sobre Faturamento</Badge>
+                                            {scenario.effectiveRateOnProfit !== undefined && (
+                                                <Badge variant="outline" className="mt-1 ml-2 text-xs">{formatPercentage((scenario.effectiveRateOnProfit || 0) / 100)} sobre Lucro</Badge>
                                             )}
                                         </div>
                                         <div className="p-3 bg-secondary/30 rounded-lg">
                                             <p className="font-semibold text-muted-foreground text-xs">Lucro Líquido para o Sócio</p>
-                                            <p className="text-green-400 font-bold text-xl">{formatCurrency(scenario.netProfitDistribution)}</p>
-                                            {scenario.taxCostPerEmployee && (
-                                                <p className="text-xs text-muted-foreground mt-1">Custo Tributário por Funcionário: {formatCurrency(scenario.taxCostPerEmployee)}</p>
+                                            <p className="text-green-400 font-bold text-xl">{formatCurrency(scenario.netProfitDistribution || 0)}</p>
+                                            {scenario.taxCostPerEmployee !== undefined && (
+                                                <p className="text-xs text-muted-foreground mt-1">Custo Tributário por Funcionário: {formatCurrency(scenario.taxCostPerEmployee || 0)}</p>
                                             )}
                                         </div>
                                     </div>
@@ -237,11 +239,11 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                                                         </TableRow>
                                                     </TableHeader>
                                                     <TableBody>
-                                                        {scenario.taxBreakdown.map((tax: { name: string; rate: number; value: number }, taxIdx: number) => (
+                                                        {scenario.taxBreakdown?.map((tax: { name: string; rate: number; value: number }, taxIdx: number) => (
                                                             <TableRow key={taxIdx}>
-                                                                <TableCell className="text-xs">{tax.name}</TableCell>
-                                                                <TableCell className="text-xs">{formatPercentage(tax.rate / 100)}</TableCell>
-                                                                <TableCell className="text-right text-xs">{formatCurrency(tax.value)}</TableCell>
+                                                                <TableCell className="text-xs">{tax.name || 'N/A'}</TableCell>
+                                                                <TableCell className="text-xs">{formatPercentage((tax.rate || 0) / 100)}</TableCell>
+                                                                <TableCell className="text-right text-xs">{formatCurrency(tax.value || 0)}</TableCell>
                                                             </TableRow>
                                                         ))}
                                                     </TableBody>
@@ -255,24 +257,24 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                                     <div className="p-3 border rounded-md bg-secondary/50 space-y-1 text-xs">
                                         <div className="flex justify-between">
                                             <span className="font-semibold">Valor Bruto:</span>
-                                            <span>{formatCurrency(scenario.proLaboreAnalysis.baseValue)}</span>
+                                            <span>{formatCurrency(scenario.proLaboreAnalysis?.baseValue || 0)}</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-red-400">INSS (sócio):</span>
-                                            <span className="text-red-400">{formatCurrency(scenario.proLaboreAnalysis.inssValue)}</span>
+                                            <span className="text-red-400">{formatCurrency(scenario.proLaboreAnalysis?.inssValue || 0)}</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-red-400">IRRF:</span>
-                                            <span className="text-red-400">{formatCurrency(scenario.proLaboreAnalysis.irrfValue)}</span>
+                                            <span className="text-red-400">{formatCurrency(scenario.proLaboreAnalysis?.irrfValue || 0)}</span>
                                         </div>
                                         <div className="flex justify-between font-bold pt-2 border-t mt-2">
                                             <span>Valor Líquido Recebido:</span>
-                                            <span className="text-base">{formatCurrency(scenario.proLaboreAnalysis.netValue)}</span>
+                                            <span className="text-base">{formatCurrency(scenario.proLaboreAnalysis?.netValue || 0)}</span>
                                         </div>
                                     </div>
 
                                     <p className="text-xs text-muted-foreground mt-3 italic">
-                                        <span className="font-semibold">Notas da IA:</span> {scenario.notes}
+                                        <span className="font-semibold">Notas da IA:</span> {scenario.notes || 'N/A'}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -303,7 +305,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                                  <CardTitle className="text-lg">Conclusão da IA</CardTitle>
                             </CardHeader>
                             <CardContent className="text-sm">
-                                <MarkdownRenderer content={analysis.executiveSummary} />
+                                <MarkdownRenderer content={analysis.executiveSummary || 'N/A'} />
                             </CardContent>
                         </Card>
                     </div>

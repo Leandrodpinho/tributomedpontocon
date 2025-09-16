@@ -46,6 +46,7 @@ export const ScenarioDetailSchema = z.object({
   netProfitDistribution: z.number().describe('Lucro líquido disponível para distribuição ao sócio após todos os impostos e encargos.'),
   notes: z.string().describe('Observações importantes sobre o cenário, como o uso do Fator R ou o cálculo do INSS patronal.'),
 });
+export type ScenarioDetail = z.infer<typeof ScenarioDetailSchema>;
 
 const GenerateTaxScenariosOutputSchema = z.object({
   transcribedText: z.string().optional().describe('As informações financeiras e operacionais transcritas dos documentos anexados.'),
@@ -122,7 +123,15 @@ const generateTaxScenariosFlow = ai.defineFlow(
     outputSchema: GenerateTaxScenariosOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    try {
+      const {output} = await prompt(input);
+      if (!output) {
+        throw new Error('A IA não retornou uma saída válida.');
+      }
+      return output;
+    } catch (error) {
+      console.error('Erro ao gerar cenários tributários:', error);
+      throw new Error(`Falha na geração dos cenários tributários: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 );
