@@ -36,10 +36,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
     const { toast } = useToast();
     if (!analysis || !analysis.scenarios) return null;
 
-    const monthlyRevenueFormatted = analysis.monthlyRevenue ? formatCurrency(analysis.monthlyRevenue) : '';
-    const currentRevenueScenarios = analysis.scenarios.filter(s => s.name.includes(monthlyRevenueFormatted));
-
-    const chartData = currentRevenueScenarios.map((scenario, index) => ({
+    const ctD((sc
         name: `Agrupamento ${index + 1}`,
         scenarioName: scenario.name?.replace(/ com Faturamento de R\$ \d+\.\d+,\d+/i, '')?.replace(/Cenário para .*?: /i, '') || 'N/A',
         totalTax: scenario.totalTaxValue || 0,
@@ -314,4 +311,3 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
         </div>
     );
 }
-

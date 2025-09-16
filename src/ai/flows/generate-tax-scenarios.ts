@@ -37,6 +37,7 @@ const ProLaboreAnalysisSchema = z.object({
 
 export const ScenarioDetailSchema = z.object({
   name: z.string().describe('O nome do cenário (ex: "Simples Nacional Anexo III com Faturamento de R$ 10.000,00").'),
+  scenarioRevenue: z.number().describe('O faturamento mensal para o qual este cenário foi calculado.'),
   totalTaxValue: z.number().describe('O valor total do imposto a ser pago no regime (ex: 1270.15).'),
   effectiveRate: z.number().describe('A alíquota efetiva total do regime, em porcentagem (ex: 10.75).'),
   effectiveRateOnProfit: z.number().optional().describe('A alíquota efetiva sobre o lucro (Impostos / Lucro Bruto), em porcentagem.'),
@@ -87,7 +88,7 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
 2.  **Geração de Cenários (Faturamento Atual e Projeções):**
     *   **Calcule os cenários para 3 níveis de faturamento:** o faturamento atual, um cenário com +20% e um com +50%.
     *   **Para cada nível de faturamento, gere os cenários tributários (Simples Nacional Anexo III/V, Lucro Presumido, e Lucro Presumido com Equiparação Hospitalar). Se uma folha salarial foi fornecida, gere cenários COM e SEM essa folha para comparar o impacto da contratação. No nome do cenário, indique claramente a situação (ex: "Simples Nacional Anexo III - Com Folha CLT").**
-    *   Adicione TODOS os cenários gerados ao array 'scenarios'. No campo 'name' de cada cenário, especifique o regime, o faturamento, e se inclui folha salarial. Se o nome da empresa foi fornecido, use-o no nome do cenário (ex: "Cenário para [Nome da Empresa]: Simples Nacional...").
+    *   Adicione TODOS os cenários gerados ao array 'scenarios'. No campo 'name' de cada cenário, especifique o regime e o faturamento. Preencha o campo 'scenarioRevenue' com o valor numérico do faturamento para este cenário específico. Se o nome da empresa foi fornecido, use-o no nome do cenário (ex: "Cenário para [Nome da Empresa]: Simples Nacional...").
     *   **Para cada cenário:**
         *   **Cálculo dos Tributos (Simples Nacional):**
             *   Calcule a Receita Bruta dos últimos 12 meses (RBT12). Para o faturamento atual, RBT12 = Faturamento Mensal * 12. Para as projeções, use a RBT12 projetada.
