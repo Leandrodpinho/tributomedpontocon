@@ -151,7 +151,7 @@ export default function Home() {
 
 
         {state.aiResponse && !pending && (
-          <DashboardResults analysis={state.aiResponse} clientName={state.aiResponse.scenarios[0]?.name.split(':')[0].replace('Cenário para ','') || 'Cliente'} />
+          <DashboardResults analysis={state.aiResponse} clientName={state.aiResponse.scenarios?.[0]?.name?.split(':')[0]?.replace('Cenário para ','') || 'Cliente'} />
         )}
       </main>
     </div>
