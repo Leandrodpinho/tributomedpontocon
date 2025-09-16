@@ -16,9 +16,14 @@ import React from 'react';
 
 
 // Helper to parse currency strings like "R$ 1.234,56" into numbers
-const parseCurrency = (value: string): number => {
-    if (!value) return 0;
-    return parseFloat(value.replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
+// Helper to format numbers as currency
+const formatCurrency = (value: number): string => {
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+// Helper to format numbers as percentage
+const formatPercentage = (value: number): string => {
+    return value.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 type DashboardResultsProps = {
@@ -31,20 +36,20 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
     const { toast } = useToast();
     if (!analysis || !analysis.scenarios) return null;
 
-    const currentRevenueScenarios = analysis.scenarios.filter(s => s.name.includes(analysis.monthlyRevenue));
+    const currentRevenueScenarios = analysis.scenarios.filter(s => s.name.includes(formatCurrency(analysis.monthlyRevenue)));
 
     const chartData = currentRevenueScenarios.map((scenario, index) => ({
         name: `Agrupamento ${index + 1}`,
         scenarioName: scenario.name.replace(/ com Faturamento de R\$ \d+\.\d+,\d+/i, '').replace(/Cenário para .*?: /i, ''),
-        totalTax: parseCurrency(scenario.totalTaxValue),
-        netProfit: parseCurrency(scenario.netProfitDistribution),
+        totalTax: scenario.totalTaxValue,
+        netProfit: scenario.netProfitDistribution,
     }));
 
-    const bestScenario = [...currentRevenueScenarios].sort((a, b) => parseCurrency(a.totalTaxValue) - parseCurrency(b.totalTaxValue))[0];
-    const worstScenario = [...currentRevenueScenarios].sort((a, b) => parseCurrency(b.totalTaxValue) - parseCurrency(a.totalTaxValue))[0];
-    const monthlySavings = bestScenario && worstScenario ? parseCurrency(worstScenario.totalTaxValue) - parseCurrency(bestScenario.totalTaxValue) : 0;
+    const bestScenario = [...currentRevenueScenarios].sort((a, b) => a.totalTaxValue - b.totalTaxValue)[0];
+    const worstScenario = [...currentRevenueScenarios].sort((a, b) => b.totalTaxValue - a.totalTaxValue)[0];
+    const monthlySavings = bestScenario && worstScenario ? worstScenario.totalTaxValue - bestScenario.totalTaxValue : 0;
     const annualSavings = monthlySavings * 12;
-    const economyPercentage = bestScenario && worstScenario && parseCurrency(worstScenario.totalTaxValue) > 0 ? (monthlySavings / parseCurrency(worstScenario.totalTaxValue)) * 100 : 0;
+    const economyPercentage = bestScenario && worstScenario && worstScenario.totalTaxValue > 0 ? (monthlySavings / worstScenario.totalTaxValue) * 100 : 0;
 
     const handlePrint = () => {
         window.print();
@@ -97,8 +102,8 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
     const KpiCard = ({ title, value, subValue, className = '' }: { title: string, value: string, subValue?: string, className?: string }) => (
         <Card className={className}>
             <CardHeader className="pb-2">
-                <CardDescription>{title}</CardDescription>
-                <CardTitle className="text-3xl">{value}</CardTitle>
+                <CardDescription className="text-sm">{title}</CardDescription>
+                <CardTitle className="text-2xl">{value}</CardTitle>
             </CardHeader>
             {subValue &&
                 <CardContent>
@@ -149,9 +154,9 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                     <div id="dash" className="space-y-6 animate-in fade-in-50">
                         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
                             <KpiCard title="Melhor Opção" value={bestScenario?.name.replace(/Cenário para .*?: /i, '').split(' com Faturamento')[0] || 'N/A'} subValue="Menor carga tributária" />
-                            <KpiCard title="Economia Mensal" value={monthlySavings.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} subValue="Em relação ao pior cenário" />
-                            <KpiCard title="Economia Anual" value={annualSavings.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} subValue="Projeção para 12 meses" />
-                            <KpiCard title="% Economia Gerada" value={`${economyPercentage.toFixed(2)}%`} subValue="Potencial de economia" className="text-green-500" />
+                            <KpiCard title="Economia Mensal" value={formatCurrency(monthlySavings)} subValue="Em relação ao pior cenário" />
+                            <KpiCard title="Economia Anual" value={formatCurrency(annualSavings)} subValue="Projeção para 12 meses" />
+                            <KpiCard title="% Economia Gerada" value={formatPercentage(economyPercentage / 100)} subValue="Potencial de economia" className="text-green-500" />
                         </div>
                         <Card>
                             <CardHeader>
@@ -172,11 +177,11 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                                     <TableBody>
                                         {currentRevenueScenarios.map((scenario, index) => (
                                             <TableRow key={index} className={scenario.name === bestScenario.name ? 'bg-primary/10' : ''}>
-                                                <TableCell className='font-medium'>{`Agrupamento ${index + 1}`} <p className='text-xs text-muted-foreground'>{scenario.name.replace(/Cenário para .*?: /i, '').split(' com Faturamento')[0]}</p></TableCell>
-                                                <TableCell>{analysis.monthlyRevenue}</TableCell>
-                                                <TableCell>{scenario.totalTaxValue}</TableCell>
-                                                <TableCell>{scenario.effectiveRate}</TableCell>
-                                                <TableCell className='text-right font-bold'>{scenario.netProfitDistribution}</TableCell>
+                                                <TableCell className='font-medium text-sm'>{`Agrupamento ${index + 1}`} <p className='text-xs text-muted-foreground'>{scenario.name.replace(/Cenário para .*?: /i, '').split(' com Faturamento')[0]}</p></TableCell>
+                                                <TableCell className='text-sm'>{formatCurrency(analysis.monthlyRevenue)}</TableCell>
+                                                <TableCell className='text-sm'>{formatCurrency(scenario.totalTaxValue)}</TableCell>
+                                                <TableCell className='text-sm'>{formatPercentage(scenario.effectiveRate / 100)}</TableCell>
+                                                <TableCell className='text-right font-bold text-sm'>{formatCurrency(scenario.netProfitDistribution)}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -190,53 +195,53 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
 
                     {/* Scenarios Section */}
                     <div id="scenarios" className="space-y-6 pt-10">
-                         <h2 className="text-2xl font-bold tracking-tight">Análise Detalhada dos Cenários</h2>
+                         <h2 className="text-xl font-bold tracking-tight">Análise Detalhada dos Cenários</h2>
                          {analysis.scenarios.map((scenario: ScenarioDetail, index: number) => (
                             <Card key={index}>
                                 <CardHeader>
-                                    <CardTitle>{scenario.name}</CardTitle>
+                                    <CardTitle className="text-lg">{scenario.name}</CardTitle>
                                 </CardHeader>
-                                <CardContent className='space-y-4'>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="p-4 bg-secondary/30 rounded-lg">
-                                            <p className="font-semibold text-muted-foreground">Carga Tributária Total</p>
-                                            <p className="text-destructive font-bold text-2xl">{scenario.totalTaxValue}</p>
-                                            <Badge variant="secondary" className="mt-1">{scenario.effectiveRate} sobre Faturamento</Badge>
+                                <CardContent className='space-y-3 text-sm'>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div className="p-3 bg-secondary/30 rounded-lg">
+                                            <p className="font-semibold text-muted-foreground text-xs">Carga Tributária Total</p>
+                                            <p className="text-destructive font-bold text-xl">{formatCurrency(scenario.totalTaxValue)}</p>
+                                            <Badge variant="secondary" className="mt-1 text-xs">{formatPercentage(scenario.effectiveRate / 100)} sobre Faturamento</Badge>
                                             {scenario.effectiveRateOnProfit && (
-                                                <Badge variant="outline" className="mt-1 ml-2">{scenario.effectiveRateOnProfit} sobre Lucro</Badge>
+                                                <Badge variant="outline" className="mt-1 ml-2 text-xs">{formatPercentage(scenario.effectiveRateOnProfit / 100)} sobre Lucro</Badge>
                                             )}
                                         </div>
-                                        <div className="p-4 bg-secondary/30 rounded-lg">
-                                            <p className="font-semibold text-muted-foreground">Lucro Líquido para o Sócio</p>
-                                            <p className="text-green-400 font-bold text-2xl">{scenario.netProfitDistribution}</p>
+                                        <div className="p-3 bg-secondary/30 rounded-lg">
+                                            <p className="font-semibold text-muted-foreground text-xs">Lucro Líquido para o Sócio</p>
+                                            <p className="text-green-400 font-bold text-xl">{formatCurrency(scenario.netProfitDistribution)}</p>
                                             {scenario.taxCostPerEmployee && (
-                                                <p className="text-xs text-muted-foreground mt-1">Custo Tributário por Funcionário: {scenario.taxCostPerEmployee}</p>
+                                                <p className="text-xs text-muted-foreground mt-1">Custo Tributário por Funcionário: {formatCurrency(scenario.taxCostPerEmployee)}</p>
                                             )}
                                         </div>
                                     </div>
                                     
                                     <Accordion type="single" collapsible>
                                         <AccordionItem value="tax-breakdown">
-                                            <AccordionTrigger className='text-base font-semibold'>
+                                            <AccordionTrigger className='text-sm font-semibold'>
                                                 <div className='flex items-center gap-2'>
-                                                  <ChevronRight className="h-4 w-4" /> Detalhamento dos Tributos
+                                                  <ChevronRight className="h-3 w-3" /> Detalhamento dos Tributos
                                                 </div>
                                             </AccordionTrigger>
                                             <AccordionContent>
                                                 <Table>
                                                     <TableHeader>
                                                         <TableRow>
-                                                            <TableHead>Tributo</TableHead>
-                                                            <TableHead>Alíquota</TableHead>
-                                                            <TableHead className="text-right">Valor</TableHead>
+                                                            <TableHead className="text-xs">Tributo</TableHead>
+                                                            <TableHead className="text-xs">Alíquota</TableHead>
+                                                            <TableHead className="text-right text-xs">Valor</TableHead>
                                                         </TableRow>
                                                     </TableHeader>
                                                     <TableBody>
-                                                        {scenario.taxBreakdown.map((tax, taxIdx) => (
+                                                        {scenario.taxBreakdown.map((tax: { name: string; rate: number; value: number }, taxIdx: number) => (
                                                             <TableRow key={taxIdx}>
-                                                                <TableCell>{tax.name}</TableCell>
-                                                                <TableCell>{tax.rate}</TableCell>
-                                                                <TableCell className="text-right">{tax.value}</TableCell>
+                                                                <TableCell className="text-xs">{tax.name}</TableCell>
+                                                                <TableCell className="text-xs">{formatPercentage(tax.rate / 100)}</TableCell>
+                                                                <TableCell className="text-right text-xs">{formatCurrency(tax.value)}</TableCell>
                                                             </TableRow>
                                                         ))}
                                                     </TableBody>
@@ -246,27 +251,27 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                                     </Accordion>
 
 
-                                    <h5 className="font-semibold mt-4 text-base">Análise do Pró-Labore:</h5>
-                                    <div className="p-4 border rounded-md bg-secondary/50 space-y-1 text-sm">
+                                    <h5 className="font-semibold mt-3 text-sm">Análise do Pró-Labore:</h5>
+                                    <div className="p-3 border rounded-md bg-secondary/50 space-y-1 text-xs">
                                         <div className="flex justify-between">
                                             <span className="font-semibold">Valor Bruto:</span>
-                                            <span>{scenario.proLaboreAnalysis.baseValue}</span>
+                                            <span>{formatCurrency(scenario.proLaboreAnalysis.baseValue)}</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-red-400">INSS (sócio):</span>
-                                            <span className="text-red-400">{scenario.proLaboreAnalysis.inssValue}</span>
+                                            <span className="text-red-400">{formatCurrency(scenario.proLaboreAnalysis.inssValue)}</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="font-semibold text-red-400">IRRF:</span>
-                                            <span className="text-red-400">{scenario.proLaboreAnalysis.irrfValue}</span>
+                                            <span className="text-red-400">{formatCurrency(scenario.proLaboreAnalysis.irrfValue)}</span>
                                         </div>
                                         <div className="flex justify-between font-bold pt-2 border-t mt-2">
                                             <span>Valor Líquido Recebido:</span>
-                                            <span className="text-lg">{scenario.proLaboreAnalysis.netValue}</span>
+                                            <span className="text-base">{formatCurrency(scenario.proLaboreAnalysis.netValue)}</span>
                                         </div>
                                     </div>
 
-                                    <p className="text-xs text-muted-foreground mt-4 italic">
+                                    <p className="text-xs text-muted-foreground mt-3 italic">
                                         <span className="font-semibold">Notas da IA:</span> {scenario.notes}
                                     </p>
                                 </CardContent>
@@ -291,13 +296,13 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                     </div>
 
                     {/* Summary Section */}
-                    <div id="summary" className="space-y-6 pt-10">
-                         <h2 className="text-2xl font-bold tracking-tight">Resumo Executivo e Recomendações</h2>
+                    <div id="summary" className="space-y-4 pt-8">
+                         <h2 className="text-xl font-bold tracking-tight">Resumo Executivo e Recomendações</h2>
                         <Card className='bg-primary/10 border-primary'>
                             <CardHeader>
-                                 <CardTitle>Conclusão da IA</CardTitle>
+                                 <CardTitle className="text-lg">Conclusão da IA</CardTitle>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="text-sm">
                                 <MarkdownRenderer content={analysis.executiveSummary} />
                             </CardContent>
                         </Card>

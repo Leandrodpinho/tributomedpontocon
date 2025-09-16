@@ -35,7 +35,7 @@ const ProLaboreAnalysisSchema = z.object({
   netValue: z.number().describe('Valor líquido do pró-labore após deduções.'),
 });
 
-const ScenarioDetailSchema = z.object({
+export const ScenarioDetailSchema = z.object({
   name: z.string().describe('O nome do cenário (ex: "Simples Nacional Anexo III com Faturamento de R$ 10.000,00").'),
   totalTaxValue: z.number().describe('O valor total do imposto a ser pago no regime (ex: 1270.15).'),
   effectiveRate: z.number().describe('A alíquota efetiva total do regime, em porcentagem (ex: 10.75).'),
@@ -107,10 +107,10 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
             *   'effectiveRateOnProfit': (Impostos Totais da Empresa / Lucro Bruto Antes dos Impostos da Empresa) * 100.
             *   'taxCostPerEmployee': Se houver folha CLT, calcule (Impostos Totais da Empresa / Número de funcionários). Assuma 1 funcionário se o valor da folha for > 0, a menos que especificado.
 
-3.  **Resumo Executivo e Análise de Projeção:** No campo 'executiveSummary', escreva uma análise em três partes, usando **Markdown para formatar os títulos em negrito**.
-    *   **Recomendação para o Cenário Atual:** Indique qual regime é mais vantajoso para o faturamento atual (em R$ e %), e por quê. Se o nome da empresa/CNPJ foi fornecido, mencione-o. Aja como um consultor. Se foi informada uma folha, compare os cenários com e sem ela, explicando o impacto financeiro da contratação.
-    *   **Análise das Projeções:** Com base nos cenários de +20% e +50%, analise os pontos de inflexão. Mostre a partir de qual faturamento o Lucro Presumido (ou Equiparado) pode se tornar mais vantajoso.
-    *   **Pontos de Atenção e Oportunidades:** Mencione a importância de verificar a alíquota de ISS do município do cliente. Comente sobre a possibilidade de benefícios como a equiparação hospitalar e a necessidade de assessoria para garantir a elegibilidade.
+3.  **Resumo Executivo e Análise de Projeção:** No campo 'executiveSummary', escreva uma análise concisa e minimalista em tópicos, usando **Markdown para formatar os títulos em negrito**. O layout deve ser limpo e direto ao ponto.
+    *   **Recomendação para o Cenário Atual:** Indique o regime mais vantajoso para o faturamento atual (em R$ e %), de forma direta.
+    *   **Análise das Projeções:** Apresente os pontos de inflexão de faturamento onde um regime se torna mais vantajoso que o outro.
+    *   **Pontos de Atenção:** Liste brevemente os pontos importantes, como a alíquota de ISS e a elegibilidade para benefícios fiscais.
 
 Sua resposta deve seguir estritamente a estrutura do JSON de saída. Seja analítico e preciso.`,
 });

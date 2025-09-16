@@ -1,5 +1,3 @@
-// src/components/markdown-renderer.tsx
-
 'use client';
 
 import React from 'react';
@@ -8,40 +6,62 @@ type MarkdownRendererProps = {
     content: string;
 };
 
-export function MarkdownRenderer({ content }: MarkdownRendererProps) {
-    const renderContent = () => {
-        // Split by newlines to handle paragraphs
-        return content.split('\n').map((line, index) => {
-            // Check for empty lines to create paragraph breaks
-            if (line.trim() === '') {
-                return <br key={index} />;
+// Helper function to process text for bolding
+const processTextForBolding = (text: string, keyPrefix: string, lineIndex: number): React.ReactNode[] => {
+    const boldRegex = /\*\*(.*?)\*\*/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = boldRegex.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+            parts.push(text.substring(lastIndex, match.index));
+        }
+        parts.push(<strong key={`${keyPrefix}-bold-${lineIndex}-${match.index}`}>{match[1]}</strong>);
+        lastIndex = boldRegex.lastIndex;
+    }
+    if (lastIndex < text.length) {
+        parts.push(text.substring(lastIndex));
+    }
+    return parts;
+};
+
+export function MarkdownRenderer({ content }: MarkdownRendererProps): React.ReactElement {
+    const lines = content.split('\n');
+    const processedElements: React.ReactNode[] = [];
+
+    lines.forEach((line, index) => {
+        const listItemRegex = /^(\s*)[-*+]\s+(.*)/;
+        const listItemMatch = line.match(listItemRegex);
+
+        if (line.trim() === '') {
+            processedElements.push(<br key={index} />);
+        } else if (listItemMatch) {
+            processedElements.push(<li key={index} className="ml-4 text-sm">{processTextForBolding(listItemMatch[2], 'li', index)}</li>);
+        } else {
+            processedElements.push(<p key={index} className="text-sm">{processTextForBolding(line, 'p', index)}</p>);
+        }
+    });
+
+    // Group consecutive list items into a single <ul>
+    const finalElements: React.ReactNode[] = [];
+    let currentListItems: React.ReactNode[] = [];
+
+    processedElements.forEach((element, index) => {
+        if (React.isValidElement(element) && element.type === 'li') {
+            currentListItems.push(element);
+        } else {
+            if (currentListItems.length > 0) {
+                finalElements.push(<ul key={`ul-group-${index}`} className="list-disc pl-5">{currentListItems}</ul>);
+                currentListItems = [];
             }
-            
-            // Regex to find **bold** text
-            const boldRegex = /\*\*(.*?)\*\*/g;
-            const parts = [];
-            let lastIndex = 0;
-            let match;
+            finalElements.push(element);
+        }
+    });
 
-            while ((match = boldRegex.exec(line)) !== null) {
-                // Add the text before the match
-                if (match.index > lastIndex) {
-                    parts.push(line.substring(lastIndex, match.index));
-                }
-                // Add the bolded text
-                parts.push(<strong key={`bold-${index}-${match.index}`}>{match[1]}</strong>);
-                lastIndex = boldRegex.lastIndex;
-            }
+    if (currentListItems.length > 0) {
+        finalElements.push(<ul key={`ul-group-final`} className="list-disc pl-5">{currentListItems}</ul>);
+    }
 
-            // Add any remaining text after the last match
-            if (lastIndex < line.length) {
-                parts.push(line.substring(lastIndex));
-            }
-
-            // Return the line wrapped in a paragraph
-            return <p key={index} className="mb-2">{parts}</p>;
-        });
-    };
-
-    return <div className="text-sm">{renderContent()}</div>;
+    return <div className="text-sm">{finalElements}</div>;
 }
