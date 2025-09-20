@@ -73,6 +73,8 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
     *   **Análise das Projeções:** Apresente os pontos de inflexão de faturamento onde um regime se torna mais vantajoso que o outro.
     *   **Pontos de Atenção:** Liste brevemente os pontos importantes, como a alíquota de ISS e a elegibilidade para benefícios fiscais.
 
+4.  **Análise de Ponto de Equilíbrio:** No campo 'breakEvenAnalysis', forneça uma análise detalhada sobre os pontos de equilíbrio de faturamento entre os principais regimes (ex: "O Lucro Presumido se torna mais vantajoso que o Simples Nacional a partir de um faturamento de R$ XX.XXX,XX."). Calcule este valor com a maior precisão possível.
+
 Sua resposta deve seguir estritamente a estrutura do JSON de saída. Seja analítico e preciso.`,
 });
 

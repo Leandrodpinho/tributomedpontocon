@@ -4,11 +4,12 @@ import type { GenerateTaxScenariosOutput, ScenarioDetail } from '@/ai/flows/type
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BarChart, Briefcase, ChevronRight, Download, FileText, GanttChart, Printer, Target } from 'lucide-react';
+import { BarChart, Briefcase, ChevronRight, Download, FileText, GanttChart, Printer, Target, TrendingUp } from 'lucide-react';
 import { ScenarioComparisonChart } from './scenario-comparison-chart';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { MarkdownRenderer } from './markdown-renderer';
+import { KpiCard } from './kpi-card';
 import { saveAs } from 'file-saver';
 import { generateDocx } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -33,22 +34,33 @@ type DashboardResultsProps = {
 
 export function DashboardResults({ analysis, clientName }: DashboardResultsProps) {
     const [isDownloading, setIsDownloading] = React.useState(false);
+    const [selectedRevenue, setSelectedRevenue] = React.useState(analysis.monthlyRevenue);
     const { toast } = useToast();
     if (!analysis || !analysis.scenarios) return null;
 
-    // Use a small tolerance for float comparison to avoid precision issues.
-    const currentRevenueScenarios: ScenarioDetail[] = analysis.scenarios.filter((s: ScenarioDetail) => 
-        Math.abs(s.scenarioRevenue - analysis.monthlyRevenue) < 0.01);
+    const revenueTiers = React.useMemo(() => 
+        [...new Set(analysis.scenarios.map(s => s.scenarioRevenue))].sort((a, b) => a - b),
+        [analysis.scenarios]
+    );
 
-    const chartData = currentRevenueScenarios.map((scenario: ScenarioDetail, index: number) => ({
-        name: `Agrupamento ${index + 1}`,
-        scenarioName: scenario.name?.replace(/ com Faturamento de R\$ \d+\.\d+,\d+/i, '')?.replace(/Cenário para .*?: /i, '') || 'N/A',
-        totalTax: scenario.totalTaxValue || 0,
-        netProfit: scenario.netProfitDistribution || 0,
-    }));
+    const derivedData = React.useMemo(() => {
+        const scenariosForRevenue = analysis.scenarios.filter((s: ScenarioDetail) => 
+            Math.abs(s.scenarioRevenue - selectedRevenue) < 0.01);
 
-    const bestScenario: ScenarioDetail | undefined = currentRevenueScenarios.length > 0 ? [...currentRevenueScenarios].sort((a, b) => a.totalTaxValue - b.totalTaxValue)[0] : undefined;
-    const worstScenario: ScenarioDetail | undefined = currentRevenueScenarios.length > 0 ? [...currentRevenueScenarios].sort((a, b) => b.totalTaxValue - a.totalTaxValue)[0] : undefined;
+        const chartData = scenariosForRevenue.map((scenario: ScenarioDetail, index: number) => ({
+            name: `Agrupamento ${index + 1}`,
+            scenarioName: scenario.name?.replace(/ com Faturamento de R\$ \d+\.\d+,\d+/i, '')?.replace(/Cenário para .*?: /i, '') || 'N/A',
+            totalTax: scenario.totalTaxValue || 0,
+            netProfit: scenario.netProfitDistribution || 0,
+        }));
+
+        const bestScenario = scenariosForRevenue.length > 0 ? [...scenariosForRevenue].sort((a, b) => a.totalTaxValue - b.totalTaxValue)[0] : undefined;
+        const worstScenario = scenariosForRevenue.length > 0 ? [...scenariosForRevenue].sort((a, b) => b.totalTaxValue - a.totalTaxValue)[0] : undefined;
+
+        return { scenariosForRevenue, chartData, bestScenario, worstScenario };
+    }, [analysis.scenarios, selectedRevenue]);
+
+    const { scenariosForRevenue, chartData, bestScenario, worstScenario } = derivedData;
 
     const monthlySavings = (bestScenario?.totalTaxValue !== undefined && worstScenario?.totalTaxValue !== undefined) ? worstScenario.totalTaxValue - bestScenario.totalTaxValue : 0;
     const annualSavings = monthlySavings * 12;
@@ -61,16 +73,45 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
     const handleDownloadDocx = async () => {
         setIsDownloading(true);
         const reportElement = document.getElementById('report-content');
-        if (reportElement) {
+        const bestScenarioName = bestScenario?.name;
+
+        if (reportElement && bestScenarioName) {
           try {
-            const htmlContent = reportElement.outerHTML;
+            const clonedReport = reportElement.cloneNode(true) as HTMLElement;
+
+            // Remove unwanted sections for the DOCX report
+            const dashSection = clonedReport.querySelector('#dash');
+            if (dashSection) dashSection.remove();
+
+            const dataSection = clonedReport.querySelector('#data');
+            if (dataSection) dataSection.remove();
+
+            // Filter scenarios to keep only the best one
+            const scenariosSection = clonedReport.querySelector('#scenarios');
+            if (scenariosSection) {
+                const children = Array.from(scenariosSection.children);
+                children.forEach(child => {
+                    // Keep and rename the title of the section
+                    if (child.tagName.toLowerCase() === 'h2') {
+                        (child as HTMLElement).textContent = "Regime Tributário Recomendado";
+                        return;
+                    }
+
+                    // Check if it's the best scenario card by its title
+                    const titleElement = child.querySelector<HTMLElement>('.text-lg');
+                    if (!titleElement || titleElement.textContent !== bestScenarioName) {
+                        child.remove();
+                    }
+                });
+            }
+
+            const htmlContent = clonedReport.outerHTML;
             const result = await generateDocx(htmlContent);
     
             if (result.error || !result.docx) {
               throw new Error(result.error || 'Failed to generate DOCX buffer.');
             }
             
-            // Convert base64 back to a Blob
             const byteCharacters = atob(result.docx);
             const byteNumbers = new Array(byteCharacters.length);
             for (let i = 0; i < byteCharacters.length; i++) {
@@ -91,6 +132,13 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
           } finally {
             setIsDownloading(false);
           }
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Erro no Download",
+                description: "Não foi possível gerar o arquivo. Análise ou cenário recomendado não encontrado.",
+            });
+            setIsDownloading(false);
         }
     };
 
@@ -100,20 +148,6 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
             {icon}
             {label}
         </a>
-    );
-
-    const KpiCard = ({ title, value, subValue, className = '' }: { title: string, value: string, subValue?: string, className?: string }) => (
-        <Card className={className}>
-            <CardHeader className="pb-2">
-                <CardDescription className="text-sm">{title}</CardDescription>
-                <CardTitle className="text-xl">{value}</CardTitle>
-            </CardHeader>
-            {subValue &&
-                <CardContent>
-                    <p className="text-xs text-muted-foreground">{subValue}</p>
-                </CardContent>
-            }
-        </Card>
     );
 
     return (
@@ -155,6 +189,19 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                 <main id="report-content" className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 print:p-0 print:m-0 print:gap-0">
                     {/* DASH Section */}
                     <div id="dash" className="space-y-6 animate-in fade-in-50">
+                        <div className="flex items-center gap-2 no-print">
+                            <h3 className="text-md font-semibold">Simular Cenário:</h3>
+                            {revenueTiers.map(tier => (
+                                <Button
+                                    key={tier}
+                                    variant={selectedRevenue === tier ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setSelectedRevenue(tier)}
+                                >
+                                    {formatCurrency(tier)}
+                                </Button>
+                            ))}
+                        </div>
                         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
                             <KpiCard title="Melhor Opção" value={bestScenario?.name?.replace(/Cenário para .*?: /i, '')?.split(' com Faturamento')[0] || 'N/A'} subValue="Menor carga tributária" />
                             <KpiCard title="Economia Mensal" value={formatCurrency(monthlySavings)} subValue="Em relação ao pior cenário" />
@@ -164,7 +211,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                         <Card>
                             <CardHeader>
                                 <CardTitle>Comparativo de Agrupamentos (Faturamento Atual)</CardTitle>
-                                <CardDescription>Análise da Carga Tributária (Despesa) vs. Lucro Líquido para o faturamento de {formatCurrency(analysis.monthlyRevenue)}</CardDescription>
+                                <CardDescription>Análise da Carga Tributária (Despesa) vs. Lucro Líquido para o faturamento de {formatCurrency(selectedRevenue)}</CardDescription>
                             </CardHeader>
                             <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                                 <Table>
@@ -178,10 +225,10 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {currentRevenueScenarios.map((scenario: ScenarioDetail, index: number) => (
+                                        {scenariosForRevenue.map((scenario: ScenarioDetail, index: number) => (
                                             <TableRow key={index} className={scenario.name === bestScenario?.name ? 'bg-primary/10' : ''}>
                                                 <TableCell className='font-medium text-sm'>{`Agrupamento ${index + 1}`} <p className='text-xs text-muted-foreground'>{scenario.name?.replace(/Cenário para .*?: /i, '')?.split(' com Faturamento')[0] || 'N/A'}</p></TableCell>
-                                                <TableCell className='text-sm'>{formatCurrency(analysis.monthlyRevenue || 0)}</TableCell>
+                                                <TableCell className='text-sm'>{formatCurrency(selectedRevenue || 0)}</TableCell>
                                                 <TableCell className='text-sm'>{formatCurrency(scenario.totalTaxValue || 0)}</TableCell>
                                                 <TableCell className='text-sm'>{formatPercentage((scenario.effectiveRate || 0) / 100)}</TableCell>
                                                 <TableCell className='text-right font-bold text-sm'>{formatCurrency(scenario.netProfitDistribution || 0)}</TableCell>
@@ -309,6 +356,17 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                                 <MarkdownRenderer content={analysis.executiveSummary || 'N/A'} />
                             </CardContent>
                         </Card>
+                        {analysis.breakEvenAnalysis && (
+                            <Card className='bg-secondary/50 border-secondary'>
+                                <CardHeader>
+                                     <CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Análise de Ponto de Equilíbrio</CardTitle>
+                                     <CardDescription>Insights da IA sobre os pontos de virada de faturamento entre os regimes.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="text-sm">
+                                    <p>{analysis.breakEvenAnalysis}</p>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 </main>
             </div>

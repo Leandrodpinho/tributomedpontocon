@@ -43,5 +43,6 @@ export const GenerateTaxScenariosOutputSchema = z.object({
   monthlyRevenue: z.number().describe('O faturamento mensal identificado para o cliente.'),
   scenarios: z.array(ScenarioDetailSchema).describe('Uma lista de cenários tributários detalhados, incluindo projeções de receita.'),
   executiveSummary: z.string().describe('Resumo executivo em Markdown com a recomendação final sobre o melhor cenário para o faturamento atual, e análise sobre os pontos de inflexão com base nas projeções de receita. Use ** para negrito nos títulos.'),
+  breakEvenAnalysis: z.string().optional().describe('Análise textual sobre os pontos de equilíbrio de faturamento entre os regimes.'),
 });
 export type GenerateTaxScenariosOutput = z.infer<typeof GenerateTaxScenariosOutputSchema>;
