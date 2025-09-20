@@ -9,53 +9,12 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-
-const GenerateTaxScenariosInputSchema = z.object({
-  clientData: z.string().optional().describe('The client financial and operational information (revenue, etc.)'),
-  payrollExpenses: z.number().optional().describe('As despesas com a folha de pagamento do cliente (CLT).'),
-  issRate: z.number().optional().describe('A alíquota de ISS a ser utilizada no cálculo, em porcentagem (ex: 4.0).'),
-  documentsAsText: z.string().optional().describe('The consolidated transcribed text from all attached documents.'),
-  clientType: z.enum(['Novo aberturas de empresa', 'Transferências de contabilidade']).describe('The type of client.'),
-  companyName: z.string().optional().describe('The name of the client\'s company.'),
-  cnpj: z.string().optional().describe('The CNPJ of the client\'s company.'),
-});
-export type GenerateTaxScenariosInput = z.infer<typeof GenerateTaxScenariosInputSchema>;
-
-const TaxDetailSchema = z.object({
-  name: z.string().describe('Nome do tributo (ex: IRPJ, CSLL, PIS, COFINS, ISS, CPP).'),
-  rate: z.number().describe('Alíquota do tributo, em porcentagem (ex: 4.0).'),
-  value: z.number().describe('Valor do tributo (ex: 480.00).'),
-});
-
-const ProLaboreAnalysisSchema = z.object({
-  baseValue: z.number().describe('Valor base do pró-labore utilizado no cálculo.'),
-  inssValue: z.number().describe('Valor da contribuição do INSS sobre o pró-labore.'),
-  irrfValue: z.number().describe('Valor do IRRF retido na fonte sobre o pró-labore.'),
-  netValue: z.number().describe('Valor líquido do pró-labore após deduções.'),
-});
-
-export const ScenarioDetailSchema = z.object({
-  name: z.string().describe('O nome do cenário (ex: "Simples Nacional Anexo III com Faturamento de R$ 10.000,00").'),
-  scenarioRevenue: z.number().describe('O faturamento mensal para o qual este cenário foi calculado.'),
-  totalTaxValue: z.number().describe('O valor total do imposto a ser pago no regime (ex: 1270.15).'),
-  effectiveRate: z.number().describe('A alíquota efetiva total do regime, em porcentagem (ex: 10.75).'),
-  effectiveRateOnProfit: z.number().optional().describe('A alíquota efetiva sobre o lucro (Impostos / Lucro Bruto), em porcentagem.'),
-  taxCostPerEmployee: z.number().optional().describe('O custo tributário médio por funcionário CLT.'),
-  taxBreakdown: z.array(TaxDetailSchema).describe('Detalhamento da composição dos tributos dentro do regime.'),
-  proLaboreAnalysis: ProLaboreAnalysisSchema.describe('Análise detalhada do impacto do pró-labore.'),
-  netProfitDistribution: z.number().describe('Lucro líquido disponível para distribuição ao sócio após todos os impostos e encargos.'),
-  notes: z.string().describe('Observações importantes sobre o cenário, como o uso do Fator R ou o cálculo do INSS patronal.'),
-});
-export type ScenarioDetail = z.infer<typeof ScenarioDetailSchema>;
-
-const GenerateTaxScenariosOutputSchema = z.object({
-  transcribedText: z.string().optional().describe('As informações financeiras e operacionais transcritas dos documentos anexados.'),
-  monthlyRevenue: z.number().describe('O faturamento mensal identificado para o cliente.'),
-  scenarios: z.array(ScenarioDetailSchema).describe('Uma lista de cenários tributários detalhados, incluindo projeções de receita.'),
-  executiveSummary: z.string().describe('Resumo executivo em Markdown com a recomendação final sobre o melhor cenário para o faturamento atual, e análise sobre os pontos de inflexão com base nas projeções de receita. Use ** para negrito nos títulos.'),
-});
-export type GenerateTaxScenariosOutput = z.infer<typeof GenerateTaxScenariosOutputSchema>;
+import {
+  GenerateTaxScenariosInput,
+  GenerateTaxScenariosInputSchema,
+  GenerateTaxScenariosOutput,
+  GenerateTaxScenariosOutputSchema,
+} from './types';
 
 
 export async function generateTaxScenarios(input: GenerateTaxScenariosInput): Promise<GenerateTaxScenariosOutput> {
@@ -83,9 +42,7 @@ Primeiro, use as informações financeiras de 'clientData' e 'documentsAsText' c
 
 Com base em todas as informações e na legislação de 2025, execute a seguinte análise V2.2:
 
-1.  **Análise de Faturamento:** Extraia o faturamento mensal e preencha o campo 'monthlyRevenue' (formato "R$ XX.XXX,XX"). Se o cliente for novo, assuma uma receita bruta dos últimos 12 meses (RBT12) igual ao faturamento mensal x 12. Se for transferência, use os dados fornecidos.
-
-2.  **Geração de Cenários (Faturamento Atual e Projeções):**
+1.  **Geração de Cenários (Faturamento Atual e Projeções):**
     *   **Calcule os cenários para 3 níveis de faturamento:** o faturamento atual, um cenário com +20% e um com +50%.
     *   **Para cada nível de faturamento, gere os cenários tributários (Simples Nacional Anexo III/V, Lucro Presumido, e Lucro Presumido com Equiparação Hospitalar). Se uma folha salarial foi fornecida, gere cenários COM e SEM essa folha para comparar o impacto da contratação. No nome do cenário, indique claramente a situação (ex: "Simples Nacional Anexo III - Com Folha CLT").**
     *   Adicione TODOS os cenários gerados ao array 'scenarios'. No campo 'name' de cada cenário, especifique o regime e o faturamento. Preencha o campo 'scenarioRevenue' com o valor numérico do faturamento para este cenário específico. Se o nome da empresa foi fornecido, use-o no nome do cenário (ex: "Cenário para [Nome da Empresa]: Simples Nacional...").
@@ -108,6 +65,8 @@ Com base em todas as informações e na legislação de 2025, execute a seguinte
         *   **Indicadores Financeiros:** Calcule e preencha os seguintes campos:
             *   'effectiveRateOnProfit': (Impostos Totais da Empresa / Lucro Bruto Antes dos Impostos da Empresa) * 100.
             *   'taxCostPerEmployee': Se houver folha CLT, calcule (Impostos Totais da Empresa / Número de funcionários). Assuma 1 funcionário se o valor da folha for > 0, a menos que especificado.
+
+2.  **Definição do Faturamento Base:** Após gerar todos os cenários, popule o campo 'monthlyRevenue' no nível raiz do JSON com o valor do campo 'scenarioRevenue' do primeiro cenário da lista. Isso garante que o faturamento base da análise corresponda ao primeiro grupo de cenários.
 
 3.  **Resumo Executivo e Análise de Projeção:** No campo 'executiveSummary', escreva uma análise concisa e minimalista em tópicos, usando **Markdown para formatar os títulos em negrito**. O layout deve ser limpo e direto ao ponto.
     *   **Recomendação para o Cenário Atual:** Indique o regime mais vantajoso para o faturamento atual (em R$ e %), de forma direta.

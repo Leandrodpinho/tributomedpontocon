@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useActionState } from "react";
+import { useEffect, useActionState, useState, useMemo } from "react";
+import { Loader2, Pencil } from "lucide-react";
 import { getAnalysis, type AnalysisState } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { LogoIcon } from "@/components/icons/logo";
@@ -13,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -30,6 +32,7 @@ const initialState: AnalysisState = {
 
 export default function Home() {
   const [state, formAction, pending] = useActionState(getAnalysis, initialState);
+  const [showForm, setShowForm] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -40,7 +43,16 @@ export default function Home() {
         description: state.error,
       });
     }
-  }, [state.error, toast]);
+    // Hide form on new successful analysis
+    if (state.aiResponse && !state.error) {
+      setShowForm(false);
+    }
+  }, [state, toast]);
+
+  const clientName = useMemo(() =>
+    state.aiResponse?.scenarios?.[0]?.name.split(':')[0].replace('Cenário para ', '').trim() || 'Cliente',
+    [state.aiResponse]
+  );
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -53,87 +65,90 @@ export default function Home() {
         </div>
       </header>
       <main className="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 space-y-8">
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle>Análise Tributária Personalizada v2.2</CardTitle>
-            <CardDescription>
-              Insira as informações do cliente ou anexe um documento para gerar um planejamento tributário detalhado.
-            </CardDescription>
-          </CardHeader>
-          <form action={formAction}>
-            <CardContent className="space-y-6">
-                <div className="space-y-2">
-                    <Label>Tipo de Cliente</Label>
-                    <RadioGroup name="clientType" defaultValue="Novo aberturas de empresa" className="flex items-center gap-4">
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Novo aberturas de empresa" id="new-company" />
-                        <Label htmlFor="new-company">Nova Abertura de Empresa</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Transferências de contabilidade" id="transfer" />
-                        <Label htmlFor="transfer">Transferência de Contabilidade</Label>
-                    </div>
-                    </RadioGroup>
-                </div>
+        {showForm && (
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle>Análise Tributária Personalizada v2.2</CardTitle>
+              <CardDescription>
+                Insira as informações do cliente ou anexe um documento para gerar um planejamento tributário detalhado.
+              </CardDescription>
+            </CardHeader>
+            <form action={formAction}>
+              <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                      <Label>Tipo de Cliente</Label>
+                      <RadioGroup name="clientType" defaultValue="Novo aberturas de empresa" className="flex items-center gap-4">
+                      <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="Novo aberturas de empresa" id="new-company" />
+                          <Label htmlFor="new-company">Nova Abertura de Empresa</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="Transferências de contabilidade" id="transfer" />
+                          <Label htmlFor="transfer">Transferência de Contabilidade</Label>
+                      </div>
+                      </RadioGroup>
+                  </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="companyName">Nome da Empresa</Label>
-                        <Input id="companyName" name="companyName" type="text" placeholder="Ex: Clínica Dr. João Silva" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="cnpj">CNPJ</Label>
-                        <Input id="cnpj" name="cnpj" type="text" placeholder="00.000.000/0001-00" />
-                    </div>
-                </div>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                          <Label htmlFor="companyName">Nome da Empresa</Label>
+                          <Input id="companyName" name="companyName" type="text" placeholder="Ex: Clínica Dr. João Silva" />
+                      </div>
+                      <div className="space-y-2">
+                          <Label htmlFor="cnpj">CNPJ</Label>
+                          <Input id="cnpj" name="cnpj" type="text" placeholder="00.000.000/0001-00" />
+                      </div>
+                  </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="payrollExpenses">Folha Salarial Bruta (CLT)</Label>
-                        <Input id="payrollExpenses" name="payrollExpenses" type="number" step="0.01" placeholder="Ex: 5000.00 (use ponto)" />
-                        <p className="text-sm text-muted-foreground">
-                        Opcional. Crucial para o cálculo do Fator R no Simples Nacional.
-                        </p>
-                    </div>
-                    <div className="space-y-2">
-                    <Label htmlFor="issRate">Alíquota de ISS (%)</Label>
-                    <Input id="issRate" name="issRate" type="text" defaultValue="4.0" placeholder="Ex: 4.0 (use ponto)" />
-                    <p className="text-sm text-muted-foreground">
-                        Padrão de 4% (Montes Claros). Relevante para Lucro Presumido.
-                        </p>
-                    </div>
-                </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                          <Label htmlFor="payrollExpenses">Folha Salarial Bruta (CLT)</Label>
+                          <Input id="payrollExpenses" name="payrollExpenses" type="number" step="0.01" placeholder="Ex: 5000.00 (use ponto)" />
+                          <p className="text-sm text-muted-foreground">
+                          Opcional. Crucial para o cálculo do Fator R no Simples Nacional.
+                          </p>
+                      </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="issRate">Alíquota de ISS (%)</Label>
+                      <Input id="issRate" name="issRate" type="text" defaultValue="4.0" placeholder="Ex: 4.0 (use ponto)" />
+                      <p className="text-sm text-muted-foreground">
+                          Padrão de 4% (Montes Claros). Relevante para Lucro Presumido.
+                          </p>
+                      </div>
+                  </div>
 
-                <div className="space-y-2">
-                    <Label htmlFor="clientData">
-                    Informações Financeiras e Operacionais
-                    </Label>
-                    <Textarea
-                    id="clientData"
-                    name="clientData"
-                    placeholder="Ex: Faturamento mensal de R$ 10.000,00, um único sócio. Ou cole o texto de documentos aqui."
-                    rows={5}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                    Forneça os detalhes aqui ou anexe documentos abaixo. Um dos dois é obrigatório.
-                    </p>
-                </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="clientData">
+                      Informações Financeiras e Operacionais
+                      </Label>
+                      <Textarea
+                      id="clientData"
+                      name="clientData"
+                      placeholder="Ex: Faturamento mensal de R$ 10.000,00, um único sócio. Ou cole o texto de documentos aqui."
+                      rows={5}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                      Forneça os detalhes aqui ou anexe documentos abaixo. Um dos dois é obrigatório.
+                      </p>
+                  </div>
 
-                <div className="space-y-2">
-                    <Label htmlFor="attachments">Anexar Documentos</Label>
-                    <Input id="attachments" name="attachments" type="file" multiple />
-                    <p className="text-sm text-muted-foreground">
-                    Opcional. Anexe declarações, extratos do Simples, etc. A IA pode extrair os dados dos anexos.
-                    </p>
-                </div>
-            </CardContent>
-            <CardFooter>
-                <SubmitButton />
-            </CardFooter>
-        </form>
-        </Card>
+                  <div className="space-y-2">
+                      <Label htmlFor="attachments">Anexar Documentos</Label>
+                      <Input id="attachments" name="attachments" type="file" multiple />
+                      <p className="text-sm text-muted-foreground">
+                      Opcional. Anexe declarações, extratos do Simples, etc. A IA pode extrair os dados dos anexos.
+                      </p>
+                  </div>
+              </CardContent>
+              <CardFooter>
+                  <SubmitButton />
+              </CardFooter>
+            </form>
+          </Card>
+        )}
 
-        {pending && (
+        {/* Initial loading skeleton */}
+        {pending && !state.aiResponse && (
              <Card className="shadow-lg animate-pulse">
                 <CardHeader>
                     <CardTitle>Analisando...</CardTitle>
@@ -150,8 +165,30 @@ export default function Home() {
         )}
 
 
-        {state.aiResponse && !pending && (
-          <DashboardResults analysis={state.aiResponse} clientName={state.aiResponse.clientName || 'Cliente'} />
+        {state.aiResponse && (
+          <>
+            {!showForm && (
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setShowForm(true)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Fazer Nova Análise
+                </Button>
+              </div>
+            )}
+            <div className="relative">
+              {/* Overlay loading indicator for subsequent analyses */}
+              {pending && (
+                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
+                  <div className="text-center p-4">
+                    <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
+                    <p className="mt-4 text-lg font-semibold">Atualizando análise...</p>
+                    <p className="text-sm text-muted-foreground">Aguarde, estamos processando os novos dados.</p>
+                  </div>
+                </div>
+              )}
+              <DashboardResults analysis={state.aiResponse!} clientName={clientName} />
+            </div>
+          </>
         )}
       </main>
     </div>

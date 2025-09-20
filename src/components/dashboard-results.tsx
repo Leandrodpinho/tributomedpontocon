@@ -1,6 +1,6 @@
 
 'use client';
-import type { GenerateTaxScenariosOutput, ScenarioDetail } from '@/ai/flows/generate-tax-scenarios';
+import type { GenerateTaxScenariosOutput, ScenarioDetail } from '@/ai/flows/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -36,15 +36,19 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
     const { toast } = useToast();
     if (!analysis || !analysis.scenarios) return null;
 
-    const ctD((sc
+    // Use a small tolerance for float comparison to avoid precision issues.
+    const currentRevenueScenarios: ScenarioDetail[] = analysis.scenarios.filter((s: ScenarioDetail) => 
+        Math.abs(s.scenarioRevenue - analysis.monthlyRevenue) < 0.01);
+
+    const chartData = currentRevenueScenarios.map((scenario: ScenarioDetail, index: number) => ({
         name: `Agrupamento ${index + 1}`,
         scenarioName: scenario.name?.replace(/ com Faturamento de R\$ \d+\.\d+,\d+/i, '')?.replace(/Cenário para .*?: /i, '') || 'N/A',
         totalTax: scenario.totalTaxValue || 0,
         netProfit: scenario.netProfitDistribution || 0,
     }));
 
-    const bestScenario = currentRevenueScenarios.length > 0 ? [...currentRevenueScenarios].sort((a, b) => a.totalTaxValue - b.totalTaxValue)[0] : undefined;
-    const worstScenario = currentRevenueScenarios.length > 0 ? [...currentRevenueScenarios].sort((a, b) => b.totalTaxValue - a.totalTaxValue)[0] : undefined;
+    const bestScenario: ScenarioDetail | undefined = currentRevenueScenarios.length > 0 ? [...currentRevenueScenarios].sort((a, b) => a.totalTaxValue - b.totalTaxValue)[0] : undefined;
+    const worstScenario: ScenarioDetail | undefined = currentRevenueScenarios.length > 0 ? [...currentRevenueScenarios].sort((a, b) => b.totalTaxValue - a.totalTaxValue)[0] : undefined;
 
     const monthlySavings = (bestScenario?.totalTaxValue !== undefined && worstScenario?.totalTaxValue !== undefined) ? worstScenario.totalTaxValue - bestScenario.totalTaxValue : 0;
     const annualSavings = monthlySavings * 12;
@@ -102,7 +106,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
         <Card className={className}>
             <CardHeader className="pb-2">
                 <CardDescription className="text-sm">{title}</CardDescription>
-                <CardTitle className="text-2xl">{value}</CardTitle>
+                <CardTitle className="text-xl">{value}</CardTitle>
             </CardHeader>
             {subValue &&
                 <CardContent>
@@ -160,7 +164,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                         <Card>
                             <CardHeader>
                                 <CardTitle>Comparativo de Agrupamentos (Faturamento Atual)</CardTitle>
-                                <CardDescription>Análise da Carga Tributária (Despesa) vs. Lucro Líquido para o faturamento de {analysis.monthlyRevenue}</CardDescription>
+                                <CardDescription>Análise da Carga Tributária (Despesa) vs. Lucro Líquido para o faturamento de {formatCurrency(analysis.monthlyRevenue)}</CardDescription>
                             </CardHeader>
                             <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                                 <Table>
@@ -174,7 +178,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {currentRevenueScenarios.map((scenario, index) => (
+                                        {currentRevenueScenarios.map((scenario: ScenarioDetail, index: number) => (
                                             <TableRow key={index} className={scenario.name === bestScenario?.name ? 'bg-primary/10' : ''}>
                                                 <TableCell className='font-medium text-sm'>{`Agrupamento ${index + 1}`} <p className='text-xs text-muted-foreground'>{scenario.name?.replace(/Cenário para .*?: /i, '')?.split(' com Faturamento')[0] || 'N/A'}</p></TableCell>
                                                 <TableCell className='text-sm'>{formatCurrency(analysis.monthlyRevenue || 0)}</TableCell>
