@@ -1,13 +1,29 @@
 import {z} from 'genkit';
 
 export const GenerateTaxScenariosInputSchema = z.object({
-  clientData: z.string().optional().describe('The client financial and operational information (revenue, etc.)'),
-  payrollExpenses: z.number().optional().describe('As despesas com a folha de pagamento do cliente (CLT).'),
-  issRate: z.number().optional().describe('A alíquota de ISS a ser utilizada no cálculo, em porcentagem (ex: 4.0).'),
-  documentsAsText: z.string().optional().describe('The consolidated transcribed text from all attached documents.'),
   clientType: z.enum(['Novo aberturas de empresa', 'Transferências de contabilidade']).describe('The type of client.'),
   companyName: z.string().optional().describe('The name of the client\'s company.'),
   cnpj: z.string().optional().describe('The CNPJ of the client\'s company.'),
+  clientData: z.string().optional().describe('Informações financeiras e operacionais do cliente em texto livre (faturamento, etc.). Usado como fallback se os campos estruturados não forem preenchidos.'),
+  documentsAsText: z.string().optional().describe('Texto consolidado transcrito de todos os documentos anexados.'),
+  // Campos estruturados para maior precisão
+  cnaes: z.array(z.string()).optional().describe('Lista de códigos CNAE da empresa. Essencial para Fator R e ISS.'),
+  issRate: z.number().optional().describe('A alíquota de ISS a ser utilizada no cálculo, em porcentagem (ex: 4.0).'),
+  payrollExpenses: z.number().optional().describe('Despesas com a folha de pagamento do cliente (CLT), sem pró-labore.'),
+  rbt12: z.number().optional().describe('Receita Bruta Total dos últimos 12 meses. Se não informado, será calculado (faturamento mensal * 12).'),
+  fs12: z.number().optional().describe('Folha de Salários, incluindo encargos, dos últimos 12 meses. Se não informado, será estimado pela IA.'),
+  isHospitalEquivalent: z
+    .boolean()
+    .optional()
+    .describe(
+      'Flag para indicar se a empresa se enquadra nos critérios de Equiparação Hospitalar para Lucro Presumido.'
+    ),
+  isUniprofessionalSociety: z
+    .boolean()
+    .optional()
+    .describe(
+      'Flag para indicar se a empresa é uma Sociedade Uniprofissional (SUP) para fins de ISS Fixo.'
+    ),
 });
 export type GenerateTaxScenariosInput = z.infer<typeof GenerateTaxScenariosInputSchema>;
 
