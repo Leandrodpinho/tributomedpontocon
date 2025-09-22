@@ -34,18 +34,13 @@ type DashboardResultsProps = {
 
 export function DashboardResults({ analysis, clientName }: DashboardResultsProps) {
     const [isDownloading, setIsDownloading] = React.useState(false);
-    const [selectedRevenue, setSelectedRevenue] = React.useState(analysis.monthlyRevenue);
+    const selectedRevenue = analysis.monthlyRevenue; // Faturamento é fixo por análise
     const { toast } = useToast();
     if (!analysis || !analysis.scenarios) return null;
 
-    const revenueTiers = React.useMemo(() => 
-        [...new Set(analysis.scenarios.map(s => s.scenarioRevenue))].sort((a, b) => a - b),
-        [analysis.scenarios]
-    );
-
     const derivedData = React.useMemo(() => {
         const scenariosForRevenue = analysis.scenarios.filter((s: ScenarioDetail) => 
-            Math.abs(s.scenarioRevenue - selectedRevenue) < 0.01);
+            Math.abs(s.scenarioRevenue - (selectedRevenue || 0)) < 0.01);
 
         const chartData = scenariosForRevenue.map((scenario: ScenarioDetail, index: number) => ({
             name: `Agrupamento ${index + 1}`,
@@ -67,7 +62,56 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
     const economyPercentage = (bestScenario?.totalTaxValue !== undefined && worstScenario?.totalTaxValue !== undefined && worstScenario.totalTaxValue > 0) ? (monthlySavings / worstScenario.totalTaxValue) * 100 : 0;
 
     const handlePrint = () => {
-        window.print();
+        const reportElement = document.getElementById('report-content');
+        const bestScenarioName = bestScenario?.name;
+
+        if (reportElement && bestScenarioName) {
+            const clonedReport = reportElement.cloneNode(true) as HTMLElement;
+
+            // Remove unwanted sections for printing
+            clonedReport.querySelector('div[data-value="dash"]')?.remove();
+            clonedReport.querySelector('div[data-value="data"]')?.remove();
+
+            // Filter scenarios to keep only the best one
+            const scenariosSection = clonedReport.querySelector('#scenarios');
+            if (scenariosSection) {
+                // Remove the accordion trigger for a cleaner look
+                scenariosSection.closest('div[data-value="scenarios"]')?.querySelector('button[data-radix-collection-item]')?.remove();
+                Array.from(scenariosSection.children).forEach(child => {
+                    if (child.tagName.toLowerCase() === 'h2') {
+                        child.textContent = "Regime Tributário Recomendado";
+                        return;
+                    }
+                    const titleElement = child.querySelector<HTMLElement>('.text-lg');
+                    if (!titleElement || titleElement.textContent !== bestScenarioName) {
+                        child.remove();
+                    }
+                });
+            }
+
+            // Remove the summary accordion trigger
+            clonedReport.querySelector('div[data-value="summary"]')?.querySelector('button[data-radix-collection-item]')?.remove();
+
+            const printWindow = window.open('', '', 'height=800,width=1000');
+            if (printWindow) {
+                const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'));
+                const stylesHTML = styles.map(style => style.outerHTML).join('');
+
+                printWindow.document.write(`<!DOCTYPE html><html><head><title>Relatório Tributário - ${clientName}</title>${stylesHTML}</head><body class="p-8"><h1 class="text-2xl font-semibold md:text-3xl mb-6">${clientName} | Doctor.con</h1>${clonedReport.innerHTML}</body></html>`);
+                printWindow.document.close();
+                printWindow.onload = function() {
+                    printWindow.focus();
+                    printWindow.print();
+                    printWindow.close();
+                };
+            }
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Erro ao Imprimir",
+                description: "Cenário recomendado não encontrado para gerar a impressão.",
+            });
+        }
     };
 
     const handleDownloadDocx = async () => {
@@ -78,17 +122,16 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
         if (reportElement && bestScenarioName) {
           try {
             const clonedReport = reportElement.cloneNode(true) as HTMLElement;
-
+ 
             // Remove unwanted sections for the DOCX report
-            const dashSection = clonedReport.querySelector('#dash');
-            if (dashSection) dashSection.remove();
-
-            const dataSection = clonedReport.querySelector('#data');
-            if (dataSection) dataSection.remove();
-
+            clonedReport.querySelector('div[data-value="dash"]')?.remove();
+            clonedReport.querySelector('div[data-value="data"]')?.remove();
+ 
             // Filter scenarios to keep only the best one
             const scenariosSection = clonedReport.querySelector('#scenarios');
             if (scenariosSection) {
+                // Remove the accordion trigger for a cleaner look in the report
+                scenariosSection.closest('div[data-value="scenarios"]')?.querySelector('button[data-radix-collection-item]')?.remove();
                 const children = Array.from(scenariosSection.children);
                 children.forEach(child => {
                     // Keep and rename the title of the section
@@ -96,7 +139,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                         (child as HTMLElement).textContent = "Regime Tributário Recomendado";
                         return;
                     }
-
+ 
                     // Check if it's the best scenario card by its title
                     const titleElement = child.querySelector<HTMLElement>('.text-lg');
                     if (!titleElement || titleElement.textContent !== bestScenarioName) {
@@ -105,6 +148,9 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                 });
             }
 
+            // Also remove the summary accordion trigger
+            clonedReport.querySelector('div[data-value="summary"]')?.querySelector('button[data-radix-collection-item]')?.remove();
+ 
             const htmlContent = clonedReport.outerHTML;
             const result = await generateDocx(htmlContent);
     
@@ -187,187 +233,99 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                     </div>
                 </header>
                 <main id="report-content" className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 print:p-0 print:m-0 print:gap-0">
-                    {/* DASH Section */}
-                    <div id="dash" className="space-y-6 animate-in fade-in-50">
-                        <div className="flex items-center gap-2 no-print">
-                            <h3 className="text-md font-semibold">Simular Cenário:</h3>
-                            {revenueTiers.map(tier => (
-                                <Button
-                                    key={tier}
-                                    variant={selectedRevenue === tier ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => setSelectedRevenue(tier)}
-                                >
-                                    {formatCurrency(tier)}
-                                </Button>
-                            ))}
-                        </div>
-                        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-                            <KpiCard title="Melhor Opção" value={bestScenario?.name?.replace(/Cenário para .*?: /i, '')?.split(' com Faturamento')[0] || 'N/A'} subValue="Menor carga tributária" />
-                            <KpiCard title="Economia Mensal" value={formatCurrency(monthlySavings)} subValue="Em relação ao pior cenário" />
-                            <KpiCard title="Economia Anual" value={formatCurrency(annualSavings)} subValue="Projeção para 12 meses" />
-                            <KpiCard title="% Economia Gerada" value={formatPercentage(economyPercentage / 100)} subValue="Potencial de economia" className="text-green-500" />
-                        </div>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Comparativo de Agrupamentos (Faturamento Atual)</CardTitle>
-                                <CardDescription>Análise da Carga Tributária (Despesa) vs. Lucro Líquido para o faturamento de {formatCurrency(selectedRevenue)}</CardDescription>
-                            </CardHeader>
-                            <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Agrupamento</TableHead>
-                                            <TableHead>Faturamento</TableHead>
-                                            <TableHead>Despesa</TableHead>
-                                            <TableHead>% Despesa</TableHead>
-                                            <TableHead className='text-right'>Resultado</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {scenariosForRevenue.map((scenario: ScenarioDetail, index: number) => (
-                                            <TableRow key={index} className={scenario.name === bestScenario?.name ? 'bg-primary/10' : ''}>
-                                                <TableCell className='font-medium text-sm'>{`Agrupamento ${index + 1}`} <p className='text-xs text-muted-foreground'>{scenario.name?.replace(/Cenário para .*?: /i, '')?.split(' com Faturamento')[0] || 'N/A'}</p></TableCell>
-                                                <TableCell className='text-sm'>{formatCurrency(selectedRevenue || 0)}</TableCell>
-                                                <TableCell className='text-sm'>{formatCurrency(scenario.totalTaxValue || 0)}</TableCell>
-                                                <TableCell className='text-sm'>{formatPercentage((scenario.effectiveRate || 0) / 100)}</TableCell>
-                                                <TableCell className='text-right font-bold text-sm'>{formatCurrency(scenario.netProfitDistribution || 0)}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                                <div className="min-h-[300px]">
-                                    <ScenarioComparisonChart data={chartData} />
+                    <Accordion type="multiple" defaultValue={['dash']} className="w-full space-y-4">
+                        <AccordionItem value="dash">
+                            <AccordionTrigger className="text-xl font-bold tracking-tight no-print">Dashboard Comparativo</AccordionTrigger>
+                            <AccordionContent>
+                                <div id="dash" className="space-y-6 animate-in fade-in-50 pt-4">
+                                    <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+                                        <KpiCard title="Melhor Opção" value={bestScenario?.name?.replace(/Cenário para .*?: /i, '')?.split(' com Faturamento')[0] || 'N/A'} subValue="Menor carga tributária" />
+                                        <KpiCard title="Economia Mensal" value={formatCurrency(monthlySavings)} subValue="Em relação ao pior cenário" />
+                                        <KpiCard title="Economia Anual" value={formatCurrency(annualSavings)} subValue="Projeção para 12 meses" />
+                                        <KpiCard title="% Economia Gerada" value={formatPercentage(economyPercentage / 100)} subValue="Potencial de economia" className="text-green-500" />
+                                    </div>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Scenarios Section */}
-                    <div id="scenarios" className="space-y-6 pt-10">
-                         <h2 className="text-xl font-bold tracking-tight">Análise Detalhada dos Cenários</h2>
-                         {analysis.scenarios.map((scenario: ScenarioDetail, index: number) => (
-                            <Card key={index}>
-                                <CardHeader>
-                                    <CardTitle className="text-lg">{scenario.name}</CardTitle>
-                                </CardHeader>
-                                <CardContent className='space-y-3 text-sm'>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        <div className="p-3 bg-secondary/30 rounded-lg">
-                                            <p className="font-semibold text-muted-foreground text-xs">Carga Tributária Total</p>
-                                            <p className="text-destructive font-bold text-xl">{formatCurrency(scenario.totalTaxValue || 0)}</p>
-                                            <Badge variant="secondary" className="mt-1 text-xs">{formatPercentage((scenario.effectiveRate || 0) / 100)} sobre Faturamento</Badge>
-                                            {scenario.effectiveRateOnProfit !== undefined && (
-                                                <Badge variant="outline" className="mt-1 ml-2 text-xs">{formatPercentage((scenario.effectiveRateOnProfit || 0) / 100)} sobre Lucro</Badge>
-                                            )}
-                                        </div>
-                                        <div className="p-3 bg-secondary/30 rounded-lg">
-                                            <p className="font-semibold text-muted-foreground text-xs">Lucro Líquido para o Sócio</p>
-                                            <p className="text-green-400 font-bold text-xl">{formatCurrency(scenario.netProfitDistribution || 0)}</p>
-                                            {scenario.taxCostPerEmployee !== undefined && (
-                                                <p className="text-xs text-muted-foreground mt-1">Custo Tributário por Funcionário: {formatCurrency(scenario.taxCostPerEmployee || 0)}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                    
-                                    <Accordion type="single" collapsible>
-                                        <AccordionItem value="tax-breakdown">
-                                            <AccordionTrigger className='text-sm font-semibold'>
-                                                <div className='flex items-center gap-2'>
-                                                  <ChevronRight className="h-3 w-3" /> Detalhamento dos Tributos
+                            </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="scenarios">
+                            <AccordionTrigger className="text-xl font-bold tracking-tight no-print">Análise do Melhor Cenário</AccordionTrigger>
+                            <AccordionContent>
+                                <div id="scenarios" className="space-y-6 pt-4">
+                                    <h2 className="text-xl font-bold tracking-tight print:hidden">Análise do Melhor Cenário</h2>
+                                    {bestScenario && (
+                                        <Card>
+                                            <CardHeader><CardTitle className="text-lg">{bestScenario.name}</CardTitle></CardHeader>
+                                            <CardContent className='space-y-3 text-sm'>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    <div className="p-3 bg-secondary/30 rounded-lg">
+                                                        <p className="font-semibold text-muted-foreground text-xs">Carga Tributária Total</p>
+                                                        <p className="text-destructive font-bold text-xl">{formatCurrency(bestScenario.totalTaxValue || 0)}</p>
+                                                        <Badge variant="secondary" className="mt-1 text-xs">{formatPercentage((bestScenario.effectiveRate || 0) / 100)} sobre Faturamento</Badge>
+                                                        {bestScenario.effectiveRateOnProfit !== undefined && (<Badge variant="outline" className="mt-1 ml-2 text-xs">{formatPercentage((bestScenario.effectiveRateOnProfit || 0) / 100)} sobre Lucro</Badge>)}
+                                                    </div>
+                                                    <div className="p-3 bg-secondary/30 rounded-lg">
+                                                        <p className="font-semibold text-muted-foreground text-xs">Lucro Líquido para o Sócio</p>
+                                                        <p className="text-green-400 font-bold text-xl">{formatCurrency(bestScenario.netProfitDistribution || 0)}</p>
+                                                        {bestScenario.taxCostPerEmployee !== undefined && (<p className="text-xs text-muted-foreground mt-1">Custo Tributário por Funcionário: {formatCurrency(bestScenario.taxCostPerEmployee || 0)}</p>)}
+                                                    </div>
                                                 </div>
-                                            </AccordionTrigger>
-                                            <AccordionContent>
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow>
-                                                            <TableHead className="text-xs">Tributo</TableHead>
-                                                            <TableHead className="text-xs">Alíquota</TableHead>
-                                                            <TableHead className="text-right text-xs">Valor</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {scenario.taxBreakdown?.map((tax: { name: string; rate: number; value: number }, taxIdx: number) => (
-                                                            <TableRow key={taxIdx}>
-                                                                <TableCell className="text-xs">{tax.name || 'N/A'}</TableCell>
-                                                                <TableCell className="text-xs">{formatPercentage((tax.rate || 0) / 100)}</TableCell>
-                                                                <TableCell className="text-right text-xs">{formatCurrency(tax.value || 0)}</TableCell>
-                                                            </TableRow>
-                                                        ))}
-                                                    </TableBody>
-                                                </Table>
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    </Accordion>
-
-
-                                    <h5 className="font-semibold mt-3 text-sm">Análise do Pró-Labore:</h5>
-                                    <div className="p-3 border rounded-md bg-secondary/50 space-y-1 text-xs">
-                                        <div className="flex justify-between">
-                                            <span className="font-semibold">Valor Bruto:</span>
-                                            <span>{formatCurrency(scenario.proLaboreAnalysis?.baseValue || 0)}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="font-semibold text-red-400">INSS (sócio):</span>
-                                            <span className="text-red-400">{formatCurrency(scenario.proLaboreAnalysis?.inssValue || 0)}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="font-semibold text-red-400">IRRF:</span>
-                                            <span className="text-red-400">{formatCurrency(scenario.proLaboreAnalysis?.irrfValue || 0)}</span>
-                                        </div>
-                                        <div className="flex justify-between font-bold pt-2 border-t mt-2">
-                                            <span>Valor Líquido Recebido:</span>
-                                            <span className="text-base">{formatCurrency(scenario.proLaboreAnalysis?.netValue || 0)}</span>
-                                        </div>
-                                    </div>
-
-                                    <p className="text-xs text-muted-foreground mt-3 italic">
-                                        <span className="font-semibold">Notas da IA:</span> {scenario.notes || 'N/A'}
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-
-                    {/* Data Section */}
-                     <div id="data" className="space-y-6 pt-10">
-                        <h2 className="text-2xl font-bold tracking-tight">Dados Considerados na Análise</h2>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Informações Transcritas</CardTitle>
-                                <CardDescription>Este foi o texto extraído dos documentos e/ou inserido manualmente, utilizado pela IA como base para a análise.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <pre className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md text-sm font-mono max-h-96 overflow-auto">
-                                    {analysis.transcribedText || "Nenhum documento anexado."}
-                                </pre>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Summary Section */}
-                    <div id="summary" className="space-y-4 pt-8">
-                         <h2 className="text-xl font-bold tracking-tight">Resumo Executivo e Recomendações</h2>
-                        <Card className='bg-primary/10 border-primary'>
-                            <CardHeader>
-                                 <CardTitle className="text-lg">Conclusão da IA</CardTitle>
-                            </CardHeader>
-                            <CardContent className="text-sm">
-                                <MarkdownRenderer content={analysis.executiveSummary || 'N/A'} />
-                            </CardContent>
-                        </Card>
-                        {analysis.breakEvenAnalysis && (
-                            <Card className='bg-secondary/50 border-secondary'>
-                                <CardHeader>
-                                     <CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Análise de Ponto de Equilíbrio</CardTitle>
-                                     <CardDescription>Insights da IA sobre os pontos de virada de faturamento entre os regimes.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="text-sm">
-                                    <p>{analysis.breakEvenAnalysis}</p>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
+                                                <Accordion type="single" collapsible>
+                                                    <AccordionItem value="tax-breakdown">
+                                                        <AccordionTrigger className='text-sm font-semibold'><div className='flex items-center gap-2'><ChevronRight className="h-3 w-3" /> Detalhamento dos Tributos</div></AccordionTrigger>
+                                                        <AccordionContent>
+                                                            <Table>
+                                                                <TableHeader><TableRow><TableHead className="text-xs">Tributo</TableHead><TableHead className="text-xs">Alíquota</TableHead><TableHead className="text-right text-xs">Valor</TableHead></TableRow></TableHeader>
+                                                                <TableBody>
+                                                                    {bestScenario.taxBreakdown?.map((tax: { name: string; rate: number; value: number }, taxIdx: number) => (
+                                                                        <TableRow key={taxIdx}><TableCell className="text-xs">{tax.name || 'N/A'}</TableCell><TableCell className="text-xs">{formatPercentage((tax.rate || 0) / 100)}</TableCell><TableCell className="text-right text-xs">{formatCurrency(tax.value || 0)}</TableCell></TableRow>
+                                                                    ))}
+                                                                </TableBody>
+                                                            </Table>
+                                                        </AccordionContent>
+                                                    </AccordionItem>
+                                                </Accordion>
+                                                <h5 className="font-semibold mt-3 text-sm">Análise do Pró-Labore:</h5>
+                                                <div className="p-3 border rounded-md bg-secondary/50 space-y-1 text-xs">
+                                                    <div className="flex justify-between"><span className="font-semibold">Valor Bruto:</span><span>{formatCurrency(bestScenario.proLaboreAnalysis?.baseValue || 0)}</span></div>
+                                                    <div className="flex justify-between"><span className="font-semibold text-red-400">INSS (sócio):</span><span className="text-red-400">{formatCurrency(bestScenario.proLaboreAnalysis?.inssValue || 0)}</span></div>
+                                                    <div className="flex justify-between"><span className="font-semibold text-red-400">IRRF:</span><span className="text-red-400">{formatCurrency(bestScenario.proLaboreAnalysis?.irrfValue || 0)}</span></div>
+                                                    <div className="flex justify-between font-bold pt-2 border-t mt-2"><span>Valor Líquido Recebido:</span><span className="text-base">{formatCurrency(bestScenario.proLaboreAnalysis?.netValue || 0)}</span></div>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground mt-3 italic"><span className="font-semibold">Notas da IA:</span> {bestScenario.notes || 'N/A'}</p>
+                                            </CardContent>
+                                        </Card>
+                                    )}
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="data">
+                            <AccordionTrigger className="text-xl font-bold tracking-tight no-print">Dados Considerados na Análise</AccordionTrigger>
+                            <AccordionContent>
+                                <div id="data" className="space-y-6 pt-4">
+                                    <h2 className="text-2xl font-bold tracking-tight print:hidden">Dados Considerados na Análise</h2>
+                                    <Card><CardHeader><CardTitle>Informações Transcritas</CardTitle><CardDescription>Este foi o texto extraído dos documentos e/ou inserido manualmente, utilizado pela IA como base para a análise.</CardDescription></CardHeader><CardContent><pre className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md text-sm font-mono max-h-96 overflow-auto">{analysis.transcribedText || "Nenhuma informação transcrita foi retornada pela análise. Verifique se os documentos foram anexados corretamente."}</pre></CardContent></Card>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="summary">
+                            <AccordionTrigger className="text-xl font-bold tracking-tight no-print">Resumo Executivo e Recomendações</AccordionTrigger>
+                            <AccordionContent>
+                                <div id="summary" className="space-y-4 pt-4">
+                                    <h2 className="text-xl font-bold tracking-tight print:hidden">Resumo Executivo e Recomendações</h2>
+                                    <Card className='bg-primary/10 border-primary'>
+                                        <CardHeader><CardTitle className="text-lg">Conclusão da IA</CardTitle></CardHeader>
+                                        <CardContent className="text-sm"><MarkdownRenderer content={analysis.executiveSummary || 'N/A'} /></CardContent>
+                                    </Card>
+                                    {analysis.breakEvenAnalysis && analysis.breakEvenAnalysis !== "N/A para análise de faturamento único." && (
+                                        <Card className='bg-secondary/50 border-secondary'>
+                                            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Análise de Ponto de Equilíbrio</CardTitle><CardDescription>Insights da IA sobre os pontos de virada de faturamento entre os regimes.</CardDescription></CardHeader>
+                                            <CardContent className="text-sm"><p>{analysis.breakEvenAnalysis}</p></CardContent>
+                                        </Card>
+                                    )}
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
                 </main>
             </div>
         </div>
