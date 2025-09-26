@@ -1,4 +1,5 @@
-import { generateTaxScenarios, GenerateTaxScenariosInput, GenerateTaxScenariosOutput } from '../generate-tax-scenarios';
+import { generateTaxScenarios } from '../generate-tax-scenarios';
+import type { GenerateTaxScenariosInput } from '../types';
 import { ai } from '@/ai/genkit';
 
 // Mock do Genkit AI com lógica de cálculo simplificada

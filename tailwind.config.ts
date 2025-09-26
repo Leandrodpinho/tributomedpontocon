@@ -52,10 +52,36 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        brand: {
+          50: "#f5f8ff",
+          100: "#e6efff",
+          200: "#c9ddff",
+          300: "#98c1ff",
+          400: "#6ba5ff",
+          500: "#3c87ff",
+          600: "#1f63db",
+          700: "#174bb2",
+          800: "#123b8c",
+          900: "#102f70",
+        },
+        lime: {
+          200: "#d7f9a8",
+          300: "#bef27a",
+          400: "#9be242",
+        },
+      },
+      backgroundImage: {
+        "app-gradient": "linear-gradient(180deg, rgba(241,246,255,1) 0%, rgba(250,252,255,1) 100%)",
+        "card-glass": "linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(247,250,255,0.9) 100%)",
+      },
+      boxShadow: {
+        focus: "0 0 0 4px rgba(60,135,255,0.18)",
+        elevated: "0 18px 45px -28px rgba(16,47,112,0.38)",
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
         body: ["Inter", "sans-serif"], // Adicionado para usar a fonte Inter
+        display: ["Inter", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -1,18 +1,16 @@
 // Este arquivo serve para simular a execução dos fluxos de IA.
 // Não é parte da aplicação final, mas uma ferramenta de desenvolvimento.
 
-import {
-  generateTaxScenarios,
-  GenerateTaxScenariosInput,
-} from '../ai/flows/generate-tax-scenarios.ts';
+import { generateTaxScenarios } from '../ai/flows/generate-tax-scenarios';
+import type { GenerateTaxScenariosInput } from '../ai/flows/types';
 import {
   calculateIRPFImpact,
   CalculateIRPFImpactInput,
-} from '../ai/flows/calculate-irpf-impact.ts';
+} from '../ai/flows/calculate-irpf-impact';
 import {
   extractTextFromImage,
   ExtractTextFromImageInput,
-} from '../ai/flows/extract-text-from-image.ts';
+} from '../ai/flows/extract-text-from-image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 async function runSimulation() {

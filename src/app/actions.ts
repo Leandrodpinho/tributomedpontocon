@@ -1,7 +1,8 @@
 
 "use server";
 
-import { generateTaxScenarios, type GenerateTaxScenariosOutput } from "@/ai/flows/generate-tax-scenarios";
+import { generateTaxScenarios } from "@/ai/flows/generate-tax-scenarios";
+import type { GenerateTaxScenariosOutput } from "@/ai/flows/types";
 import { extractTextFromImage } from "@/ai/flows/extract-text-from-image";
 import htmlToDocx from 'html-to-docx';
 
@@ -26,12 +27,25 @@ export async function getAnalysis(
   const attachmentFiles = formData.getAll("attachments") as File[];
   const payrollExpenses = formData.get("payrollExpenses") as string | null;
   const issRate = formData.get("issRate") as string | null;
+  const rbt12 = formData.get("rbt12") as string | null;
+  const fs12 = formData.get("fs12") as string | null;
+  const rawCnaes = formData.get("cnaes") as string | null;
+  const isHospitalEquivalent = formData.get("isHospitalEquivalent") === "on";
+  const isUniprofessionalSociety = formData.get("isUniprofessionalSociety") === "on";
   const clientType = formData.get("clientType") as "Novo aberturas de empresa" | "Transferências de contabilidade";
   const companyName = formData.get("companyName") as string | null;
   const cnpj = formData.get("cnpj") as string | null;
 
   const payrollExpensesNum = payrollExpenses ? parseFloat(payrollExpenses) : undefined;
   const issRateNum = issRate ? parseFloat(issRate) : undefined;
+  const rbt12Num = rbt12 ? parseFloat(rbt12) : undefined;
+  const fs12Num = fs12 ? parseFloat(fs12) : undefined;
+  const parsedCnaes = rawCnaes
+    ? rawCnaes
+        .split(",")
+        .map(code => code.trim())
+        .filter(code => code.length > 0)
+    : undefined;
 
 
   try {
@@ -74,6 +88,11 @@ export async function getAnalysis(
       clientData: clientData ?? "",
       payrollExpenses: payrollExpensesNum, // Usar o número convertido
       issRate: issRateNum, // Usar o número convertido
+      rbt12: rbt12Num,
+      fs12: fs12Num,
+      cnaes: parsedCnaes,
+      isHospitalEquivalent,
+      isUniprofessionalSociety,
       documentsAsText: allDocumentsText,
     });
     
@@ -110,9 +129,12 @@ export async function generateDocx(htmlContent: string): Promise<{ docx: string 
       font: 'Arial',
       fontSize: 12,
     });
+
+    if (!(fileBuffer instanceof ArrayBuffer)) {
+      throw new Error("A saída do gerador DOCX não é um ArrayBuffer válido.");
+    }
     
-    // Converter ArrayBuffer para Buffer antes de chamar toString('base64')
-    const buffer = Buffer.from(fileBuffer as ArrayBuffer); // Cast para ArrayBuffer
+    const buffer = Buffer.from(fileBuffer);
     return { docx: buffer.toString('base64'), error: null };
   } catch (error) {
     console.error("Error generating DOCX:", error);

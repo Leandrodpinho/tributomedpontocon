@@ -1,5 +1,6 @@
 import { getAnalysis, generateDocx, AnalysisState } from '../actions';
-import { generateTaxScenarios, GenerateTaxScenariosOutput } from '@/ai/flows/generate-tax-scenarios';
+import { generateTaxScenarios } from '@/ai/flows/generate-tax-scenarios';
+import type { GenerateTaxScenariosOutput } from '@/ai/flows/types';
 import { extractTextFromImage, ExtractTextFromImageOutput } from '@/ai/flows/extract-text-from-image';
 import htmlToDocx from 'html-to-docx';
 
@@ -53,6 +54,7 @@ describe('getAnalysis Server Action', () => {
       monthlyRevenue: 10000,
       scenarios: [{
         name: 'Cenário para Minha Clínica: Simples Nacional Anexo III',
+        scenarioRevenue: 10000,
         totalTaxValue: 1000,
         effectiveRate: 10,
         proLaboreAnalysis: {
@@ -76,15 +78,17 @@ describe('getAnalysis Server Action', () => {
     expect(result.aiResponse).toEqual(JSON.parse(JSON.stringify(mockAiResponse)));
     expect(result.transcribedText).toBe('');
     expect(mockExtractTextFromImage).not.toHaveBeenCalled();
-    expect(mockGenerateTaxScenarios).toHaveBeenCalledWith({
-      clientType: 'Novo aberturas de empresa',
-      companyName: 'Minha Clínica',
-      cnpj: '00.000.000/0001-00',
-      clientData: 'Faturamento mensal de R$ 10.000,00',
-      payrollExpenses: 0,
-      issRate: 4.0,
-      documentsAsText: '',
-    });
+    expect(mockGenerateTaxScenarios).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientType: 'Novo aberturas de empresa',
+        companyName: 'Minha Clínica',
+        cnpj: '00.000.000/0001-00',
+        clientData: 'Faturamento mensal de R$ 10.000,00',
+        payrollExpenses: 0,
+        issRate: 4.0,
+        documentsAsText: '',
+      })
+    );
   });
 
   it('deve extrair texto de anexos e gerar cenários de imposto', async () => {
@@ -109,6 +113,7 @@ describe('getAnalysis Server Action', () => {
       monthlyRevenue: 20000,
       scenarios: [{
         name: 'Cenário para Outra Clínica: Lucro Presumido',
+        scenarioRevenue: 20000,
         totalTaxValue: 2500,
         effectiveRate: 12.5,
         proLaboreAnalysis: {
@@ -131,15 +136,17 @@ describe('getAnalysis Server Action', () => {
     expect(result.aiResponse).toEqual(JSON.parse(JSON.stringify(mockAiResponse)));
     expect(result.transcribedText).toBe('Texto extraído do documento.');
     expect(mockExtractTextFromImage).toHaveBeenCalledTimes(1);
-    expect(mockGenerateTaxScenarios).toHaveBeenCalledWith({
-      clientType: 'Transferências de contabilidade',
-      companyName: 'Outra Clínica',
-      cnpj: '11.111.111/0001-11',
-      clientData: '',
-      payrollExpenses: 2000,
-      issRate: 5.0,
-      documentsAsText: 'Texto extraído do documento.',
-    });
+    expect(mockGenerateTaxScenarios).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientType: 'Transferências de contabilidade',
+        companyName: 'Outra Clínica',
+        cnpj: '11.111.111/0001-11',
+        clientData: '',
+        payrollExpenses: 2000,
+        issRate: 5.0,
+        documentsAsText: 'Texto extraído do documento.',
+      })
+    );
   });
 
   it('deve retornar um erro se a extração de texto falhar', async () => {
@@ -196,13 +203,15 @@ describe('generateDocx Server Action', () => {
 
   it('deve gerar um arquivo DOCX em Base64 a partir de HTML', async () => {
     const htmlContent = '<h1>Teste</h1><p>Conteúdo</p>';
-    const mockBuffer = Buffer.from('mock docx content');
-    mockHtmlToDocx.mockResolvedValue(mockBuffer); // No ambiente Node.js, html-to-docx retorna um Buffer.
+    const mockArrayBuffer = new TextEncoder().encode('mock docx content').buffer;
+    mockHtmlToDocx.mockResolvedValue(
+      mockArrayBuffer as unknown as Awaited<ReturnType<typeof htmlToDocx>>
+    );
 
     const result = await generateDocx(htmlContent);
 
     expect(result.error).toBeNull();
-    expect(result.docx).toBe(mockBuffer.toString('base64'));
+    expect(result.docx).toBe(Buffer.from(mockArrayBuffer).toString('base64'));
     expect(mockHtmlToDocx).toHaveBeenCalledTimes(1);
     expect(mockHtmlToDocx).toHaveBeenCalledWith(htmlContent, undefined, {
       font: 'Arial',
