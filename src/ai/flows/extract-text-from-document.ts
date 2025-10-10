@@ -10,9 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-
-const SUPPORTED_TYPES = ['image', 'pdf'] as const;
-type SupportedType = (typeof SUPPORTED_TYPES)[number];
+import {SUPPORTED_DOCUMENT_TYPES} from './document-utils';
 
 const ExtractTextFromDocumentInputSchema = z.object({
   document: z
@@ -21,7 +19,7 @@ const ExtractTextFromDocumentInputSchema = z.object({
       "Documento codificado como data URI contendo o MIME Type na assinatura. Formato esperado: 'data:<mimetype>;base64,<encoded_data>'."
     ),
   documentType: z
-    .enum(['image', 'pdf'])
+    .enum(SUPPORTED_DOCUMENT_TYPES)
     .optional()
     .describe('Tipo do documento enviado para orientar o prompt (image ou pdf).'),
 });
@@ -63,13 +61,3 @@ const extractTextFromDocumentFlow = ai.defineFlow(
     return output!;
   }
 );
-
-export function inferDocumentType(mimeType: string | undefined): SupportedType {
-  if (!mimeType) {
-    return 'image';
-  }
-  if (mimeType.toLowerCase().includes('pdf')) {
-    return 'pdf';
-  }
-  return 'image';
-}

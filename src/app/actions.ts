@@ -5,7 +5,8 @@ import { generateTaxScenarios } from "@/ai/flows/generate-tax-scenarios";
 import { calculateIRPFImpact } from "@/ai/flows/calculate-irpf-impact";
 import type { CalculateIRPFImpactInput } from "@/ai/flows/calculate-irpf-impact";
 import type { GenerateTaxScenariosOutput } from "@/ai/flows/types";
-import { extractTextFromDocument, inferDocumentType } from "@/ai/flows/extract-text-from-document";
+import { extractTextFromDocument } from "@/ai/flows/extract-text-from-document";
+import { inferDocumentType } from "@/ai/flows/document-utils";
 import htmlToDocx from 'html-to-docx';
 import type { IrpfImpact } from "@/types/irpf";
 
