@@ -1,6 +1,5 @@
 import { calculateIRPFImpact, CalculateIRPFImpactInput, CalculateIRPFImpactOutput } from '../calculate-irpf-impact';
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
 
 // Mock do Genkit AI
 jest.mock('@/ai/genkit', () => {
@@ -8,7 +7,7 @@ jest.mock('@/ai/genkit', () => {
   return {
     ai: {
       ...originalGenkit.ai,
-      definePrompt: jest.fn((config) => {
+      definePrompt: jest.fn(() => {
         return jest.fn(async (input) => {
           // Simula a saída do prompt com base na entrada
           const taxableIncome = input.proLabore - input.inssContribution;
@@ -46,7 +45,7 @@ jest.mock('@/ai/genkit', () => {
           };
         });
       }),
-      defineFlow: jest.fn((config, handler) => {
+      defineFlow: jest.fn((_, handler) => {
         return jest.fn(async (input) => {
           return handler(input);
         });
@@ -67,20 +66,20 @@ describe('calculateIRPFImpact', () => {
     };
 
     // Recalculando os valores esperados com base na lógica do mock
-    const taxableIncome = mockInput.proLabore - mockInput.inssContribution; // 5000 - 550 = 4450
+    const taxableIncome = mockInput.proLabore - mockInput.inssContribution;
     let irpfDue = 0;
     if (taxableIncome > 3751.05 && taxableIncome <= 4664.68) { // Faixa de 22,5%
-      irpfDue = parseFloat((taxableIncome * 0.225 - 636.13).toFixed(2)); // 4450 * 0.225 - 636.13 = 1001.25 - 636.13 = 365.12
+      irpfDue = parseFloat((taxableIncome * 0.225 - 636.13).toFixed(2));
     }
-    const netImpact = parseFloat((taxableIncome - irpfDue).toFixed(2)); // 4450 - 365.12 = 4084.88
+    const netImpact = parseFloat((taxableIncome - irpfDue).toFixed(2));
 
     const expectedOutput: CalculateIRPFImpactOutput = {
       impactDetails: {
-        taxableIncome: 4450.00,
+        taxableIncome,
         taxBracket: '22,5%', // Corrigido para a faixa correta
-        irpfDue: 365.12,
+        irpfDue,
         deductions: 550,
-        netImpact: 4084.88,
+        netImpact,
         summary: `Simulação de IRPF para o regime ${mockInput.taxRegime}.`,
       },
     };
@@ -107,17 +106,17 @@ describe('calculateIRPFImpact', () => {
       payrollExpenses: 0,
     };
 
-    const taxableIncome = mockInput.proLabore - mockInput.inssContribution; // 2000 - 220 = 1780
-    const irpfDue = 0; // Abaixo da faixa de 7,5%
-    const netImpact = 1780;
+    const taxableIncome = mockInput.proLabore - mockInput.inssContribution;
+    const irpfDue = 0;
+    const netImpact = taxableIncome;
 
     const expectedOutput: CalculateIRPFImpactOutput = {
       impactDetails: {
-        taxableIncome: 1780.00,
+        taxableIncome,
         taxBracket: 'Isento',
-        irpfDue: 0,
+        irpfDue,
         deductions: 220,
-        netImpact: 1780.00,
+        netImpact,
         summary: `Simulação de IRPF para o regime ${mockInput.taxRegime}.`,
       },
     };

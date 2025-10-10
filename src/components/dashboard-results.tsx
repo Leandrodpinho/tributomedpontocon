@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { GenerateTaxScenariosOutput, ScenarioDetail } from '@/ai/flows/types';
 import { BestScenarioCard } from '@/components/dashboard/best-scenario-card';
 import { ScenarioMetrics } from '@/components/dashboard/scenario-metrics';
@@ -10,13 +10,17 @@ import { ScenarioComparisonChart } from './scenario-comparison-chart';
 import { MarkdownRenderer } from './markdown-renderer';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Sheet, SheetClose, SheetContent, SheetTrigger } from './ui/sheet';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { generateDocx } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatPercentage } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { saveAs } from 'file-saver';
-import { Download, FileText, Layers, Printer, Target } from 'lucide-react';
+import { AlertCircle, Download, FileText, Layers, Menu, Printer, Target } from 'lucide-react';
+import type { IrpfImpact } from '@/types/irpf';
 
 const NAV_ITEMS = [
   { label: 'Visão Geral', href: '#overview', icon: <Layers className="h-4 w-4" /> },
@@ -26,25 +30,87 @@ const NAV_ITEMS = [
   { label: 'Resumo', href: '#summary', icon: <Layers className="h-4 w-4" /> },
 ];
 
+const WEBHOOK_ENDPOINT = 'https://n8n.mavenlabs.com.br/webhook-test/chatadv';
+
 type DashboardResultsProps = {
   analysis: GenerateTaxScenariosOutput;
   clientName: string;
+  irpfImpacts?: Record<string, IrpfImpact> | null;
+  webhookResponse?: string | null;
 };
 
-export function DashboardResults({ analysis, clientName }: DashboardResultsProps) {
+export function DashboardResults({ analysis, clientName, irpfImpacts, webhookResponse }: DashboardResultsProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
 
-  if (!analysis?.scenarios?.length) {
-    return null;
-  }
+  const scenarios = useMemo(() => analysis?.scenarios ?? [], [analysis.scenarios]);
+  const hasScenarios = scenarios.length > 0;
 
-  const selectedRevenue = analysis.monthlyRevenue ?? 0;
+  const normalizeRevenue = useCallback((value?: number) => {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+      return 0;
+    }
+    return Number.parseFloat(value.toFixed(2));
+  }, []);
+
+  const revenueOptions = useMemo(() => {
+    const unique = new Map<string, number>();
+    scenarios.forEach(scenario => {
+      const normalized = normalizeRevenue(scenario.scenarioRevenue);
+      const key = normalized.toFixed(2);
+      if (!unique.has(key)) {
+        unique.set(key, normalized);
+      }
+    });
+    return Array.from(unique.entries())
+      .map(([key, value]) => ({ key, value }))
+      .sort((a, b) => a.value - b.value);
+  }, [scenarios, normalizeRevenue]);
+
+  const defaultRevenueKey = useMemo(() => {
+    const normalizedMonthly = normalizeRevenue(analysis.monthlyRevenue);
+    const normalizedKey = normalizedMonthly.toFixed(2);
+    if (revenueOptions.some(option => option.key === normalizedKey)) {
+      return normalizedKey;
+    }
+    return revenueOptions[0]?.key ?? normalizedKey;
+  }, [analysis.monthlyRevenue, normalizeRevenue, revenueOptions]);
+
+  const [selectedRevenueKey, setSelectedRevenueKey] = useState(defaultRevenueKey);
+
+  useEffect(() => {
+    setSelectedRevenueKey(defaultRevenueKey);
+  }, [defaultRevenueKey]);
+
+  const selectedRevenue = useMemo(() => {
+    const parsedRevenue = Number.parseFloat(selectedRevenueKey);
+    return Number.isNaN(parsedRevenue) ? normalizeRevenue(analysis.monthlyRevenue) : parsedRevenue;
+  }, [analysis.monthlyRevenue, normalizeRevenue, selectedRevenueKey]);
+
+  useEffect(() => {
+    if (!hasScenarios) return;
+    const hasMatchingScenario = scenarios.some(
+      scenario => Math.abs(normalizeRevenue(scenario.scenarioRevenue) - selectedRevenue) < 0.01
+    );
+    if (!hasMatchingScenario) {
+      const closest = scenarios.reduce<ScenarioDetail | null>((acc, scenario) => {
+        if (!acc) return scenario;
+        const currentDiff = Math.abs(normalizeRevenue(scenario.scenarioRevenue) - selectedRevenue);
+        const accDiff = Math.abs(normalizeRevenue(acc.scenarioRevenue) - selectedRevenue);
+        return currentDiff < accDiff ? scenario : acc;
+      }, null);
+      if (closest) {
+        setSelectedRevenueKey(normalizeRevenue(closest.scenarioRevenue).toFixed(2));
+      }
+    }
+  }, [hasScenarios, scenarios, normalizeRevenue, selectedRevenue]);
 
   const { scenariosForRevenue, chartData, bestScenario, worstScenario } = useMemo(() => {
-    const scenariosForRevenue = analysis.scenarios.filter((scenario: ScenarioDetail) => {
-      return Math.abs((scenario.scenarioRevenue ?? 0) - selectedRevenue) < 0.01;
+    const matchingScenarios = scenarios.filter((scenario: ScenarioDetail) => {
+      return Math.abs(normalizeRevenue(scenario.scenarioRevenue) - selectedRevenue) < 0.01;
     });
+
+    const effectiveScenarios = matchingScenarios.length > 0 ? matchingScenarios : scenarios;
 
     const normalizedName = (name: string) =>
       name
@@ -52,24 +118,24 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
         .replace(/Cenário para .*?:\s*/i, '')
         .trim();
 
-    const chartData = scenariosForRevenue.map((scenario, index) => ({
+    const chartData = effectiveScenarios.map((scenario, index) => ({
       name: normalizedName(scenario.name || `Cenário ${index + 1}`),
       totalTax: scenario.totalTaxValue ?? 0,
       netProfit: scenario.netProfitDistribution ?? 0,
     }));
 
-    const bestScenario = scenariosForRevenue.reduce<ScenarioDetail | undefined>((acc, scenario) => {
+    const bestScenario = effectiveScenarios.reduce<ScenarioDetail | undefined>((acc, scenario) => {
       if (!acc) return scenario;
       return (scenario.totalTaxValue ?? 0) < (acc.totalTaxValue ?? 0) ? scenario : acc;
     }, undefined);
 
-    const worstScenario = scenariosForRevenue.reduce<ScenarioDetail | undefined>((acc, scenario) => {
+    const worstScenario = effectiveScenarios.reduce<ScenarioDetail | undefined>((acc, scenario) => {
       if (!acc) return scenario;
       return (scenario.totalTaxValue ?? 0) > (acc.totalTaxValue ?? 0) ? scenario : acc;
     }, undefined);
 
-    return { scenariosForRevenue, chartData, bestScenario, worstScenario };
-  }, [analysis.scenarios, selectedRevenue]);
+    return { scenariosForRevenue: effectiveScenarios, chartData, bestScenario, worstScenario };
+  }, [scenarios, normalizeRevenue, selectedRevenue]);
 
   const monthlySavings =
     bestScenario && worstScenario
@@ -84,8 +150,22 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
   const otherScenarios = bestScenario
     ? scenariosForRevenue.filter(scenario => scenario !== bestScenario)
     : scenariosForRevenue;
+  const irpfImpactForBest = bestScenario ? irpfImpacts?.[bestScenario.name] : undefined;
+  const outlierScenarios = useMemo(() => {
+    return scenarios.filter(scenario => {
+      const revenue = normalizeRevenue(scenario.scenarioRevenue ?? selectedRevenue);
+      const taxValue = scenario.totalTaxValue ?? 0;
+      const effectiveRate = scenario.effectiveRate ?? 0;
+      const unrealisticTax = revenue > 0 && taxValue > revenue * 5;
+      const unrealisticRate = effectiveRate > 100;
+      return unrealisticTax || unrealisticRate;
+    });
+  }, [scenarios, normalizeRevenue, selectedRevenue]);
+  const hasOutliers = outlierScenarios.length > 0;
 
-  const normalizedBestName = bestScenario?.name ?? '';
+  if (!hasScenarios) {
+    return null;
+  }
 
   const handlePrint = () => {
     const reportElement = document.getElementById('report-content');
@@ -193,10 +273,68 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
     }
   };
 
+  const IrpfImpactSummary = ({ impact }: { impact: IrpfImpact }) => {
+    const details = impact.impactDetails;
+    const netImpactValue = details.netImpact ?? 0;
+    const netImpactIsPositive = netImpactValue >= 0;
+    const netImpactLabel = netImpactIsPositive ? 'IRPF a recolher' : 'Saldo após deduções';
+    const netImpactClass = netImpactIsPositive
+      ? 'text-destructive'
+      : 'text-emerald-600 dark:text-emerald-300';
+
+    return (
+      <Card className="border border-slate-200 shadow-sm dark:border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Impacto no IRPF</CardTitle>
+          <CardDescription className="text-slate-300">
+            Estimativa considerando o pró-labore orientado e a distribuição de lucros deste cenário.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+            <p className="text-xs uppercase tracking-wide text-slate-300">Base Tributável</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">
+              {formatCurrency(details.taxableIncome)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+            <p className="text-xs uppercase tracking-wide text-slate-300">Faixa de Alíquota</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">
+              {details.taxBracket}
+            </p>
+          </div>
+          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+            <p className="text-xs uppercase tracking-wide text-slate-300">IRPF Bruto</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">
+              {formatCurrency(details.irpfDue)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+            <p className="text-xs uppercase tracking-wide text-slate-300">Deduções</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">
+              {formatCurrency(details.deductions)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+            <p className="text-xs uppercase tracking-wide text-slate-300">{netImpactLabel}</p>
+            <p className={cn('mt-2 text-lg font-semibold', netImpactClass)}>
+              {formatCurrency(netImpactValue)}
+            </p>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <p className="text-sm leading-relaxed text-slate-300">
+            {details.summary}
+          </p>
+        </CardFooter>
+      </Card>
+    );
+  };
+
   const SideNavItem = ({ icon, label, href }: { icon: ReactNode; label: string; href: string }) => (
     <a
       href={href}
-      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-100 hover:text-brand-600 dark:text-slate-300 dark:hover:bg-slate-800"
+      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-[hsl(var(--secondary))] hover:text-brand-200"
     >
       {icon}
       {label}
@@ -204,12 +342,12 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
   );
 
   return (
-    <div className="grid min-h-[calc(100vh-4rem)] w-full bg-slate-50 text-slate-900 lg:grid-cols-[260px_1fr] print:block dark:bg-slate-900 dark:text-slate-100">
-      <aside className="hidden border-r border-border/40 bg-white shadow-sm lg:block no-print dark:bg-slate-900/80">
+    <div className="grid min-h-[calc(100vh-4rem)] w-full bg-[hsl(var(--background))] text-[hsl(var(--foreground))] lg:grid-cols-[260px_1fr] print:block">
+      <aside className="hidden border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-sm lg:block no-print">
         <div className="sticky top-16 flex h-[calc(100vh-4rem)] flex-col gap-6 p-6">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-300">Relatório</p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-800 dark:text-slate-100">Painel de Planejamento</h2>
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Relatório</p>
+            <h2 className="mt-2 text-lg font-semibold text-slate-100">Painel de Planejamento</h2>
           </div>
           <nav className="flex flex-col gap-2">
             {NAV_ITEMS.map(item => (
@@ -220,18 +358,75 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
       </aside>
 
       <section className="flex flex-col print:w-full">
-        <header className="flex flex-col gap-4 border-b border-border/60 bg-white px-4 py-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-8 no-print dark:bg-slate-900/80">
+        <header className="flex flex-col gap-4 border-b border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-8 no-print">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Planejamento tributário</p>
-            <h1 className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">
-              {clientName} <span className="text-brand-600 dark:text-brand-400">| Doctor.con</span>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Planejamento tributário</p>
+            <h1 className="mt-1 text-2xl font-semibold text-slate-100">
+              {clientName} <span className="text-brand-200">| Doctor.con</span>
             </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Baseado nos dados de faturamento mensal ({formatCurrency(selectedRevenue)}).
+            <p className="text-sm text-slate-300">
+              Baseado no faturamento mensal selecionado ({formatCurrency(selectedRevenue)}).
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="outline" size="sm" onClick={handlePrint} className="border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="sm:hidden"
+                >
+                  <Menu className="h-4 w-4" />
+                  <span className="sr-only">Abrir navegação</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="left"
+                className="w-80 border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))]"
+              >
+                <div className="mt-6 flex flex-col gap-6">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                      Relatório
+                    </p>
+                    <h2 className="mt-2 text-lg font-semibold text-slate-100">
+                      Painel de Planejamento
+                    </h2>
+                  </div>
+                  <nav className="flex flex-col gap-2">
+                    {NAV_ITEMS.map(item => (
+                      <SheetClose key={item.href} asChild>
+                        <SideNavItem icon={item.icon} label={item.label} href={item.href} />
+                      </SheetClose>
+                    ))}
+                  </nav>
+                </div>
+              </SheetContent>
+            </Sheet>
+            {revenueOptions.length > 1 ? (
+              <div className="flex flex-col gap-1">
+                <span className="text-xs uppercase tracking-wide text-slate-400">
+                  Faturamento mensal
+                </span>
+                <Select value={selectedRevenueKey} onValueChange={setSelectedRevenueKey}>
+                  <SelectTrigger className="w-[220px] border-[hsl(var(--border))] bg-[hsl(var(--background)_/_0.35)] text-left text-sm text-[hsl(var(--foreground))]">
+                    <SelectValue placeholder="Escolha uma faixa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {revenueOptions.map(option => (
+                      <SelectItem key={option.key} value={option.key}>
+                        {formatCurrency(option.value)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <Badge variant="outline" className="border-[hsl(var(--accent))] bg-[hsl(var(--accent)_/_0.12)] text-brand-100">
+                {formatCurrency(selectedRevenue)}
+              </Badge>
+            )}
+            <Button variant="outline" size="sm" onClick={handlePrint} className="border-[hsl(var(--border))] text-slate-200 hover:bg-[hsl(var(--secondary))]">
               <Printer className="mr-2 h-4 w-4" /> Imprimir / PDF
             </Button>
             <Button size="sm" onClick={handleDownloadDocx} disabled={isDownloading} className="bg-brand-600 text-white hover:bg-brand-500">
@@ -247,10 +442,20 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
           <section id="overview" data-section="overview" className="space-y-6">
             <div>
               <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Visão Geral</h2>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
+              <p className="text-sm text-slate-300">
                 Resumo das economias e comparação dos regimes avaliados para o faturamento informado.
               </p>
             </div>
+            {hasOutliers && (
+              <Alert className="border border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-100">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Números fora do padrão</AlertTitle>
+                <AlertDescription>
+                  Identificamos cenários com carga tributária ou alíquota efetiva muito acima do faturamento informado.
+                  Revise os valores inseridos e confirme se os anexos (extratos, CNPJ e declarações) refletem o faturamento real.
+                </AlertDescription>
+              </Alert>
+            )}
             <ScenarioMetrics
               bestScenario={bestScenario}
               worstScenario={worstScenario}
@@ -262,9 +467,9 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
               <Card className="border border-slate-200 shadow-sm dark:border-slate-700">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Comparativo de Cenários</CardTitle>
-                  <CardDescription className="text-slate-600 dark:text-slate-300">
-                    Avalie o impacto de cada regime sobre a carga tributária e o lucro líquido.
-                  </CardDescription>
+          <CardDescription className="text-slate-300">
+            Avalie o impacto de cada regime sobre a carga tributária e o lucro líquido.
+          </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ScenarioComparisonChart data={chartData} />
@@ -278,9 +483,9 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Cenário Recomendado</h2>
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
-                    Regime com menor carga tributária projetada mantendo o faturamento atual.
-                  </p>
+                <p className="text-sm text-slate-300">
+                  Regime com menor carga tributária projetada mantendo o faturamento atual.
+                </p>
                 </div>
                 <Badge variant="secondary" className="bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
                   Otimização média de {formatCurrency(monthlySavings)} / mês
@@ -288,6 +493,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
               </div>
               <BestScenarioCard scenario={bestScenario} />
               <ScenarioTaxBreakdown scenario={bestScenario} className="border-none shadow-md" />
+              {irpfImpactForBest && <IrpfImpactSummary impact={irpfImpactForBest} />}
             </section>
           )}
 
@@ -295,9 +501,9 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
             <section id="scenarios" data-section="scenarios" className="space-y-6">
               <div>
                 <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Demais Cenários Simulados</h2>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  Compare as principais métricas de cada regime avaliado pela inteligência artificial.
-                </p>
+              <p className="text-sm text-slate-300">
+                Compare as principais métricas de cada regime avaliado pela inteligência artificial.
+              </p>
               </div>
               <div className="grid gap-4">
                 {otherScenarios.map(scenario => {
@@ -307,6 +513,9 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                   const deltaLabel = deltaVersusBest >= 0
                     ? `+${formatCurrency(deltaVersusBest)} em tributos vs. recomendado`
                     : `${formatCurrency(deltaVersusBest)} em tributos vs. recomendado`;
+                  const scenarioIrpf = irpfImpacts?.[scenario.name];
+                  const netImpactValue = scenarioIrpf?.impactDetails.netImpact ?? 0;
+                  const netImpactIsPositive = netImpactValue >= 0;
 
                   return (
                     <Card
@@ -314,7 +523,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                       data-scenario-card="true"
                       data-best={String(scenario === bestScenario)}
                       className={cn(
-                        'border border-slate-200 bg-white shadow-sm transition-all hover:border-brand-400/60 dark:border-slate-700 dark:bg-slate-900/80',
+                        'border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-sm transition-all hover:border-brand-400/60',
                         scenario === bestScenario && 'ring-2 ring-brand-500/50'
                       )}
                     >
@@ -332,33 +541,49 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                         </Badge>
                       </CardHeader>
                       <CardContent className="space-y-4 text-sm">
-                        <div className="grid gap-4 sm:grid-cols-3">
-                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
-                            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">Carga Tributária</p>
+                        <div className={cn("grid gap-4", scenarioIrpf ? "sm:grid-cols-4" : "sm:grid-cols-3")}>
+                          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+                            <p className="text-xs uppercase tracking-wide text-slate-300">Carga Tributária</p>
                             <p className="mt-2 text-xl font-semibold text-destructive">
                               {formatCurrency(scenario.totalTaxValue ?? 0)}
                             </p>
-                            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                            <p className="mt-1 text-xs text-slate-400">
                               {formatPercentage((scenario.effectiveRate ?? 0) / 100)} sobre o faturamento.
                             </p>
                           </div>
-                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
-                            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">Lucro Líquido</p>
-                            <p className="mt-2 text-xl font-semibold text-emerald-600 dark:text-emerald-300">
+                          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+                            <p className="text-xs uppercase tracking-wide text-slate-300">Lucro Líquido</p>
+                            <p className="mt-2 text-xl font-semibold text-emerald-300">
                               {formatCurrency(scenario.netProfitDistribution ?? 0)}
                             </p>
                             {scenario.taxCostPerEmployee !== undefined && (
-                              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                              <p className="mt-1 text-xs text-slate-400">
                                 Custo tributário por colaborador: {formatCurrency(scenario.taxCostPerEmployee)}
                               </p>
                             )}
                           </div>
-                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
-                            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">Observações</p>
-                            <p className="mt-2 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+                            <p className="text-xs uppercase tracking-wide text-slate-300">Observações</p>
+                            <p className="mt-2 text-xs leading-relaxed text-slate-300">
                               {scenario.notes}
                             </p>
                           </div>
+                          {scenarioIrpf && (
+                            <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+                              <p className="text-xs uppercase tracking-wide text-slate-300">Impacto no IRPF</p>
+                              <p
+                                className={cn(
+                                  'mt-2 text-xl font-semibold',
+                                  netImpactIsPositive ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-300'
+                                )}
+                              >
+                                {formatCurrency(netImpactValue)}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-400">
+                                {scenarioIrpf.impactDetails.taxBracket} • Base {formatCurrency(scenarioIrpf.impactDetails.taxableIncome)}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -371,7 +596,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
           <section id="data" data-section="data" className="space-y-4">
             <div>
               <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Dados Utilizados na Análise</h2>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
+              <p className="text-sm text-slate-300">
                 Informações fornecidas pelo cliente e transcritas automaticamente para alimentar os cálculos.
               </p>
             </div>
@@ -380,11 +605,36 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                 <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Transcrição de Documentos</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="max-h-[320px] overflow-auto rounded-md bg-slate-100 p-4 text-sm leading-relaxed dark:bg-slate-900/70">
+                <div className="max-h-[320px] overflow-auto rounded-md bg-[hsl(var(--secondary))] p-4 text-sm leading-relaxed">
                   {analysis.transcribedText ? (
-                    <p className="whitespace-pre-wrap text-slate-700 dark:text-slate-200">{analysis.transcribedText}</p>
+                    <p className="whitespace-pre-wrap text-slate-200">{analysis.transcribedText}</p>
                   ) : (
-                    <p className="text-slate-600 dark:text-slate-300">Nenhum documento foi anexado para transcrição.</p>
+                    <p className="text-slate-300">Nenhum documento foi anexado para transcrição.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border border-slate-200 shadow-sm dark:border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Retorno do Webhook</CardTitle>
+                <CardDescription className="text-slate-300">
+                  Payload enviado para <span className="font-medium text-brand-600 dark:text-brand-300">{WEBHOOK_ENDPOINT}</span>.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-[240px] overflow-auto rounded-md bg-[hsl(var(--secondary))] p-4 text-sm leading-relaxed">
+                  {webhookResponse ? (
+                    <pre className="whitespace-pre-wrap break-words text-slate-200">
+{`${
+  webhookResponse.length > 2000
+    ? `${webhookResponse.slice(0, 2000)}…`
+    : webhookResponse
+}`}
+                    </pre>
+                  ) : (
+                    <p className="text-slate-300">
+                      Nenhuma resposta recebida do endpoint até o momento.
+                    </p>
                   )}
                 </div>
               </CardContent>
@@ -394,7 +644,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
           <section id="summary" data-section="summary" className="space-y-6">
             <div>
               <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Resumo Estratégico</h2>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
+              <p className="text-sm text-slate-300">
                 Síntese executiva com recomendações e pontos de atenção para a tomada de decisão.
               </p>
             </div>
@@ -412,7 +662,7 @@ export function DashboardResults({ analysis, clientName }: DashboardResultsProps
                   <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Pontes de Equilíbrio</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-slate-600 whitespace-pre-wrap dark:text-slate-300">
+                  <p className="text-sm text-slate-300 whitespace-pre-wrap">
                     {analysis.breakEvenAnalysis}
                   </p>
                 </CardContent>

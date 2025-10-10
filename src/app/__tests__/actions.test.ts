@@ -1,42 +1,69 @@
 import { getAnalysis, generateDocx, AnalysisState } from '../actions';
 import { generateTaxScenarios } from '@/ai/flows/generate-tax-scenarios';
 import type { GenerateTaxScenariosOutput } from '@/ai/flows/types';
-import { extractTextFromImage, ExtractTextFromImageOutput } from '@/ai/flows/extract-text-from-image';
+import { extractTextFromDocument, ExtractTextFromDocumentOutput } from '@/ai/flows/extract-text-from-document';
+import { calculateIRPFImpact, CalculateIRPFImpactOutput } from '@/ai/flows/calculate-irpf-impact';
 import htmlToDocx from 'html-to-docx';
 
 // Mock das funções de IA e html-to-docx
 jest.mock('@/ai/flows/generate-tax-scenarios');
-jest.mock('@/ai/flows/extract-text-from-image');
+jest.mock('@/ai/flows/extract-text-from-document');
+jest.mock('@/ai/flows/calculate-irpf-impact');
 jest.mock('html-to-docx');
 
 const mockGenerateTaxScenarios = generateTaxScenarios as jest.MockedFunction<typeof generateTaxScenarios>;
-const mockExtractTextFromImage = extractTextFromImage as jest.MockedFunction<typeof extractTextFromImage>;
+const mockExtractTextFromDocument = extractTextFromDocument as jest.MockedFunction<typeof extractTextFromDocument>;
+const mockCalculateIRPFImpact = calculateIRPFImpact as jest.MockedFunction<typeof calculateIRPFImpact>;
 const mockHtmlToDocx = htmlToDocx as jest.MockedFunction<typeof htmlToDocx>;
 
 describe('getAnalysis Server Action', () => {
   const initialState: AnalysisState = {
     aiResponse: null,
     transcribedText: null,
+    irpfImpacts: null,
+    webhookResponse: null,
     error: null,
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCalculateIRPFImpact.mockResolvedValue({
+      impactDetails: {
+        taxableIncome: 0,
+        taxBracket: 'Isento',
+        irpfDue: 0,
+        deductions: 0,
+        netImpact: 0,
+        summary: 'Simulação de teste.',
+      },
+    } as CalculateIRPFImpactOutput);
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      headers: { get: () => 'application/json' },
+      json: async () => ({ status: 'ok' }),
+      text: async () => 'ok',
+    } as unknown as Response);
   });
 
   it('deve retornar um erro se nenhuma informação for fornecida', async () => {
     const formData = new FormData();
     formData.append('clientData', '');
     formData.append('attachments', new File([], '')); // Arquivo vazio
+    formData.append('monthlyRevenue', '12000');
 
     const result = await getAnalysis(initialState, formData);
 
     expect(result).toEqual({
       aiResponse: null,
       transcribedText: null,
+      irpfImpacts: null,
+      webhookResponse: null,
       error: "Por favor, forneça as informações financeiras ou anexe um ou mais documentos para análise.",
     });
-    expect(mockExtractTextFromImage).not.toHaveBeenCalled();
+    expect(mockExtractTextFromDocument).not.toHaveBeenCalled();
     expect(mockGenerateTaxScenarios).not.toHaveBeenCalled();
   });
 
@@ -47,7 +74,8 @@ describe('getAnalysis Server Action', () => {
     formData.append('companyName', 'Minha Clínica');
     formData.append('cnpj', '00.000.000/0001-00');
     formData.append('payrollExpenses', '0');
-    formData.append('issRate', '4.0');
+    formData.append('issRate', '4');
+    formData.append('monthlyRevenue', '10000');
 
     const mockAiResponse: GenerateTaxScenariosOutput = {
       transcribedText: '',
@@ -77,7 +105,7 @@ describe('getAnalysis Server Action', () => {
     expect(result.error).toBeNull();
     expect(result.aiResponse).toEqual(JSON.parse(JSON.stringify(mockAiResponse)));
     expect(result.transcribedText).toBe('');
-    expect(mockExtractTextFromImage).not.toHaveBeenCalled();
+    expect(mockExtractTextFromDocument).not.toHaveBeenCalled();
     expect(mockGenerateTaxScenarios).toHaveBeenCalledWith(
       expect.objectContaining({
         clientType: 'Novo aberturas de empresa',
@@ -86,6 +114,7 @@ describe('getAnalysis Server Action', () => {
         clientData: 'Faturamento mensal de R$ 10.000,00',
         payrollExpenses: 0,
         issRate: 4.0,
+        monthlyRevenue: 10000,
         documentsAsText: '',
       })
     );
@@ -98,15 +127,16 @@ describe('getAnalysis Server Action', () => {
     formData.append('companyName', 'Outra Clínica');
     formData.append('cnpj', '11.111.111/0001-11');
     formData.append('payrollExpenses', '2000');
-    formData.append('issRate', '5.0');
+    formData.append('issRate', '5');
+    formData.append('monthlyRevenue', '20000');
 
     const mockFile = new File(['conteúdo do arquivo'], 'documento.png', { type: 'image/png' });
     formData.append('attachments', mockFile);
 
-    const mockExtractedTextOutput: ExtractTextFromImageOutput = {
+    const mockExtractedTextOutput: ExtractTextFromDocumentOutput = {
       extractedText: 'Texto extraído do documento.',
     };
-    mockExtractTextFromImage.mockResolvedValue(mockExtractedTextOutput);
+    mockExtractTextFromDocument.mockResolvedValue(mockExtractedTextOutput);
 
     const mockAiResponse: GenerateTaxScenariosOutput = {
       transcribedText: 'Texto extraído do documento.',
@@ -135,7 +165,7 @@ describe('getAnalysis Server Action', () => {
     expect(result.error).toBeNull();
     expect(result.aiResponse).toEqual(JSON.parse(JSON.stringify(mockAiResponse)));
     expect(result.transcribedText).toBe('Texto extraído do documento.');
-    expect(mockExtractTextFromImage).toHaveBeenCalledTimes(1);
+    expect(mockExtractTextFromDocument).toHaveBeenCalledTimes(1);
     expect(mockGenerateTaxScenarios).toHaveBeenCalledWith(
       expect.objectContaining({
         clientType: 'Transferências de contabilidade',
@@ -144,6 +174,7 @@ describe('getAnalysis Server Action', () => {
         clientData: '',
         payrollExpenses: 2000,
         issRate: 5.0,
+        monthlyRevenue: 20000,
         documentsAsText: 'Texto extraído do documento.',
       })
     );
@@ -153,12 +184,13 @@ describe('getAnalysis Server Action', () => {
     const formData = new FormData();
     formData.append('clientData', '');
     formData.append('clientType', 'Novo aberturas de empresa');
+    formData.append('monthlyRevenue', '20000');
     const mockFile = new File(['conteúdo do arquivo'], 'documento.pdf', { type: 'application/pdf' });
     formData.append('attachments', mockFile);
 
-    mockExtractTextFromImage.mockRejectedValue(new Error('Erro na API de extração'));
+    mockExtractTextFromDocument.mockRejectedValue(new Error('Erro na API de extração'));
 
-    // Mock para generateTaxScenarios quando extractTextFromImage falha
+    // Mock para generateTaxScenarios quando extractTextFromDocument falha
     mockGenerateTaxScenarios.mockResolvedValue({
       transcribedText: '[Erro ao processar o arquivo: documento.pdf]',
       monthlyRevenue: 0, // Ou outro valor padrão
@@ -171,7 +203,7 @@ describe('getAnalysis Server Action', () => {
     expect(result.error).toBeNull(); // O erro é "engolido" e adicionado ao transcribedText
     expect(result.aiResponse).not.toBeNull(); // Agora esperamos um aiResponse, mas com dados de erro
     expect(result.transcribedText).toContain('[Erro ao processar o arquivo: documento.pdf]');
-    expect(mockExtractTextFromImage).toHaveBeenCalledTimes(1);
+    expect(mockExtractTextFromDocument).toHaveBeenCalledTimes(1);
     expect(mockGenerateTaxScenarios).toHaveBeenCalledTimes(1); // A IA ainda é chamada com o texto de erro
     expect(mockGenerateTaxScenarios).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -184,6 +216,7 @@ describe('getAnalysis Server Action', () => {
     const formData = new FormData();
     formData.append('clientData', 'Dados de teste');
     formData.append('clientType', 'Novo aberturas de empresa');
+    formData.append('monthlyRevenue', '15000');
 
     mockGenerateTaxScenarios.mockRejectedValue(new Error('Erro na API de cenários'));
 

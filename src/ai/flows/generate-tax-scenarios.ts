@@ -55,6 +55,7 @@ Tipo de Cliente: {{{clientType}}}
 
 **DADOS ESTRUTURADOS (Prioridade Máxima):**
 {{#if cnaes}}CNAEs: {{{cnaes}}}{{/if}}
+{{#if monthlyRevenue}}Faturamento Mensal: {{{monthlyRevenue}}}{{/if}}
 {{#if rbt12}}RBT12 (Receita Bruta 12M): {{{rbt12}}}{{/if}}
 {{#if fs12}}FS12 (Folha de Salários 12M): {{{fs12}}}{{/if}}
 {{#if payrollExpenses}}Folha Salarial Bruta (CLT): {{{payrollExpenses}}}{{/if}}
@@ -76,7 +77,7 @@ Conteúdo dos Documentos Anexados:
 2.  Se 'documentsAsText' estiver vazio, o campo 'transcribedText' deve conter a frase "Nenhum documento foi anexado para transcrição.".
 
 **ETAPA 2: ANÁLISE E GERAÇÃO DE CENÁRIOS**
-1.  **Análise de Faturamento:** Extraia o **faturamento mensal**. Dê prioridade para valores em 'clientData' ou 'documentsAsText'. Preencha 'monthlyRevenue' no JSON. Se não encontrar, retorne um erro claro.
+1.  **Análise de Faturamento:** Utilize o valor fornecido em 'monthlyRevenue' como fonte prioritária. Se ele estiver ausente, extraia o faturamento mensal a partir de 'clientData' ou 'documentsAsText'. Preencha 'monthlyRevenue' no JSON e, se não encontrar nenhuma referência, retorne um erro claro.
 2.  **Geração de Cenários:** Para o faturamento mensal identificado, gere TODOS os cenários aplicáveis abaixo. Se 'payrollExpenses' for fornecido, crie variações COM e SEM folha.
     *   **Simples Nacional (Anexo III vs. Anexo V):** Analise o Fator R.
     *   **Lucro Presumido (Padrão):** Base de presunção de 32%.

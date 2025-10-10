@@ -8,9 +8,9 @@ import {
   CalculateIRPFImpactInput,
 } from '../ai/flows/calculate-irpf-impact';
 import {
-  extractTextFromImage,
-  ExtractTextFromImageInput,
-} from '../ai/flows/extract-text-from-image';
+  extractTextFromDocument,
+  ExtractTextFromDocumentInput,
+} from '../ai/flows/extract-text-from-document';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 async function runSimulation() {
@@ -23,6 +23,7 @@ async function runSimulation() {
     clientData:
       'Faturamento mensal estimado de R$ 25.000,00. Atividade de clínica médica, sem funcionários no momento.',
     payrollExpenses: 0,
+    monthlyRevenue: 25000,
     issRate: 4.0,
     companyName: 'Clínica Saúde Plena',
   };
@@ -54,18 +55,18 @@ async function runSimulation() {
     console.error('Erro em calculateIRPFImpact:', error);
   }
 
-  // 3. Simulação do fluxo extractTextFromImage
-  console.log('\n--- Simulando extractTextFromImage ---');
-  const textExtractionInput: ExtractTextFromImageInput = {
+  // 3. Simulação do fluxo extractTextFromDocument
+  console.log('\n--- Simulando extractTextFromDocument ---');
+  const textExtractionInput: ExtractTextFromDocumentInput = {
     document: PlaceHolderImages[0].imageUrl,
   };
 
   try {
-    const textResult = await extractTextFromImage(textExtractionInput);
-    console.log('extractTextFromImage concluído com sucesso! Resultado:');
+    const textResult = await extractTextFromDocument(textExtractionInput);
+    console.log('extractTextFromDocument concluído com sucesso! Resultado:');
     console.log(JSON.stringify(textResult, null, 2));
   } catch (error) {
-    console.error('Erro em extractTextFromImage:', error);
+    console.error('Erro em extractTextFromDocument:', error);
   }
 
   console.log('\nSimulação concluída.');

@@ -25,11 +25,11 @@ const highlightClasses: Record<NonNullable<KpiCardProps['highlight']>, string> =
   primary:
     'bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 text-white border-transparent shadow-lg',
   accent:
-    'bg-white text-brand-700 border border-brand-200 shadow-md dark:bg-slate-900/70 dark:text-brand-200 dark:border-brand-500/40',
+    'bg-[hsl(var(--accent)_/_0.16)] text-brand-100 border border-[hsl(var(--accent))] shadow-md',
   success:
     'bg-gradient-to-br from-lime-300 via-lime-400 to-lime-500 text-emerald-900 border-transparent shadow-lg',
   neutral:
-    'bg-white text-slate-900 border border-slate-200 shadow-sm dark:bg-slate-900/80 dark:text-slate-100 dark:border-slate-700',
+    'bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] border border-[hsl(var(--border))] shadow-sm',
 };
 
 const trendIconMap: Record<KpiTrend['direction'], ReactNode> = {
@@ -53,10 +53,10 @@ export const KpiCard = ({
     ? 'text-white/90 bg-white/15'
     : highlight === 'success'
       ? 'text-emerald-900 bg-white/30'
-      : 'text-brand-600 bg-brand-500/10 dark:bg-brand-500/20';
+      : 'text-brand-200 bg-[hsl(var(--accent)_/_0.18)]';
   const trendBadge = isVibrant
     ? 'bg-white/20 text-white'
-    : 'bg-brand-500/10 text-brand-700 dark:text-brand-200';
+    : 'bg-[hsl(var(--accent)_/_0.18)] text-brand-100';
 
   return (
     <Card
@@ -72,7 +72,7 @@ export const KpiCard = ({
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div>
-            <CardDescription className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">
+            <CardDescription className="text-xs uppercase tracking-wide text-slate-400">
               {title}
             </CardDescription>
             <CardTitle className="mt-1 text-2xl font-semibold md:text-3xl">
@@ -81,11 +81,11 @@ export const KpiCard = ({
           </div>
           {icon && <div className={cn('ml-4 mt-1', isVibrant ? 'text-white' : 'text-brand-600')}>{icon}</div>}
         </div>
-        {hint && <p className="mt-3 text-xs text-slate-500 dark:text-slate-300">{hint}</p>}
+        {hint && <p className="mt-3 text-xs text-slate-400">{hint}</p>}
       </CardHeader>
       {(subValue || trend) && (
         <CardContent className="pt-0">
-          {subValue && <p className="text-sm text-slate-600 dark:text-slate-300">{subValue}</p>}
+          {subValue && <p className="text-sm text-slate-300">{subValue}</p>}
           {trend && (
             <div className={cn('mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium', trendBadge)}>
               {trendIconMap[trend.direction]}

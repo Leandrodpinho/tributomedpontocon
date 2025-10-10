@@ -1,6 +1,5 @@
 import { generateTaxScenarios } from '../generate-tax-scenarios';
 import type { GenerateTaxScenariosInput } from '../types';
-import { ai } from '@/ai/genkit';
 
 // Mock do Genkit AI com lógica de cálculo simplificada
 jest.mock('@/ai/genkit', () => {
@@ -60,7 +59,7 @@ jest.mock('@/ai/genkit', () => {
           };
         });
       }),
-      defineFlow: jest.fn((config, handler) => {
+      defineFlow: jest.fn((_config, handler) => {
         return jest.fn(async (input) => {
           return handler(input);
         });

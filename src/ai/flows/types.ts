@@ -12,6 +12,7 @@ export const GenerateTaxScenariosInputSchema = z.object({
   payrollExpenses: z.number().optional().describe('Despesas com a folha de pagamento do cliente (CLT), sem pró-labore.'),
   rbt12: z.number().optional().describe('Receita Bruta Total dos últimos 12 meses. Se não informado, será calculado (faturamento mensal * 12).'),
   fs12: z.number().optional().describe('Folha de Salários, incluindo encargos, dos últimos 12 meses. Se não informado, será estimado pela IA.'),
+  monthlyRevenue: z.number().optional().describe('Faturamento mensal informado pelo cliente. Tem prioridade sobre o valor extraído do texto.'),
   isHospitalEquivalent: z
     .boolean()
     .optional()
