@@ -37,7 +37,7 @@ const mapScenarioNameToTaxRegime = (name: string): SupportedTaxRegime | null => 
   return null;
 };
 
-const WEBHOOK_URL = "https://n8n.mavenlabs.com.br/webhook-test/chatadv";
+const WEBHOOK_URL = (process.env.WEBHOOK_URL ?? process.env.NEXT_PUBLIC_WEBHOOK_URL ?? "").trim();
 
 // Helper function to convert a File to a data URI
 const fileToDataURI = async (file: File): Promise<string> => {
@@ -162,35 +162,37 @@ export async function getAnalysis(
       sentAt: new Date().toISOString(),
     };
 
-    const webhookPromise: Promise<string | null> = (async () => {
-      try {
-        const response = await fetch(WEBHOOK_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(webhookPayload),
-          cache: "no-store",
-        });
+    const webhookPromise: Promise<string | null> = WEBHOOK_URL
+      ? (async () => {
+          try {
+            const response = await fetch(WEBHOOK_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(webhookPayload),
+              cache: "no-store",
+            });
 
-        const contentType = response.headers.get("content-type") ?? "";
-        if (!response.ok) {
-          return `Falha ao enviar dados ao webhook (${response.status} ${response.statusText}).`;
-        }
+            const contentType = response.headers.get("content-type") ?? "";
+            if (!response.ok) {
+              return `Falha ao enviar dados ao webhook (${response.status} ${response.statusText}).`;
+            }
 
-        if (contentType.includes("application/json")) {
-          const json = await response.json();
-          return JSON.stringify(json, null, 2);
-        }
+            if (contentType.includes("application/json")) {
+              const json = await response.json();
+              return JSON.stringify(json, null, 2);
+            }
 
-        return await response.text();
-      } catch (error) {
-        console.error("Erro ao enviar dados para o webhook:", error);
-        return error instanceof Error
-          ? `Erro ao conectar ao webhook: ${error.message}`
-          : "Erro desconhecido ao conectar ao webhook.";
-      }
-    })();
+            return await response.text();
+          } catch (error) {
+            console.error("Erro ao enviar dados para o webhook:", error);
+            return error instanceof Error
+              ? `Erro ao conectar ao webhook: ${error.message}`
+              : "Erro desconhecido ao conectar ao webhook.";
+          }
+        })()
+      : Promise.resolve(null);
 
     // 3. Call the main AI flow with all data consolidated
     const aiResponse = await generateTaxScenarios({

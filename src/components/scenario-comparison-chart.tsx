@@ -1,6 +1,6 @@
 "use client"
 
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis, type LegendProps } from "recharts"
 
 interface ChartData {
     name: string;
@@ -16,33 +16,57 @@ const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
+const LegendContent = ({ payload }: LegendProps) => {
+  if (!payload?.length) return null;
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-6 text-sm text-muted-foreground">
+      {payload.map(item => (
+        <span key={item.dataKey ?? item.value} className="flex items-center gap-2">
+          <span
+            className="h-3 w-3 rounded-full"
+            style={{ backgroundColor: item.color ?? "hsl(var(--primary))" }}
+          />
+          {item.value}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 export function ScenarioComparisonChart({ data }: ScenarioComparisonChartProps) {
   return (
-    <ResponsiveContainer width="100%" height={350}>
-      <BarChart data={data} margin={{ top: 5, right: 20, left: 40, bottom: 50 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+    <ResponsiveContainer width="100%" height={Math.max(280, data.length * 72)}>
+      <BarChart
+        data={data}
+        layout="vertical"
+        margin={{ top: 16, right: 32, left: 0, bottom: 16 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
         <XAxis
-          dataKey="name"
-          stroke="hsl(var(--muted-foreground))"
-          fontSize={12}
+          type="number"
           tickLine={false}
           axisLine={false}
-          angle={-45}
-          textAnchor="end"
-          height={60}
-          interval={0}
+          stroke="hsl(var(--muted-foreground))"
+          domain={[0, 'dataMax']}
+          fontSize={12}
+          tickFormatter={(value) =>
+            new Intl.NumberFormat('pt-BR', {
+              style: 'currency',
+              currency: 'BRL',
+              notation: 'compact',
+              compactDisplay: 'short',
+            }).format(value)
+          }
         />
         <YAxis
-          stroke="hsl(var(--muted-foreground))"
-          fontSize={12}
+          type="category"
+          dataKey="name"
+          width={200}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-            notation: 'compact',
-            compactDisplay: 'short'
-          }).format(value)}
+          stroke="hsl(var(--muted-foreground))"
+          fontSize={12}
         />
         <Tooltip
           cursor={{ fill: 'hsl(var(--secondary))' }}
@@ -54,9 +78,10 @@ export function ScenarioComparisonChart({ data }: ScenarioComparisonChartProps) 
           formatter={(value: number) => formatCurrency(value)}
         />
         <Legend
-          iconSize={10}
-          wrapperStyle={{ fontSize: '12px', paddingTop: '40px' }}
           verticalAlign="bottom"
+          align="left"
+          height={48}
+          content={props => <LegendContent {...props} />}
         />
         <Bar dataKey="totalTax" name="Carga Tributária" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
         <Bar dataKey="netProfit" name="Lucro Líquido" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />

@@ -30,7 +30,7 @@ const NAV_ITEMS = [
   { label: 'Resumo', href: '#summary', icon: <Layers className="h-4 w-4" /> },
 ];
 
-const WEBHOOK_ENDPOINT = 'https://n8n.mavenlabs.com.br/webhook-test/chatadv';
+const WEBHOOK_ENDPOINT = process.env.NEXT_PUBLIC_WEBHOOK_URL ?? '';
 
 type DashboardResultsProps = {
   analysis: GenerateTaxScenariosOutput;
@@ -42,6 +42,13 @@ type DashboardResultsProps = {
 export function DashboardResults({ analysis, clientName, irpfImpacts, webhookResponse }: DashboardResultsProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
+  const isWebhookConfigured = WEBHOOK_ENDPOINT.length > 0;
+  const webhookError = webhookResponse ? /falha|erro/i.test(webhookResponse.toLowerCase()) : false;
+  const generatedAt = useMemo(() => new Date(), []);
+  const formattedMonthlyRevenue = useMemo(
+    () => formatCurrency(analysis.monthlyRevenue ?? 0),
+    [analysis.monthlyRevenue]
+  );
 
   const scenarios = useMemo(() => analysis?.scenarios ?? [], [analysis.scenarios]);
   const hasScenarios = scenarios.length > 0;
@@ -283,47 +290,37 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
       : 'text-emerald-600 dark:text-emerald-300';
 
     return (
-      <Card className="border border-slate-200 shadow-sm dark:border-slate-700">
+      <Card className="border border-[hsl(var(--border))] shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Impacto no IRPF</CardTitle>
-          <CardDescription className="text-slate-300">
+          <CardTitle className="text-lg font-semibold text-foreground">Impacto no IRPF</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Estimativa considerando o pró-labore orientado e a distribuição de lucros deste cenário.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-300">Base Tributável</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">
-              {formatCurrency(details.taxableIncome)}
-            </p>
+          <div className="flex h-full min-h-[140px] flex-col justify-between rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Base Tributável</p>
+            <p className="text-2xl font-semibold text-foreground">{formatCurrency(details.taxableIncome)}</p>
           </div>
-          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-300">Faixa de Alíquota</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">
-              {details.taxBracket}
-            </p>
+          <div className="flex h-full min-h-[140px] flex-col justify-between rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Faixa de Alíquota</p>
+            <p className="text-2xl font-semibold text-foreground">{details.taxBracket}</p>
           </div>
-          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-300">IRPF Bruto</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">
-              {formatCurrency(details.irpfDue)}
-            </p>
+          <div className="flex h-full min-h-[140px] flex-col justify-between rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">IRPF Bruto</p>
+            <p className="text-2xl font-semibold text-foreground">{formatCurrency(details.irpfDue)}</p>
           </div>
-          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-300">Deduções</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">
-              {formatCurrency(details.deductions)}
-            </p>
+          <div className="flex h-full min-h-[140px] flex-col justify-between rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Deduções</p>
+            <p className="text-2xl font-semibold text-foreground">{formatCurrency(details.deductions)}</p>
           </div>
-          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-300">{netImpactLabel}</p>
-            <p className={cn('mt-2 text-lg font-semibold', netImpactClass)}>
-              {formatCurrency(netImpactValue)}
-            </p>
+          <div className="flex h-full min-h-[140px] flex-col justify-between rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">{netImpactLabel}</p>
+            <p className={cn('text-2xl font-semibold', netImpactClass)}>{formatCurrency(netImpactValue)}</p>
           </div>
         </CardContent>
         <CardFooter>
-          <p className="text-sm leading-relaxed text-slate-300">
+          <p className="text-sm leading-relaxed text-muted-foreground">
             {details.summary}
           </p>
         </CardFooter>
@@ -334,7 +331,7 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
   const SideNavItem = ({ icon, label, href }: { icon: ReactNode; label: string; href: string }) => (
     <a
       href={href}
-      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-[hsl(var(--secondary))] hover:text-brand-200"
+      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-[hsl(var(--secondary))] hover:text-brand-600"
     >
       {icon}
       {label}
@@ -346,8 +343,8 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
       <aside className="hidden border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-sm lg:block no-print">
         <div className="sticky top-16 flex h-[calc(100vh-4rem)] flex-col gap-6 p-6">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Relatório</p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-100">Painel de Planejamento</h2>
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Relatório</p>
+            <h2 className="mt-2 text-lg font-semibold text-foreground">Painel de Planejamento</h2>
           </div>
           <nav className="flex flex-col gap-2">
             {NAV_ITEMS.map(item => (
@@ -360,11 +357,11 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
       <section className="flex flex-col print:w-full">
         <header className="flex flex-col gap-4 border-b border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-8 no-print">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Planejamento tributário</p>
-            <h1 className="mt-1 text-2xl font-semibold text-slate-100">
-              {clientName} <span className="text-brand-200">| Doctor.con</span>
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Planejamento tributário</p>
+            <h1 className="mt-1 text-2xl font-semibold text-foreground">
+              {clientName} <span className="text-brand-600">| Doctor.con</span>
             </h1>
-            <p className="text-sm text-slate-300">
+            <p className="text-sm text-muted-foreground">
               Baseado no faturamento mensal selecionado ({formatCurrency(selectedRevenue)}).
             </p>
           </div>
@@ -386,10 +383,10 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
               >
                 <div className="mt-6 flex flex-col gap-6">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                    <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
                       Relatório
                     </p>
-                    <h2 className="mt-2 text-lg font-semibold text-slate-100">
+                    <h2 className="mt-2 text-lg font-semibold text-foreground">
                       Painel de Planejamento
                     </h2>
                   </div>
@@ -405,7 +402,7 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
             </Sheet>
             {revenueOptions.length > 1 ? (
               <div className="flex flex-col gap-1">
-                <span className="text-xs uppercase tracking-wide text-slate-400">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
                   Faturamento mensal
                 </span>
                 <Select value={selectedRevenueKey} onValueChange={setSelectedRevenueKey}>
@@ -422,11 +419,11 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
                 </Select>
               </div>
             ) : (
-              <Badge variant="outline" className="border-[hsl(var(--accent))] bg-[hsl(var(--accent)_/_0.12)] text-brand-100">
+              <Badge variant="outline" className="border-[hsl(var(--accent))] bg-[hsl(var(--accent)_/_0.12)] text-brand-600">
                 {formatCurrency(selectedRevenue)}
               </Badge>
             )}
-            <Button variant="outline" size="sm" onClick={handlePrint} className="border-[hsl(var(--border))] text-slate-200 hover:bg-[hsl(var(--secondary))]">
+            <Button variant="outline" size="sm" onClick={handlePrint} className="border-[hsl(var(--border))] text-foreground hover:bg-[hsl(var(--secondary))]">
               <Printer className="mr-2 h-4 w-4" /> Imprimir / PDF
             </Button>
             <Button size="sm" onClick={handleDownloadDocx} disabled={isDownloading} className="bg-brand-600 text-white hover:bg-brand-500">
@@ -435,14 +432,39 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
           </div>
         </header>
 
+        <div className="hidden print:block print:page-break-after-always">
+          <div className="mx-auto flex h-[18cm] w-full max-w-5xl flex-col justify-between rounded-3xl border border-[hsl(var(--border))] bg-gradient-to-br from-brand-500/15 via-white to-emerald-500/10 p-12 text-center shadow-xl">
+            <div className="space-y-4">
+              <p className="text-sm uppercase tracking-[0.4em] text-brand-600">Planejamento Tributário</p>
+              <h1 className="text-4xl font-bold text-foreground">{clientName}</h1>
+              <p className="text-lg text-muted-foreground">
+                Relatório executivo emitido em {generatedAt.toLocaleDateString('pt-BR')}
+              </p>
+            </div>
+            <div className="mx-auto grid w-full max-w-3xl gap-4 text-left sm:grid-cols-2">
+              <div className="rounded-2xl border border-[hsl(var(--border))] bg-white/90 p-5 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Faturamento considerado</p>
+                <p className="mt-3 text-2xl font-semibold text-foreground">{formattedMonthlyRevenue}</p>
+              </div>
+              <div className="rounded-2xl border border-[hsl(var(--border))] bg-white/90 p-5 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Cenários avaliados</p>
+                <p className="mt-3 text-2xl font-semibold text-foreground">{analysis.scenarios?.length ?? 0}</p>
+              </div>
+            </div>
+            <div className="text-xs uppercase tracking-[0.45em] text-muted-foreground">
+              Doctor.con • Inteligência Fiscal
+            </div>
+          </div>
+        </div>
+
         <main
           id="report-content"
           className="flex flex-1 flex-col gap-8 px-4 py-6 lg:px-8" data-selected-revenue={selectedRevenue}
         >
           <section id="overview" data-section="overview" className="space-y-6">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Visão Geral</h2>
-              <p className="text-sm text-slate-300">
+              <h2 className="text-xl font-semibold text-foreground">Visão Geral</h2>
+              <p className="text-sm text-muted-foreground">
                 Resumo das economias e comparação dos regimes avaliados para o faturamento informado.
               </p>
             </div>
@@ -464,10 +486,10 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
               economyShare={economyShare}
             />
             {chartData.length > 0 && (
-              <Card className="border border-slate-200 shadow-sm dark:border-slate-700">
+              <Card className="border border-[hsl(var(--border))] shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Comparativo de Cenários</CardTitle>
-          <CardDescription className="text-slate-300">
+                  <CardTitle className="text-lg font-semibold text-foreground">Comparativo de Cenários</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Avalie o impacto de cada regime sobre a carga tributária e o lucro líquido.
           </CardDescription>
                 </CardHeader>
@@ -482,12 +504,12 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
             <section id="recommended" data-section="recommended" className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Cenário Recomendado</h2>
-                <p className="text-sm text-slate-300">
+                  <h2 className="text-xl font-semibold text-foreground">Cenário Recomendado</h2>
+                <p className="text-sm text-muted-foreground">
                   Regime com menor carga tributária projetada mantendo o faturamento atual.
                 </p>
                 </div>
-                <Badge variant="secondary" className="bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
+                <Badge variant="secondary" className="bg-brand-500/10 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
                   Otimização média de {formatCurrency(monthlySavings)} / mês
                 </Badge>
               </div>
@@ -500,8 +522,8 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
           {otherScenarios.length > 0 && (
             <section id="scenarios" data-section="scenarios" className="space-y-6">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Demais Cenários Simulados</h2>
-              <p className="text-sm text-slate-300">
+                <h2 className="text-xl font-semibold text-foreground">Demais Cenários Simulados</h2>
+              <p className="text-sm text-muted-foreground">
                 Compare as principais métricas de cada regime avaliado pela inteligência artificial.
               </p>
               </div>
@@ -529,7 +551,7 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
                     >
                       <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                          <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">
+                          <CardTitle className="text-lg font-semibold text-foreground">
                             {scenario.name.replace(/Cenário para .*?:\s*/i, '')}
                           </CardTitle>
                           <CardDescription>
@@ -543,34 +565,34 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
                       <CardContent className="space-y-4 text-sm">
                         <div className={cn("grid gap-4", scenarioIrpf ? "sm:grid-cols-4" : "sm:grid-cols-3")}>
                           <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-                            <p className="text-xs uppercase tracking-wide text-slate-300">Carga Tributária</p>
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Carga Tributária</p>
                             <p className="mt-2 text-xl font-semibold text-destructive">
                               {formatCurrency(scenario.totalTaxValue ?? 0)}
                             </p>
-                            <p className="mt-1 text-xs text-slate-400">
+                            <p className="mt-1 text-xs text-muted-foreground">
                               {formatPercentage((scenario.effectiveRate ?? 0) / 100)} sobre o faturamento.
                             </p>
                           </div>
                           <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-                            <p className="text-xs uppercase tracking-wide text-slate-300">Lucro Líquido</p>
-                            <p className="mt-2 text-xl font-semibold text-emerald-300">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Lucro Líquido</p>
+                            <p className="mt-2 text-xl font-semibold text-emerald-600">
                               {formatCurrency(scenario.netProfitDistribution ?? 0)}
                             </p>
                             {scenario.taxCostPerEmployee !== undefined && (
-                              <p className="mt-1 text-xs text-slate-400">
+                              <p className="mt-1 text-xs text-muted-foreground">
                                 Custo tributário por colaborador: {formatCurrency(scenario.taxCostPerEmployee)}
                               </p>
                             )}
                           </div>
                           <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-                            <p className="text-xs uppercase tracking-wide text-slate-300">Observações</p>
-                            <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Observações</p>
+                            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                               {scenario.notes}
                             </p>
                           </div>
                           {scenarioIrpf && (
                             <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-                              <p className="text-xs uppercase tracking-wide text-slate-300">Impacto no IRPF</p>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Impacto no IRPF</p>
                               <p
                                 className={cn(
                                   'mt-2 text-xl font-semibold',
@@ -579,7 +601,7 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
                               >
                                 {formatCurrency(netImpactValue)}
                               </p>
-                              <p className="mt-1 text-xs text-slate-400">
+                              <p className="mt-1 text-xs text-muted-foreground">
                                 {scenarioIrpf.impactDetails.taxBracket} • Base {formatCurrency(scenarioIrpf.impactDetails.taxableIncome)}
                               </p>
                             </div>
@@ -595,74 +617,116 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
 
           <section id="data" data-section="data" className="space-y-4">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Dados Utilizados na Análise</h2>
-              <p className="text-sm text-slate-300">
+              <h2 className="text-xl font-semibold text-foreground">Dados Utilizados na Análise</h2>
+              <p className="text-sm text-muted-foreground">
                 Informações fornecidas pelo cliente e transcritas automaticamente para alimentar os cálculos.
               </p>
             </div>
-            <Card className="border border-slate-200 shadow-sm dark:border-slate-700">
+            <Card className="border border-[hsl(var(--border))] shadow-sm">
               <CardHeader>
-                <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Transcrição de Documentos</CardTitle>
+                <CardTitle className="text-lg font-semibold text-foreground">Transcrição de Documentos</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="max-h-[320px] overflow-auto rounded-md bg-[hsl(var(--secondary))] p-4 text-sm leading-relaxed">
                   {analysis.transcribedText ? (
-                    <p className="whitespace-pre-wrap text-slate-200">{analysis.transcribedText}</p>
+                    <p className="whitespace-pre-wrap text-foreground">{analysis.transcribedText}</p>
                   ) : (
-                    <p className="text-slate-300">Nenhum documento foi anexado para transcrição.</p>
+                    <p className="text-muted-foreground">Nenhum documento foi anexado para transcrição.</p>
                   )}
                 </div>
               </CardContent>
             </Card>
-            <Card className="border border-slate-200 shadow-sm dark:border-slate-700">
+            <Card className="border border-[hsl(var(--border))] shadow-sm">
               <CardHeader>
-                <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Retorno do Webhook</CardTitle>
-                <CardDescription className="text-slate-300">
-                  Payload enviado para <span className="font-medium text-brand-600 dark:text-brand-300">{WEBHOOK_ENDPOINT}</span>.
+                <CardTitle className="text-lg font-semibold text-foreground">Retorno do Webhook</CardTitle>
+                <CardDescription className="text-muted-foreground">
+                  {isWebhookConfigured ? (
+                    <>
+                      Payload enviado para{' '}
+                      <a
+                        href={WEBHOOK_ENDPOINT}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-brand-600 dark:text-brand-300"
+                      >
+                        {WEBHOOK_ENDPOINT}
+                      </a>.
+                    </>
+                  ) : (
+                    'Nenhum endpoint configurado. Defina as variáveis NEXT_PUBLIC_WEBHOOK_URL e WEBHOOK_URL para habilitar este envio.'
+                  )}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="max-h-[240px] overflow-auto rounded-md bg-[hsl(var(--secondary))] p-4 text-sm leading-relaxed">
-                  {webhookResponse ? (
-                    <pre className="whitespace-pre-wrap break-words text-slate-200">
+              <CardContent className="space-y-4">
+                {!isWebhookConfigured && !webhookResponse && (
+                  <Alert className="border border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Envio desabilitado</AlertTitle>
+                    <AlertDescription>
+                      Configure um endpoint válido para registrar o histórico do planejamento em integrações externas.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {(isWebhookConfigured || webhookResponse) && (
+                  <div className="max-h-[240px] overflow-auto rounded-md bg-[hsl(var(--secondary))] p-4 text-sm leading-relaxed">
+                    {webhookResponse ? (
+                      webhookError ? (
+                        <Alert variant="destructive" className="border border-red-200 bg-red-50 text-red-900 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-100">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertTitle>Falha ao enviar</AlertTitle>
+                          <AlertDescription className="space-y-2 text-sm">
+                            <p>Revise o endpoint informado ou tente novamente mais tarde.</p>
+                            <pre className="max-h-40 overflow-auto rounded bg-red-900/10 p-3 text-xs leading-relaxed text-red-900 dark:bg-red-300/10 dark:text-red-100">
 {`${
   webhookResponse.length > 2000
     ? `${webhookResponse.slice(0, 2000)}…`
     : webhookResponse
 }`}
-                    </pre>
-                  ) : (
-                    <p className="text-slate-300">
-                      Nenhuma resposta recebida do endpoint até o momento.
-                    </p>
-                  )}
-                </div>
+                            </pre>
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <pre className="whitespace-pre-wrap break-words text-foreground">
+{`${
+  webhookResponse.length > 2000
+    ? `${webhookResponse.slice(0, 2000)}…`
+    : webhookResponse
+}`}
+                        </pre>
+                      )
+                    ) : (
+                      <p className="text-muted-foreground">
+                        Nenhuma resposta recebida do endpoint até o momento.
+                      </p>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </section>
 
           <section id="summary" data-section="summary" className="space-y-6">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Resumo Estratégico</h2>
-              <p className="text-sm text-slate-300">
+              <h2 className="text-xl font-semibold text-foreground">Resumo Estratégico</h2>
+              <p className="text-sm text-muted-foreground">
                 Síntese executiva com recomendações e pontos de atenção para a tomada de decisão.
               </p>
             </div>
-            <Card className="border border-slate-200 shadow-sm dark:border-slate-700">
+            <Card className="border border-[hsl(var(--border))] shadow-sm">
               <CardHeader>
-                <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Resumo Executivo</CardTitle>
+                <CardTitle className="text-lg font-semibold text-foreground">Resumo Executivo</CardTitle>
               </CardHeader>
-              <CardContent className="prose prose-sm max-w-none text-slate-700 dark:text-slate-200">
+            <CardContent className="prose prose-sm max-w-none text-foreground">
                 <MarkdownRenderer content={analysis.executiveSummary} />
               </CardContent>
             </Card>
             {analysis.breakEvenAnalysis && (
-              <Card className="border border-slate-200 shadow-sm dark:border-slate-700">
+              <Card className="border border-[hsl(var(--border))] shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Pontes de Equilíbrio</CardTitle>
+                  <CardTitle className="text-lg font-semibold text-foreground">Pontes de Equilíbrio</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-slate-300 whitespace-pre-wrap">
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                     {analysis.breakEvenAnalysis}
                   </p>
                 </CardContent>

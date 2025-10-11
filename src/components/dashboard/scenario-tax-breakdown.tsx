@@ -17,24 +17,24 @@ export function ScenarioTaxBreakdown({ scenario, className }: ScenarioTaxBreakdo
   const maxValue = breakdown.length > 0 ? Math.max(...breakdown.map(tax => tax.value)) : 0;
 
   return (
-    <Card className={cn('border border-slate-200 shadow-sm transition-colors duration-200 dark:border-slate-700', className)}>
+    <Card className={cn('border border-[hsl(var(--border))] shadow-sm transition-colors duration-200', className)}>
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Detalhamento dos Tributos</CardTitle>
-        <p className="text-sm text-slate-600 dark:text-slate-300">
+        <CardTitle className="text-lg font-semibold text-foreground">Detalhamento dos Tributos</CardTitle>
+        <p className="text-sm text-muted-foreground">
           Distribuição dos impostos que compõem a carga tributária total.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {breakdown.length === 0 && (
-          <p className="text-sm text-slate-600 dark:text-slate-300">Nenhum tributo detalhado para este cenário.</p>
+          <p className="text-sm text-muted-foreground">Nenhum tributo detalhado para este cenário.</p>
         )}
         {breakdown.map((tax, index) => {
           const width = maxValue > 0 ? Math.max((tax.value / maxValue) * 100, 12) : 0;
           return (
             <div key={tax.name + index} className="space-y-1">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-slate-800 dark:text-white">{tax.name}</span>
-                <span className="text-slate-600 dark:text-slate-300">{formatCurrency(tax.value)}</span>
+                <span className="font-medium text-foreground">{tax.name}</span>
+                <span className="text-muted-foreground">{formatCurrency(tax.value)}</span>
               </div>
               <div className="flex items-center gap-3">
                 <div
@@ -44,7 +44,7 @@ export function ScenarioTaxBreakdown({ scenario, className }: ScenarioTaxBreakdo
                   )}
                   style={{ width: `${width}%` }}
                 />
-                <span className="text-xs text-slate-600 dark:text-slate-300">
+                <span className="text-xs text-muted-foreground">
                   {formatPercentage((tax.rate || 0) / 100, 1)}
                 </span>
               </div>

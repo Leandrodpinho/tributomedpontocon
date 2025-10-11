@@ -20,45 +20,68 @@ export function ScenarioMetrics({
   annualSavings,
   economyShare,
 }: ScenarioMetricsProps) {
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <KpiCard
-        title="Melhor Cenário"
-        value={bestScenario?.name.replace(/Cenário para .*?:\s*/i, '') ?? 'Aguardando análise'}
-        subValue={bestScenario ? 'Menor carga tributária para o faturamento atual.' : 'Envie dados para gerar os cenários.'}
-        icon={<Crown className="h-6 w-6" />}
-        highlight="primary"
-        className="min-h-[160px]"
-      />
-      <KpiCard
-        title="Economia Mensal"
-        value={formatCurrency(monthlySavings)}
-        subValue={worstScenario ? `Comparação com ${worstScenario.name.split(':')[0].trim()}` : 'Dependente da análise completa.'}
-        icon={<Banknote className="h-6 w-6" />}
-        highlight="accent"
-        className="min-h-[160px]"
-      />
-      <KpiCard
-        title="Economia Anual"
-        value={formatCurrency(annualSavings)}
-        subValue="Projeção em 12 meses mantendo o faturamento."
-        icon={<Banknote className="h-6 w-6" />}
-        highlight="neutral"
-        hint="Ideal para orientar planos de reinvestimento em estrutura e pessoal."
-        className="min-h-[160px]"
-      />
-      <KpiCard
-        title="% de Economia"
-        value={formatPercentage(economyShare)}
-        subValue="Redução percentual sobre o cenário menos eficiente."
-        icon={<Percent className="h-6 w-6" />}
-        highlight="success"
-        trend={{
+  const cards = [
+    {
+      key: 'best',
+      props: {
+        title: 'Melhor Cenário',
+        value: bestScenario?.name.replace(/Cenário para .*?:\s*/i, '') ?? 'Aguardando análise',
+        subValue: bestScenario
+          ? 'Menor carga tributária indicada para o faturamento atual.'
+          : 'Envie dados para gerar os cenários.',
+        icon: <Crown className="h-6 w-6" />,
+        highlight: 'primary' as const,
+      },
+    },
+    {
+      key: 'monthly',
+      props: {
+        title: 'Economia Mensal',
+        value: formatCurrency(monthlySavings),
+        subValue: worstScenario
+          ? `Comparação com ${worstScenario.name.split(':')[0].trim()}`
+          : 'Dependente da análise completa.',
+        icon: <Banknote className="h-6 w-6" />,
+        highlight: 'accent' as const,
+      },
+    },
+    {
+      key: 'annual',
+      props: {
+        title: 'Economia Anual',
+        value: formatCurrency(annualSavings),
+        subValue: 'Projeção em 12 meses mantendo o faturamento.',
+        icon: <Banknote className="h-6 w-6" />,
+        highlight: 'neutral' as const,
+        hint: 'Referência útil para planos de reinvestimento em estrutura e pessoal.',
+      },
+    },
+    {
+      key: 'percentage',
+      props: {
+        title: '% de Economia',
+        value: formatPercentage(economyShare),
+        subValue: 'Redução percentual em relação ao cenário menos eficiente.',
+        icon: <Percent className="h-6 w-6" />,
+        highlight: 'success' as const,
+        trend: {
           direction: economyShare >= 0 ? 'up' : 'down',
           label: economyShare >= 0 ? 'Economia positiva' : 'Economia negativa',
-        }}
-        className="min-h-[160px]"
-      />
+        },
+      },
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap">
+      {cards.map(card => (
+        <div
+          key={card.key}
+          className="flex flex-1 basis-[260px] flex-col gap-4 sm:max-w-[320px]"
+        >
+          <KpiCard {...card.props} className="h-full" />
+        </div>
+      ))}
     </div>
-  );
+  )
 }

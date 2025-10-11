@@ -48,13 +48,13 @@ const initialState: AnalysisState = {
 
 const StepHeader = ({ step, title, subtitle }: { step: string; title: string; subtitle: string }) => (
   <div className="flex items-start gap-3">
-    <span className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--primary)_/_0.2)] text-sm font-semibold text-brand-50 shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary)_/_0.4)]">
+    <span className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--primary)_/_0.15)] text-sm font-semibold text-brand-600 dark:text-brand-100 shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary)_/_0.35)]">
       {step}
     </span>
     <div>
-      <p className="text-xs uppercase tracking-[0.3em] text-brand-200 dark:text-brand-300">Etapa {step}</p>
-      <h3 className="text-sm font-semibold text-slate-100">{title}</h3>
-      <p className="text-xs text-slate-400">{subtitle}</p>
+      <p className="text-xs uppercase tracking-[0.3em] text-brand-600 dark:text-brand-300">Etapa {step}</p>
+      <h3 className="text-base font-semibold text-foreground">{title}</h3>
+      <p className="text-sm text-muted-foreground">{subtitle}</p>
     </div>
   </div>
 );
@@ -152,17 +152,14 @@ export default function Home() {
         <div className="flex items-center gap-3">
           <LogoIcon className="h-8 w-8 text-brand-600" />
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-100">
-              Tributo Med<span className="text-brand-200">.con</span>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">
+              Tributo Med<span className="text-brand-600">.con</span>
             </h1>
-            <p className="text-xs text-slate-400">
+            <p className="text-sm text-muted-foreground">
               Planejamento tributário inteligente para clínicas, consultórios e profissionais da saúde.
             </p>
           </div>
         </div>
-        <Badge variant="outline" className="border-[hsl(var(--accent))] bg-[hsl(var(--accent)_/_0.14)] text-brand-100">
-          Nova Experiência 2025
-        </Badge>
       </header>
 
       <main className="mx-auto mt-6 flex w-full max-w-6xl flex-1 flex-col gap-10 rounded-3xl border border-[hsl(var(--border))] bg-[hsl(var(--card)_/_0.8)] px-4 py-8 shadow-[0_30px_90px_-40px_rgba(12,25,38,0.8)] backdrop-blur-lg md:px-8">
@@ -173,27 +170,24 @@ export default function Home() {
                 <CardHeader className="space-y-6">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <CardTitle className="text-2xl font-semibold text-slate-100">
+                      <CardTitle className="text-2xl font-semibold text-foreground">
                         Planner Tributário Inteligente
                       </CardTitle>
                       <CardDescription>
                         Preencha as etapas para orientar a IA com dados consistentes e acelerar a definição do regime ideal.
                       </CardDescription>
                     </div>
-                    <Badge variant="secondary" className="self-start bg-[hsl(var(--accent)_/_0.12)] text-brand-200">
-                      versão 2.3
-                    </Badge>
                   </div>
                   <div className="space-y-4">
                     <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="text-xs uppercase tracking-[0.3em] text-slate-300">
+                      <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
                         Etapa {String(currentStep + 1).padStart(2, "0")} de {WIZARD_STEPS.length}
                       </p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-sm text-muted-foreground">
                         {WIZARD_STEPS[currentStep]?.description}
                       </p>
                     </div>
-                    <Progress value={progressValue} className="h-2 bg-slate-200 dark:bg-slate-800" />
+                    <Progress value={progressValue} className="h-2 bg-[hsl(var(--secondary))] dark:bg-slate-800" />
                     <div className="flex flex-wrap gap-2">
                       {WIZARD_STEPS.map((step, index) => {
                         const isActive = index === currentStep;
@@ -207,8 +201,8 @@ export default function Home() {
                             className={cn(
                               "flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 disabled:cursor-not-allowed",
                               isActive && "bg-brand-500 text-[hsl(var(--background))] shadow-lg",
-                              isCompleted && "bg-[hsl(var(--accent)_/_0.16)] text-brand-100",
-                              !isActive && !isCompleted && "bg-[hsl(var(--secondary))] text-slate-300 hover:bg-[hsl(var(--secondary)_/_0.9)]"
+                              isCompleted && "bg-[hsl(var(--accent)_/_0.16)] text-brand-700",
+                              !isActive && !isCompleted && "bg-[hsl(var(--secondary))] text-muted-foreground hover:bg-[hsl(var(--secondary)_/_0.9)]"
                             )}
                             aria-current={isActive ? "step" : undefined}
                           >
@@ -234,7 +228,7 @@ export default function Home() {
                       />
                       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
                         <div className="space-y-3">
-                          <Label htmlFor="attachments" className="text-slate-200">
+                          <Label htmlFor="attachments" className="text-foreground">
                             Anexar documentos prioritários
                           </Label>
                           <Input
@@ -244,36 +238,36 @@ export default function Home() {
                             accept=".pdf,.jpg,.jpeg,.png,.heic,.xlsx,.csv"
                             multiple
                           />
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-muted-foreground">
                             Arraste ou selecione todos os arquivos de uma só vez. Quanto mais completos os anexos, mais precisa será a análise.
                           </p>
                         </div>
                         <div className="space-y-4 rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-5">
-                          <p className="text-sm font-semibold text-slate-100">
+                          <p className="text-sm font-semibold text-foreground">
                             Priorize anexos claros:
                           </p>
-                          <ul className="space-y-3 text-sm text-slate-300">
+                          <ul className="space-y-3 text-sm text-muted-foreground">
                             <li className="flex items-start gap-3">
-                              <FileText className="mt-0.5 h-4 w-4 text-brand-200" />
+                              <FileText className="mt-0.5 h-4 w-4 text-brand-600 dark:text-brand-300" />
                               <span>Extrato do Simples Nacional ou DAS consolidado dos últimos 12 meses.</span>
                             </li>
                             <li className="flex items-start gap-3">
-                              <IdCard className="mt-0.5 h-4 w-4 text-brand-200" />
+                              <IdCard className="mt-0.5 h-4 w-4 text-brand-600 dark:text-brand-300" />
                               <span>Cartão CNPJ, contrato social ou alterações societárias atualizadas.</span>
                             </li>
                             <li className="flex items-start gap-3">
-                              <Receipt className="mt-0.5 h-4 w-4 text-brand-200" />
+                              <Receipt className="mt-0.5 h-4 w-4 text-brand-600 dark:text-brand-300" />
                               <span>Declaração de imposto de renda (DIRPF/ECF) para confirmar distribuição e pró-labore.</span>
                             </li>
                             <li className="flex items-start gap-3">
-                              <FileSignature className="mt-0.5 h-4 w-4 text-brand-200" />
+                              <FileSignature className="mt-0.5 h-4 w-4 text-brand-600 dark:text-brand-300" />
                               <span>Transcrição ou ata da negociação com o cliente para captar expectativas e restrições.</span>
                             </li>
                           </ul>
                         </div>
                       </div>
                       <div className="space-y-3">
-                        <Label htmlFor="negotiationTranscript" className="text-slate-200">
+                        <Label htmlFor="negotiationTranscript" className="text-foreground">
                           Transcrição da negociação (texto opcional)
                         </Label>
                         <Textarea
@@ -282,7 +276,7 @@ export default function Home() {
                           rows={5}
                           placeholder="Cole aqui os principais pontos da conversa: metas de faturamento, expectativas dos sócios, pendências fiscais, apetite a risco etc."
                         />
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-muted-foreground">
                           Este campo complementa os anexos e ajuda a IA a interpretar os requisitos estratégicos do cliente.
                         </p>
                       </div>
@@ -300,7 +294,7 @@ export default function Home() {
                       />
                       <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-3">
-                          <Label className="text-slate-200">Tipo de Cliente</Label>
+                          <Label className="text-foreground">Tipo de Cliente</Label>
                           <RadioGroup
                             name="clientType"
                             defaultValue="Novo aberturas de empresa"
@@ -312,8 +306,8 @@ export default function Home() {
                             >
                               <RadioGroupItem value="Novo aberturas de empresa" id="new-company" />
                               <div>
-                                <p className="text-sm font-semibold text-slate-100">Nova abertura</p>
-                                <p className="text-xs text-slate-400">Empresas em fase de constituição.</p>
+                                <p className="text-sm font-semibold text-foreground">Nova abertura</p>
+                                <p className="text-xs text-muted-foreground">Empresas em fase de constituição.</p>
                               </div>
                             </label>
                             <label
@@ -322,14 +316,14 @@ export default function Home() {
                             >
                               <RadioGroupItem value="Transferências de contabilidade" id="transfer" />
                               <div>
-                                <p className="text-sm font-semibold text-slate-100">Transferência</p>
-                                <p className="text-xs text-slate-400">Empresas com operação em andamento.</p>
+                                <p className="text-sm font-semibold text-foreground">Transferência</p>
+                                <p className="text-xs text-muted-foreground">Empresas com operação em andamento.</p>
                               </div>
                             </label>
                           </RadioGroup>
                         </div>
                         <div className="space-y-3">
-                          <Label htmlFor="companyName" className="text-slate-200">Nome da Empresa</Label>
+                          <Label htmlFor="companyName" className="text-foreground">Nome da Empresa</Label>
                           <Input
                             id="companyName"
                             name="companyName"
@@ -337,12 +331,12 @@ export default function Home() {
                             autoComplete="organization"
                             placeholder="Ex: Clínica Dr. João Silva"
                           />
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-muted-foreground">
                             Informe para personalizar relatórios e comunicações.
                           </p>
                         </div>
                         <div className="space-y-3">
-                          <Label htmlFor="cnpj" className="text-slate-200">CNPJ</Label>
+                          <Label htmlFor="cnpj" className="text-foreground">CNPJ</Label>
                           <Input
                             id="cnpj"
                             name="cnpj"
@@ -350,19 +344,19 @@ export default function Home() {
                             inputMode="numeric"
                             placeholder="00.000.000/0001-00"
                           />
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-muted-foreground">
                             Facilita a conferência dos CNAEs e registro municipal.
                           </p>
                         </div>
                         <div className="space-y-3">
-                          <Label htmlFor="cnaes" className="text-slate-200">CNAEs (separados por vírgula)</Label>
+                          <Label htmlFor="cnaes" className="text-foreground">CNAEs (separados por vírgula)</Label>
                           <Input
                             id="cnaes"
                             name="cnaes"
                             type="text"
                             placeholder="8630-5/03, 8610-1/01"
                           />
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-muted-foreground">
                             Essencial para avaliar Fator R, ISS e equiparação hospitalar.
                           </p>
                         </div>
@@ -371,12 +365,12 @@ export default function Home() {
                       <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">
-                            <Label htmlFor="rbt12" className="text-slate-200">RBT12 (Receita Bruta 12M)</Label>
+                            <Label htmlFor="rbt12" className="text-foreground">RBT12 (Receita Bruta 12M)</Label>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button
                                   type="button"
-                                  className="text-slate-400 transition-colors hover:text-brand-200"
+                                  className="text-muted-foreground transition-colors hover:text-brand-600 dark:hover:text-brand-300"
                                   aria-label="Mais detalhes sobre RBT12"
                                 >
                                   <HelpCircle className="h-4 w-4" />
@@ -398,12 +392,12 @@ export default function Home() {
                         </div>
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">
-                            <Label htmlFor="fs12" className="text-slate-200">FS12 (Folha de Salários 12M)</Label>
+                            <Label htmlFor="fs12" className="text-foreground">FS12 (Folha de Salários 12M)</Label>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button
                                   type="button"
-                                  className="text-slate-400 transition-colors hover:text-brand-200"
+                                  className="text-muted-foreground transition-colors hover:text-brand-600 dark:hover:text-brand-300"
                                   aria-label="Mais detalhes sobre FS12"
                                 >
                                   <HelpCircle className="h-4 w-4" />
@@ -425,12 +419,12 @@ export default function Home() {
                         </div>
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">
-                            <Label htmlFor="payrollExpenses" className="text-slate-200">Folha Salarial Mensal (CLT)</Label>
+                            <Label htmlFor="payrollExpenses" className="text-foreground">Folha Salarial Mensal (CLT)</Label>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button
                                   type="button"
-                                  className="text-slate-400 transition-colors hover:text-brand-200"
+                                  className="text-muted-foreground transition-colors hover:text-brand-600 dark:hover:text-brand-300"
                                   aria-label="Mais detalhes sobre folha mensal"
                                 >
                                   <HelpCircle className="h-4 w-4" />
@@ -452,12 +446,12 @@ export default function Home() {
                         </div>
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">
-                            <Label htmlFor="issRate" className="text-slate-200">Alíquota de ISS (%)</Label>
+                            <Label htmlFor="issRate" className="text-foreground">Alíquota de ISS (%)</Label>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button
                                   type="button"
-                                  className="text-slate-400 transition-colors hover:text-brand-200"
+                                  className="text-muted-foreground transition-colors hover:text-brand-600 dark:hover:text-brand-300"
                                   aria-label="Mais detalhes sobre ISS"
                                 >
                                   <HelpCircle className="h-4 w-4" />
@@ -488,11 +482,11 @@ export default function Home() {
                             id="isHospitalEquivalent"
                             name="isHospitalEquivalent"
                             type="checkbox"
-                            className="mt-1 h-4 w-4 rounded border-brand-400 text-brand-500 focus:ring-brand-500"
+                            className="mt-1 h-4 w-4 rounded border-brand-400 text-brand-600 dark:text-brand-300 focus:ring-brand-500"
                           />
                           <div>
-                            <p className="text-sm font-semibold text-slate-100">Equiparação Hospitalar</p>
-                            <p className="text-xs text-slate-400">
+                            <p className="text-sm font-semibold text-foreground">Equiparação Hospitalar</p>
+                            <p className="text-xs text-muted-foreground">
                               Assinale quando a clínica se enquadra nas jurisprudências de serviços hospitalares.
                             </p>
                           </div>
@@ -505,11 +499,11 @@ export default function Home() {
                             id="isUniprofessionalSociety"
                             name="isUniprofessionalSociety"
                             type="checkbox"
-                            className="mt-1 h-4 w-4 rounded border-brand-400 text-brand-500 focus:ring-brand-500"
+                            className="mt-1 h-4 w-4 rounded border-brand-400 text-brand-600 dark:text-brand-300 focus:ring-brand-500"
                           />
                           <div>
-                            <p className="text-sm font-semibold text-slate-100">Sociedade Uniprofissional</p>
-                            <p className="text-xs text-slate-400">
+                            <p className="text-sm font-semibold text-foreground">Sociedade Uniprofissional</p>
+                            <p className="text-xs text-muted-foreground">
                               Indique se a estrutura societária permite ISS fixo por profissional.
                             </p>
                           </div>
@@ -529,7 +523,7 @@ export default function Home() {
                       />
                       <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-3 md:col-span-2">
-                          <Label htmlFor="monthlyRevenue" className="text-slate-200">
+                          <Label htmlFor="monthlyRevenue" className="text-foreground">
                             Faturamento Mensal (R$) *
                           </Label>
                           <Input
@@ -541,12 +535,12 @@ export default function Home() {
                             placeholder="Ex: 180000.00"
                             required
                           />
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-muted-foreground">
                             Campo obrigatório e referência principal para todos os cenários simulados.
                           </p>
                         </div>
                         <div className="space-y-3 md:col-span-2">
-                          <Label htmlFor="clientData" className="text-slate-200">
+                          <Label htmlFor="clientData" className="text-foreground">
                             Informações Financeiras e Operacionais adicionais
                           </Label>
                           <Textarea
@@ -555,7 +549,7 @@ export default function Home() {
                             placeholder="Detalhe sazonalidade de faturamento, quadro de pessoal, composição de serviços, despesas relevantes e condições dos sócios."
                             rows={7}
                           />
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-muted-foreground">
                             Use números sempre que possível (ex.: faturamento privado vs. convênios, percentual de despesa assistencial, pró-labore atual).
                           </p>
                         </div>
@@ -563,7 +557,7 @@ export default function Home() {
                     </section>
                   </CardContent>
                   <CardFooter className="flex flex-col gap-4 border-t border-[hsl(var(--border))] bg-[hsl(var(--secondary)_/_0.6)] p-6">
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-muted-foreground">
                       <p>Os dados são processados em ambiente seguro e descartados ao término da análise.</p>
                       <p>Progresso salvo automaticamente. Você pode voltar etapas para revisar informações.</p>
                     </div>
@@ -585,30 +579,30 @@ export default function Home() {
                 </form>
               </Card>
 
-              <Card className="border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] text-slate-100 shadow-lg backdrop-blur transition-transform duration-200 hover:-translate-y-1">
+              <Card className="border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] text-foreground shadow-lg backdrop-blur transition-transform duration-200 hover:-translate-y-1">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <Sparkles className="h-5 w-5 text-brand-100" /> Como potencializar a análise
+                  <CardTitle className="flex items-center gap-2 text-lg font-semibold text-brand-700 dark:text-brand-200">
+                    <Sparkles className="h-5 w-5 text-brand-600 dark:text-brand-300" /> Como potencializar a análise
                   </CardTitle>
-                  <CardDescription className="text-brand-100/80">
+                  <CardDescription className="text-muted-foreground">
                     Pequenos detalhes aumentam a precisão dos cenários tributários gerados.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4 text-sm text-brand-100/90">
+                <CardContent className="space-y-4 text-sm text-foreground">
                   <div className="flex items-start gap-3">
-                    <ClipboardList className="mt-1 h-5 w-5 text-brand-100" />
+                    <ClipboardList className="mt-1 h-5 w-5 text-brand-600 dark:text-brand-300" />
                     <p>
                       Informe o faturamento médio mensal, sazonalidades e percentuais por fonte pagadora. Valores estruturados aceleram a simulação.
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <ShieldCheck className="mt-1 h-5 w-5 text-brand-100" />
+                    <ShieldCheck className="mt-1 h-5 w-5 text-brand-600 dark:text-brand-300" />
                     <p>
                       Descreva obrigações acessórias específicas (RET, ISS fixo, contratação de médicos PJ) para reforçar requisitos legais.
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Upload className="mt-1 h-5 w-5 text-brand-100" />
+                    <Upload className="mt-1 h-5 w-5 text-brand-600 dark:text-brand-300" />
                     <p>
                       Priorize anexos claros: declarações do Simples, balancetes e contratos sociais ajudam a IA a validar as hipóteses.
                     </p>
