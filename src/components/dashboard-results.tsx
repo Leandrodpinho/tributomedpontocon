@@ -343,25 +343,25 @@ export function DashboardResults({
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <div className="flex h-full min-h-[140px] flex-col justify-between rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Base Tributável</p>
-            <p className="text-2xl font-semibold text-foreground">{formatCurrency(details.taxableIncome)}</p>
+          <div className="flex h-full min-h-[150px] flex-col rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary)_/_0.9)] p-5 shadow-inner shadow-black/5">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/80">Base Tributável</p>
+            <p className="mt-auto text-2xl font-semibold text-foreground tabular-nums">{formatCurrency(details.taxableIncome)}</p>
           </div>
-          <div className="flex h-full min-h-[140px] flex-col justify-between rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Faixa de Alíquota</p>
-            <p className="text-2xl font-semibold text-foreground">{details.taxBracket}</p>
+          <div className="flex h-full min-h-[150px] flex-col rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary)_/_0.9)] p-5 shadow-inner shadow-black/5">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/80">Faixa de Alíquota</p>
+            <p className="mt-auto text-2xl font-semibold text-foreground tabular-nums">{details.taxBracket}</p>
           </div>
-          <div className="flex h-full min-h-[140px] flex-col justify-between rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">IRPF Bruto</p>
-            <p className="text-2xl font-semibold text-foreground">{formatCurrency(details.irpfDue)}</p>
+          <div className="flex h-full min-h-[150px] flex-col rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary)_/_0.9)] p-5 shadow-inner shadow-black/5">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/80">IRPF Bruto</p>
+            <p className="mt-auto text-2xl font-semibold text-foreground tabular-nums">{formatCurrency(details.irpfDue)}</p>
           </div>
-          <div className="flex h-full min-h-[140px] flex-col justify-between rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Deduções</p>
-            <p className="text-2xl font-semibold text-foreground">{formatCurrency(details.deductions)}</p>
+          <div className="flex h-full min-h-[150px] flex-col rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary)_/_0.9)] p-5 shadow-inner shadow-black/5">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/80">Deduções</p>
+            <p className="mt-auto text-2xl font-semibold text-foreground tabular-nums">{formatCurrency(details.deductions)}</p>
           </div>
-          <div className="flex h-full min-h-[140px] flex-col justify-between rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">{netImpactLabel}</p>
-            <p className={cn('text-2xl font-semibold', netImpactClass)}>{formatCurrency(netImpactValue)}</p>
+          <div className="flex h-full min-h-[150px] flex-col rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary)_/_0.9)] p-5 shadow-inner shadow-black/5">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/80">{netImpactLabel}</p>
+            <p className={cn('mt-auto text-2xl font-semibold tabular-nums', netImpactClass)}>{formatCurrency(netImpactValue)}</p>
           </div>
         </CardContent>
         <CardFooter>

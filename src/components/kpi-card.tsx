@@ -23,11 +23,11 @@ type KpiCardProps = {
 
 const highlightClasses: Record<NonNullable<KpiCardProps['highlight']>, string> = {
   primary:
-    'bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 text-white border-transparent shadow-lg',
+    'bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 text-white border border-brand-400/40 shadow-lg shadow-brand-900/25',
   accent:
-    'bg-[hsl(var(--accent)_/_0.18)] text-brand-700 dark:text-brand-200 border border-[hsl(var(--accent))] shadow-md',
+    'bg-[hsl(var(--accent)_/_0.18)] text-brand-100 dark:text-brand-100 border border-[hsl(var(--accent)_/_0.45)] shadow-md shadow-brand-900/10',
   success:
-    'bg-gradient-to-br from-lime-300 via-lime-400 to-lime-500 text-emerald-900 border-transparent shadow-lg',
+    'bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 text-emerald-50 border border-emerald-400/50 shadow-lg shadow-emerald-900/25',
   neutral:
     'bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] border border-[hsl(var(--border))] shadow-sm',
 };
@@ -52,11 +52,17 @@ export const KpiCard = ({
   const iconWrapper = highlight === 'primary'
     ? 'text-white/90 bg-white/15'
     : highlight === 'success'
-      ? 'text-emerald-900 bg-white/30'
+      ? 'text-emerald-100 bg-emerald-900/25'
       : 'text-brand-600 dark:text-brand-200 bg-[hsl(var(--accent)_/_0.18)]';
-  const trendBadge = isVibrant
-    ? 'bg-white/20 text-white'
-    : 'bg-[hsl(var(--accent)_/_0.18)] text-brand-700 dark:text-brand-200';
+  const trendBadge = highlight === 'success'
+    ? 'bg-emerald-900/35 text-emerald-100'
+    : isVibrant
+      ? 'bg-white/22 text-white'
+      : 'bg-[hsl(var(--accent)_/_0.18)] text-brand-700 dark:text-brand-200';
+  const headingClass = isVibrant ? 'text-white/80' : 'text-muted-foreground';
+  const valueClass = isVibrant ? 'text-white' : 'text-foreground';
+  const bodyCopyClass = isVibrant ? 'text-white/85' : 'text-muted-foreground';
+  const hintClass = isVibrant ? 'text-white/70' : 'text-muted-foreground/90';
 
   return (
     <Card
@@ -70,11 +76,11 @@ export const KpiCard = ({
         <div className={cn('absolute -right-6 -top-6 h-20 w-20 rounded-full opacity-70', iconWrapper)} aria-hidden />
       )}
       <CardHeader className="flex flex-col gap-2 pb-0">
-        <CardDescription className="text-xs uppercase tracking-wide text-muted-foreground">
+        <CardDescription className={cn('text-xs uppercase tracking-wide', headingClass)}>
           {title}
         </CardDescription>
         <div className="flex items-start justify-between gap-3">
-          <CardTitle className="text-xl font-semibold leading-tight md:text-2xl lg:text-[1.55rem] lg:leading-8 min-h-[2.75rem]">
+          <CardTitle className={cn('min-h-[2.75rem] text-xl font-semibold leading-tight tabular-nums md:text-2xl lg:text-[1.55rem] lg:leading-8', valueClass)}>
             {value}
           </CardTitle>
           {icon && <div className={cn('shrink-0 pt-1', isVibrant ? 'text-white' : 'text-brand-600')}>{icon}</div>}
@@ -82,12 +88,12 @@ export const KpiCard = ({
       </CardHeader>
       <CardContent className="mt-auto space-y-3 pt-3">
         {subValue && (
-          <p className="text-sm text-muted-foreground min-h-[3.6rem]">
+          <p className={cn('min-h-[3.6rem] text-sm leading-relaxed', bodyCopyClass)}>
             {subValue}
           </p>
         )}
         {hint && (
-          <p className="text-xs text-muted-foreground/90 min-h-[2.2rem]">
+          <p className={cn('min-h-[2.2rem] text-xs', hintClass)}>
             {hint}
           </p>
         )}
