@@ -1,6 +1,4 @@
-import type { App } from "firebase-admin/app";
-import { cert, getApps, initializeApp } from "firebase-admin/app";
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
+type App = import("firebase-admin/app").App;
 
 type FirebaseServiceAccount = {
   projectId: string;
@@ -52,8 +50,34 @@ const getServiceAccountFromEnv = (): FirebaseServiceAccount | null => {
 };
 
 let firebaseApp: App | null = null;
+let adminAppModule: typeof import("firebase-admin/app") | null = null;
+let firestoreModule: typeof import("firebase-admin/firestore") | null = null;
 
-export const getFirebaseAdminApp = (): App | null => {
+const ensureFirebaseAdmin = async (): Promise<boolean> => {
+  if (adminAppModule && firestoreModule) {
+    return true;
+  }
+
+  try {
+    const [appModule, firestore] = await Promise.all([
+      import("firebase-admin/app"),
+      import("firebase-admin/firestore"),
+    ]);
+    adminAppModule = appModule;
+    firestoreModule = firestore;
+    return true;
+  } catch (error) {
+    console.warn(
+      "Firebase Admin SDK não está disponível neste ambiente. Persistência de histórico será desativada.",
+      error instanceof Error ? error.message : error
+    );
+    adminAppModule = null;
+    firestoreModule = null;
+    return false;
+  }
+};
+
+export const getFirebaseAdminApp = async (): Promise<App | null> => {
   if (firebaseApp) {
     return firebaseApp;
   }
@@ -62,6 +86,13 @@ export const getFirebaseAdminApp = (): App | null => {
   if (!serviceAccount) {
     return null;
   }
+
+  const hasAdminSdk = await ensureFirebaseAdmin();
+  if (!hasAdminSdk || !adminAppModule) {
+    return null;
+  }
+
+  const { cert, getApps, initializeApp } = adminAppModule;
 
   try {
     const isAlreadyInitialized = getApps().length > 0;
@@ -102,8 +133,8 @@ export type PersistAnalysisResult = {
 export const persistAnalysisRecord = async (
   input: PersistAnalysisInput
 ): Promise<PersistAnalysisResult> => {
-  const app = getFirebaseAdminApp();
-  if (!app) {
+  const app = await getFirebaseAdminApp();
+  if (!app || !firestoreModule) {
     return {
       saved: false,
       documentId: null,
@@ -113,6 +144,7 @@ export const persistAnalysisRecord = async (
   }
 
   try {
+    const { FieldValue, getFirestore } = firestoreModule;
     const db = getFirestore(app);
     const collectionName = process.env.FIREBASE_ANALYSES_COLLECTION ?? "analyses";
     const docRef = await db.collection(collectionName).add({
