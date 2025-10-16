@@ -7,8 +7,9 @@ import type { CalculateIRPFImpactInput } from "@/ai/flows/calculate-irpf-impact"
 import type { GenerateTaxScenariosOutput } from "@/ai/flows/types";
 import { extractTextFromDocument } from "@/ai/flows/extract-text-from-document";
 import { inferDocumentType } from "@/ai/flows/document-utils";
-import htmlToDocx from 'html-to-docx';
+import htmlToDocx from "html-to-docx";
 import type { IrpfImpact } from "@/types/irpf";
+import { persistAnalysisRecord } from "@/lib/firebase-admin";
 
 export interface AnalysisState {
   aiResponse: GenerateTaxScenariosOutput | null;
@@ -16,6 +17,8 @@ export interface AnalysisState {
   irpfImpacts: Record<string, IrpfImpact> | null;
   webhookResponse: string | null;
   error: string | null;
+  historyRecordId: string | null;
+  historyError: string | null;
 }
 
 type SupportedTaxRegime = CalculateIRPFImpactInput["taxRegime"];
@@ -38,6 +41,24 @@ const mapScenarioNameToTaxRegime = (name: string): SupportedTaxRegime | null => 
 };
 
 const WEBHOOK_URL = (process.env.WEBHOOK_URL ?? process.env.NEXT_PUBLIC_WEBHOOK_URL ?? "").trim();
+const MAX_ATTACHMENT_BYTES = 12 * 1024 * 1024; // 12 MB
+const ALLOWED_ATTACHMENT_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/heic",
+  "image/heif",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/csv",
+]);
+
+type ProcessedAttachment = {
+  name: string;
+  type: string;
+  size: number;
+  dataUri: string;
+  extractedText: string;
+};
 
 // Helper function to convert a File to a data URI
 const fileToDataURI = async (file: File): Promise<string> => {
@@ -101,6 +122,8 @@ export async function getAnalysis(
         irpfImpacts: null,
         webhookResponse: null,
         error: "Informe o faturamento mensal estimado para que possamos gerar os cenários tributários.",
+        historyRecordId: null,
+        historyError: null,
       };
     }
 
@@ -111,28 +134,84 @@ export async function getAnalysis(
         irpfImpacts: null,
         webhookResponse: null,
         error: "Por favor, forneça as informações financeiras ou anexe um ou mais documentos para análise.",
+        historyRecordId: null,
+        historyError: null,
       };
     }
     
+    if (hasAttachments) {
+      const oversizedFile = validFiles.find(file => file.size > MAX_ATTACHMENT_BYTES);
+      if (oversizedFile) {
+        return {
+          aiResponse: null,
+          transcribedText: null,
+          irpfImpacts: null,
+          webhookResponse: null,
+          error: `O arquivo "${oversizedFile.name}" ultrapassa o limite de ${(MAX_ATTACHMENT_BYTES / (1024 * 1024)).toFixed(0)} MB. Reduza o tamanho antes de reenviar.`,
+          historyRecordId: null,
+          historyError: null,
+        };
+      }
+
+      const unsupportedFile = validFiles.find(file => file.type && !ALLOWED_ATTACHMENT_TYPES.has(file.type));
+      if (unsupportedFile) {
+        return {
+          aiResponse: null,
+          transcribedText: null,
+          irpfImpacts: null,
+          webhookResponse: null,
+          error: `O tipo de arquivo "${unsupportedFile.name}" (${unsupportedFile.type || "desconhecido"}) não é suportado. Envie PDF, imagens (JPEG/PNG/HEIC), planilhas XLSX ou CSV.`,
+          historyRecordId: null,
+          historyError: null,
+        };
+      }
+    }
+
     // 2. Process attachments by extracting text from each one
     let allDocumentsText = "";
+    let processedAttachments: ProcessedAttachment[] = [];
     if (hasAttachments) {
-      const textExtractionPromises = validFiles.map(async (file) => {
+      const attachmentsPromises = validFiles.map(async file => {
+        const safeType = file.type || "application/octet-stream";
         try {
           const dataUri = await fileToDataURI(file);
-          const result = await extractTextFromDocument({
-            document: dataUri,
-            documentType: inferDocumentType(file.type),
-          });
-          return result.extractedText;
-        } catch (e) {
-          console.error(`Failed to extract text from file: ${file.name}`, e);
-          return `[Erro ao processar o arquivo: ${file.name}]`;
+          let extractedText: string;
+
+          try {
+            const result = await extractTextFromDocument({
+              document: dataUri,
+              documentType: inferDocumentType(safeType),
+            });
+            extractedText = result.extractedText;
+          } catch (extractionError) {
+            console.error(`Failed to extract text from file: ${file.name}`, extractionError);
+            extractedText = `[Erro ao processar o arquivo: ${file.name}]`;
+          }
+
+          return {
+            name: file.name,
+            type: safeType,
+            size: file.size,
+            dataUri,
+            extractedText,
+          } satisfies ProcessedAttachment;
+        } catch (conversionError) {
+          console.error(`Failed to read file: ${file.name}`, conversionError);
+          return {
+            name: file.name,
+            type: safeType,
+            size: file.size,
+            dataUri: "",
+            extractedText: `[Erro ao ler o arquivo: ${file.name}]`,
+          } satisfies ProcessedAttachment;
         }
       });
 
-      const extractedTexts = await Promise.all(textExtractionPromises);
-      allDocumentsText = extractedTexts.join("\n\n---\n\n");
+      processedAttachments = await Promise.all(attachmentsPromises);
+      allDocumentsText = processedAttachments
+        .map(attachment => attachment.extractedText)
+        .filter(text => text && text.trim().length > 0)
+        .join("\n\n---\n\n");
     }
 
     const normalizedClientDataParts: string[] = [];
@@ -160,6 +239,12 @@ export async function getAnalysis(
       negotiationTranscript: negotiationTranscript ?? "",
       documentsAsText: allDocumentsText,
       sentAt: new Date().toISOString(),
+      attachments: processedAttachments.map(attachment => ({
+        name: attachment.name,
+        type: attachment.type,
+        size: attachment.size,
+        ...(attachment.dataUri ? { dataUri: attachment.dataUri } : {}),
+      })),
     };
 
     const webhookPromise: Promise<string | null> = WEBHOOK_URL
@@ -257,12 +342,43 @@ export async function getAnalysis(
 
     const webhookResponse = await webhookPromise;
 
+    const persistenceResult = await persistAnalysisRecord({
+      payload: {
+        clientType,
+        companyName,
+        cnpj,
+        monthlyRevenue: monthlyRevenueNum,
+        rbt12: rbt12Num,
+        fs12: fs12Num,
+        payrollExpenses: payrollExpensesNum,
+        issRate: issRateNum,
+        cnaes: parsedCnaes ?? [],
+        isHospitalEquivalent,
+        isUniprofessionalSociety,
+        clientData: clientData ?? "",
+        negotiationTranscript: negotiationTranscript ?? "",
+        documentsAsText: allDocumentsText,
+        sentAt: new Date().toISOString(),
+        webhookUrl: WEBHOOK_URL || null,
+      },
+      attachments: processedAttachments.map(attachment => ({
+        name: attachment.name,
+        type: attachment.type,
+        size: attachment.size,
+      })),
+      aiResponse: serializableResponse,
+      irpfImpacts,
+      webhookResponse,
+    });
+
     return {
       aiResponse: serializableResponse,
       transcribedText: serializableResponse?.transcribedText ?? allDocumentsText,
       irpfImpacts,
       webhookResponse,
       error: null,
+      historyRecordId: persistenceResult.saved ? persistenceResult.documentId : null,
+      historyError: persistenceResult.saved ? null : (persistenceResult.error ?? null),
     };
 
   } catch (error) {
@@ -279,6 +395,8 @@ export async function getAnalysis(
       irpfImpacts: null,
       webhookResponse: null,
       error: `Falha ao processar a análise: ${errorMessage}`,
+      historyRecordId: null,
+      historyError: null,
     };
   }
 }

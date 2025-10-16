@@ -4,17 +4,20 @@ import type { GenerateTaxScenariosOutput } from '@/ai/flows/types';
 import { extractTextFromDocument, ExtractTextFromDocumentOutput } from '@/ai/flows/extract-text-from-document';
 import { calculateIRPFImpact, CalculateIRPFImpactOutput } from '@/ai/flows/calculate-irpf-impact';
 import htmlToDocx from 'html-to-docx';
+import { persistAnalysisRecord } from '@/lib/firebase-admin';
 
 // Mock das funções de IA e html-to-docx
 jest.mock('@/ai/flows/generate-tax-scenarios');
 jest.mock('@/ai/flows/extract-text-from-document');
 jest.mock('@/ai/flows/calculate-irpf-impact');
 jest.mock('html-to-docx');
+jest.mock('@/lib/firebase-admin');
 
 const mockGenerateTaxScenarios = generateTaxScenarios as jest.MockedFunction<typeof generateTaxScenarios>;
 const mockExtractTextFromDocument = extractTextFromDocument as jest.MockedFunction<typeof extractTextFromDocument>;
 const mockCalculateIRPFImpact = calculateIRPFImpact as jest.MockedFunction<typeof calculateIRPFImpact>;
 const mockHtmlToDocx = htmlToDocx as jest.MockedFunction<typeof htmlToDocx>;
+const mockPersistAnalysisRecord = persistAnalysisRecord as jest.MockedFunction<typeof persistAnalysisRecord>;
 
 describe('getAnalysis Server Action', () => {
   const initialState: AnalysisState = {
@@ -23,6 +26,8 @@ describe('getAnalysis Server Action', () => {
     irpfImpacts: null,
     webhookResponse: null,
     error: null,
+    historyRecordId: null,
+    historyError: null,
   };
 
   beforeEach(() => {
@@ -37,6 +42,12 @@ describe('getAnalysis Server Action', () => {
         summary: 'Simulação de teste.',
       },
     } as CalculateIRPFImpactOutput);
+
+    mockPersistAnalysisRecord.mockResolvedValue({
+      saved: false,
+      documentId: null,
+      error: 'Firebase Admin não configurado.',
+    });
 
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -62,9 +73,12 @@ describe('getAnalysis Server Action', () => {
       irpfImpacts: null,
       webhookResponse: null,
       error: "Por favor, forneça as informações financeiras ou anexe um ou mais documentos para análise.",
+      historyRecordId: null,
+      historyError: null,
     });
     expect(mockExtractTextFromDocument).not.toHaveBeenCalled();
     expect(mockGenerateTaxScenarios).not.toHaveBeenCalled();
+    expect(mockPersistAnalysisRecord).not.toHaveBeenCalled();
   });
 
   it('deve processar clientData e gerar cenários de imposto', async () => {
@@ -118,6 +132,9 @@ describe('getAnalysis Server Action', () => {
         documentsAsText: '',
       })
     );
+    expect(mockPersistAnalysisRecord).toHaveBeenCalledTimes(1);
+    expect(result.historyRecordId).toBeNull();
+    expect(result.historyError).toEqual('Firebase Admin não configurado.');
   });
 
   it('deve extrair texto de anexos e gerar cenários de imposto', async () => {
@@ -178,6 +195,9 @@ describe('getAnalysis Server Action', () => {
         documentsAsText: 'Texto extraído do documento.',
       })
     );
+    expect(mockPersistAnalysisRecord).toHaveBeenCalledTimes(1);
+    expect(result.historyRecordId).toBeNull();
+    expect(result.historyError).toEqual('Firebase Admin não configurado.');
   });
 
   it('deve retornar um erro se a extração de texto falhar', async () => {
@@ -210,6 +230,9 @@ describe('getAnalysis Server Action', () => {
         documentsAsText: expect.stringContaining('[Erro ao processar o arquivo: documento.pdf]'),
       })
     );
+    expect(mockPersistAnalysisRecord).toHaveBeenCalledTimes(1);
+    expect(result.historyRecordId).toBeNull();
+    expect(result.historyError).toEqual('Firebase Admin não configurado.');
   });
 
   it('deve retornar um erro se a geração de cenários falhar', async () => {
@@ -226,6 +249,7 @@ describe('getAnalysis Server Action', () => {
     expect(result.aiResponse).toBeNull();
     expect(result.transcribedText).toBeNull();
     expect(mockGenerateTaxScenarios).toHaveBeenCalledTimes(1);
+    expect(mockPersistAnalysisRecord).not.toHaveBeenCalled();
   });
 });
 

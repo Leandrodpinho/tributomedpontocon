@@ -71,12 +71,12 @@ const config = {
         },
       },
       backgroundImage: {
-        "app-gradient": "linear-gradient(180deg, rgba(241,246,255,1) 0%, rgba(250,252,255,1) 100%)",
-        "card-glass": "linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(247,250,255,0.9) 100%)",
+        "app-gradient": "linear-gradient(180deg, rgba(18,30,41,1) 0%, rgba(11,22,32,1) 100%)",
+        "card-glass": "linear-gradient(135deg, rgba(23,39,54,0.85) 0%, rgba(15,28,40,0.92) 100%)",
       },
       boxShadow: {
-        focus: "0 0 0 4px rgba(60,135,255,0.18)",
-        elevated: "0 18px 45px -28px rgba(16,47,112,0.38)",
+        focus: "0 0 0 4px rgba(66,165,245,0.32)",
+        elevated: "0 24px 60px -32px rgba(12,25,38,0.65)",
       },
       fontFamily: {
         sans: ["var(--font-sans)"],

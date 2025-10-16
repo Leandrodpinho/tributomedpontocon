@@ -44,6 +44,8 @@ const initialState: AnalysisState = {
   irpfImpacts: null,
   webhookResponse: null,
   error: null,
+  historyRecordId: null,
+  historyError: null,
 };
 
 const StepHeader = ({ step, title, subtitle }: { step: string; title: string; subtitle: string }) => (
@@ -147,7 +149,7 @@ export default function Home() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-[hsl(var(--background))] text-[hsl(var(--foreground))] transition-colors duration-300">
+    <div className="flex min-h-screen flex-col bg-[hsl(var(--background))] bg-app-gradient text-[hsl(var(--foreground))] transition-colors duration-300">
       <header className="sticky top-0 z-10 flex h-20 items-center justify-between border-b border-[hsl(var(--border))] bg-[hsl(var(--background)_/_0.82)] px-4 backdrop-blur-md transition-colors duration-300 md:px-10">
         <div className="flex items-center gap-3">
           <LogoIcon className="h-8 w-8 text-brand-600" />
@@ -661,6 +663,8 @@ export default function Home() {
                 clientName={clientName}
                 irpfImpacts={state.irpfImpacts}
                 webhookResponse={state.webhookResponse}
+                historyRecordId={state.historyRecordId}
+                historyError={state.historyError}
               />
             </div>
           </>

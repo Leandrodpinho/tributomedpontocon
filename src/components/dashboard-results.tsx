@@ -37,9 +37,18 @@ type DashboardResultsProps = {
   clientName: string;
   irpfImpacts?: Record<string, IrpfImpact> | null;
   webhookResponse?: string | null;
+  historyRecordId?: string | null;
+  historyError?: string | null;
 };
 
-export function DashboardResults({ analysis, clientName, irpfImpacts, webhookResponse }: DashboardResultsProps) {
+export function DashboardResults({
+  analysis,
+  clientName,
+  irpfImpacts,
+  webhookResponse,
+  historyRecordId,
+  historyError,
+}: DashboardResultsProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
   const isWebhookConfigured = WEBHOOK_ENDPOINT.length > 0;
@@ -52,6 +61,42 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
 
   const scenarios = useMemo(() => analysis?.scenarios ?? [], [analysis.scenarios]);
   const hasScenarios = scenarios.length > 0;
+  const historyNotice = useMemo(() => {
+    if (!historyError) return null;
+    if (/firebase admin não configurado/i.test(historyError)) {
+      return 'Configure as credenciais do Firebase para salvar o histórico automaticamente.';
+    }
+    return historyError;
+  }, [historyError]);
+
+  if (!hasScenarios) {
+    return (
+      <Card className="border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-foreground">Nenhum cenário gerado</CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Revise os dados enviados ou adicione anexos com detalhamento financeiro para permitir a simulação.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert className="border border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-100">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Dados insuficientes</AlertTitle>
+            <AlertDescription>
+              A IA retornou sem projeções para este cliente. Informe faturamento, folha e anexos-chave para habilitar os cálculos.
+            </AlertDescription>
+          </Alert>
+          {historyNotice && (
+            <Alert className="border border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-500/40 dark:bg-slate-500/10 dark:text-slate-100">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Histórico não salvo</AlertTitle>
+              <AlertDescription>{historyNotice}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
   const normalizeRevenue = useCallback((value?: number) => {
     if (typeof value !== 'number' || Number.isNaN(value)) {
@@ -364,6 +409,15 @@ export function DashboardResults({ analysis, clientName, irpfImpacts, webhookRes
             <p className="text-sm text-muted-foreground">
               Baseado no faturamento mensal selecionado ({formatCurrency(selectedRevenue)}).
             </p>
+            {historyRecordId ? (
+              <p className="mt-2 text-xs font-medium text-emerald-600 dark:text-emerald-300">
+                Histórico armazenado com sucesso para acompanhamento.
+              </p>
+            ) : historyNotice ? (
+              <p className="mt-2 text-xs font-medium text-amber-600 dark:text-amber-300">
+                Histórico não foi salvo: {historyNotice}
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Sheet>
