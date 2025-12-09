@@ -10,11 +10,13 @@ import {
   Loader2,
   Pencil,
   Receipt,
+  Search,
   ShieldCheck,
   Sparkles,
   Upload,
 } from "lucide-react";
 import { getAnalysis, type AnalysisState } from "@/app/actions";
+import { fetchCnpjData } from "@/services/cnpj";
 import { useToast } from "@/hooks/use-toast";
 import { LogoIcon } from "@/components/icons/logo";
 import { DashboardResults } from "@/components/dashboard-results";
@@ -86,7 +88,35 @@ export default function Home() {
   const [showForm, setShowForm] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
   const formRef = useRef<HTMLFormElement | null>(null);
+  const companyNameRef = useRef<HTMLInputElement>(null);
+  const cnaesRef = useRef<HTMLInputElement>(null);
+  const cnpjRef = useRef<HTMLInputElement>(null);
+  const [isSearchingCnpj, setIsSearchingCnpj] = useState(false);
   const { toast } = useToast();
+
+  const handleSearchCnpj = async () => {
+    const cnpj = cnpjRef.current?.value;
+    if (!cnpj) return;
+
+    setIsSearchingCnpj(true);
+    try {
+      const data = await fetchCnpjData(cnpj);
+      if (companyNameRef.current) companyNameRef.current.value = data.companyName;
+      if (cnaesRef.current) cnaesRef.current.value = data.cnaes;
+      toast({
+        title: "Dados encontrados!",
+        description: "Razão social e CNAEs preenchidos automaticamente.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro na busca",
+        description: error instanceof Error ? error.message : "Não foi possível buscar o CNPJ.",
+      });
+    } finally {
+      setIsSearchingCnpj(false);
+    }
+  };
 
   const progressValue = ((currentStep + 1) / WIZARD_STEPS.length) * 100;
   const isLastStep = currentStep === WIZARD_STEPS.length - 1;
@@ -150,25 +180,27 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[hsl(var(--background))] bg-app-gradient text-[hsl(var(--foreground))] transition-colors duration-300">
-      <header className="sticky top-0 z-10 flex h-20 items-center justify-between border-b border-[hsl(var(--border))] bg-[hsl(var(--background)_/_0.82)] px-4 backdrop-blur-md transition-colors duration-300 md:px-10">
+      <header className="sticky top-0 z-10 flex h-20 items-center justify-between border-b border-white/20 bg-white/60 px-4 backdrop-blur-xl transition-all duration-300 md:px-10 dark:bg-slate-950/50 dark:border-white/10">
         <div className="flex items-center gap-3">
-          <LogoIcon className="h-8 w-8 text-brand-600" />
+          <div className="group flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-500 text-white shadow-lg transition-transform group-hover:scale-105">
+            <LogoIcon className="h-6 w-6" />
+          </div>
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-foreground">
-              Tributo Med<span className="text-brand-600">.con</span>
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+              Planejador <span className="text-primary">Tributário</span>
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Planejamento tributário inteligente para clínicas, consultórios e profissionais da saúde.
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Estratégia fiscal para a área da saúde
             </p>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto mt-6 flex w-full max-w-6xl flex-1 flex-col gap-10 rounded-3xl border border-[hsl(var(--border))] bg-[hsl(var(--card)_/_0.8)] px-4 py-8 shadow-[0_30px_90px_-40px_rgba(12,25,38,0.8)] backdrop-blur-lg md:px-8">
+      <main className="mx-auto mt-8 flex w-full max-w-7xl flex-1 flex-col gap-10 px-4 pb-12 md:px-8">
         {showForm && (
           <TooltipProvider>
-            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px]">
-              <Card className="border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] shadow-xl transition-colors duration-200">
+            <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_340px]">
+              <div className="glass-card flex flex-col overflow-hidden rounded-3xl">
                 <CardHeader className="space-y-6">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
@@ -216,7 +248,7 @@ export default function Home() {
                     </div>
                   </div>
                 </CardHeader>
-                <form ref={formRef} action={formAction}>
+                <form ref={formRef} action={formAction} className="flex-1 flex flex-col">
                   <CardContent className="space-y-10">
                     <section
                       data-step="documents"
@@ -330,6 +362,7 @@ export default function Home() {
                             id="companyName"
                             name="companyName"
                             type="text"
+                            ref={companyNameRef}
                             autoComplete="organization"
                             placeholder="Ex: Clínica Dr. João Silva"
                           />
@@ -338,28 +371,57 @@ export default function Home() {
                           </p>
                         </div>
                         <div className="space-y-3">
-                          <Label htmlFor="cnpj" className="text-foreground">CNPJ</Label>
-                          <Input
-                            id="cnpj"
-                            name="cnpj"
-                            type="text"
-                            inputMode="numeric"
-                            placeholder="00.000.000/0001-00"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Facilita a conferência dos CNAEs e registro municipal.
-                          </p>
+                          <div className="space-y-3">
+                            <Label htmlFor="cnpj" className="text-foreground">CNPJ</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                id="cnpj"
+                                name="cnpj"
+                                ref={cnpjRef}
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="00.000.000/0001-00"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={handleSearchCnpj}
+                                disabled={isSearchingCnpj}
+                                title="Buscar dados do CNPJ"
+                              >
+                                {isSearchingCnpj ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                              </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Facilita a conferência dos CNAEs e registro municipal.
+                            </p>
+                          </div>
+                          <div className="space-y-3">
+                            <Label htmlFor="cnaes" className="text-foreground">CNAEs (separados por vírgula)</Label>
+                            <Input
+                              id="cnaes"
+                              name="cnaes"
+                              type="text"
+                              ref={cnaesRef}
+                              placeholder="8630-5/03, 8610-1/01"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Essencial para avaliar Fator R, ISS e equiparação hospitalar.
+                            </p>
+                          </div>
                         </div>
                         <div className="space-y-3">
-                          <Label htmlFor="cnaes" className="text-foreground">CNAEs (separados por vírgula)</Label>
+                          <Label htmlFor="consultingFirm" className="text-foreground">Consultoria Responsável</Label>
                           <Input
-                            id="cnaes"
-                            name="cnaes"
+                            id="consultingFirm"
+                            name="consultingFirm"
                             type="text"
-                            placeholder="8630-5/03, 8610-1/01"
+                            placeholder="Ex: Doctor.con, Sertec.con"
+                            defaultValue="Doctor.con"
                           />
                           <p className="text-xs text-muted-foreground">
-                            Essencial para avaliar Fator R, ISS e equiparação hospitalar.
+                            Nome da empresa que assinará o planejamento tributário.
                           </p>
                         </div>
                       </div>
@@ -579,9 +641,9 @@ export default function Home() {
                     </div>
                   </CardFooter>
                 </form>
-              </Card>
+              </div>
 
-              <Card className="border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] text-foreground shadow-lg backdrop-blur transition-transform duration-200 hover:-translate-y-1">
+              <div className="glass-card sticky top-28 h-fit space-y-6 rounded-3xl p-6">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg font-semibold text-brand-700 dark:text-brand-200">
                     <Sparkles className="h-5 w-5 text-brand-600 dark:text-brand-300" /> Como potencializar a análise
@@ -610,66 +672,72 @@ export default function Home() {
                     </p>
                   </div>
                 </CardContent>
-              </Card>
+              </div>
             </div>
-          </TooltipProvider>
-        )}
+          </TooltipProvider >
+        )
+        }
 
-        {pending && !state.aiResponse && (
-          <Card className="border-none bg-[hsl(var(--card)_/_0.85)] shadow-lg backdrop-blur">
-            <CardHeader>
-              <CardTitle>Analisando...</CardTitle>
-              <CardDescription>A IA está processando os dados fornecidos. Isso pode levar alguns instantes.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="h-8 w-3/4 rounded bg-muted" />
-                <div className="h-4 w-1/2 rounded bg-muted" />
-                <div className="h-20 w-full rounded bg-muted" />
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {
+          pending && !state.aiResponse && (
+            <Card className="border-none bg-[hsl(var(--card)_/_0.85)] shadow-lg backdrop-blur">
+              <CardHeader>
+                <CardTitle>Analisando...</CardTitle>
+                <CardDescription>A IA está processando os dados fornecidos. Isso pode levar alguns instantes.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="h-8 w-3/4 rounded bg-muted" />
+                  <div className="h-4 w-1/2 rounded bg-muted" />
+                  <div className="h-20 w-full rounded bg-muted" />
+                </div>
+              </CardContent>
+            </Card>
+          )
+        }
 
-        {state.aiResponse && (
-          <>
-            {!showForm && (
-              <div className="flex justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setCurrentStep(0);
-                    setShowForm(true);
-                  }}
-                >
-                  <Pencil className="mr-2 h-4 w-4" /> Fazer nova análise
-                </Button>
-              </div>
-            )}
-            <div className="relative">
-              {pending && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[hsl(var(--background)_/_0.82)] backdrop-blur">
-                  <div className="rounded-lg border border-border/60 bg-[hsl(var(--card))] p-6 text-center shadow">
-                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-brand-600" />
-                    <p className="mt-3 text-sm font-semibold text-foreground">Atualizando análise...</p>
-                    <p className="text-xs text-muted-foreground">
-                      Recalculando cenários com as novas informações enviadas.
-                    </p>
-                  </div>
+        {
+          state.aiResponse && (
+            <>
+              {!showForm && (
+                <div className="flex justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setCurrentStep(0);
+                      setShowForm(true);
+                    }}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" /> Fazer nova análise
+                  </Button>
                 </div>
               )}
-              <DashboardResults
-                analysis={state.aiResponse}
-                clientName={clientName}
-                irpfImpacts={state.irpfImpacts}
-                webhookResponse={state.webhookResponse}
-                historyRecordId={state.historyRecordId}
-                historyError={state.historyError}
-              />
-            </div>
-          </>
-        )}
-      </main>
-    </div>
+              <div className="relative">
+                {pending && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[hsl(var(--background)_/_0.82)] backdrop-blur">
+                    <div className="rounded-lg border border-border/60 bg-[hsl(var(--card))] p-6 text-center shadow">
+                      <Loader2 className="mx-auto h-8 w-8 animate-spin text-brand-600" />
+                      <p className="mt-3 text-sm font-semibold text-foreground">Atualizando análise...</p>
+                      <p className="text-xs text-muted-foreground">
+                        Recalculando cenários com as novas informações enviadas.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <DashboardResults
+                  analysis={state.aiResponse}
+                  clientName={clientName}
+                  consultingFirm={formRef.current?.elements.namedItem("consultingFirm") instanceof RadioNodeList ? "Doctor.con" : (formRef.current?.elements.namedItem("consultingFirm") as HTMLInputElement)?.value || "Doctor.con"}
+                  irpfImpacts={state.irpfImpacts}
+                  webhookResponse={state.webhookResponse}
+                  historyRecordId={state.historyRecordId}
+                  historyError={state.historyError}
+                />
+              </div>
+            </>
+          )
+        }
+      </main >
+    </div >
   );
 }

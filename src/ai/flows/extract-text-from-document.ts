@@ -8,9 +8,9 @@
  * - ExtractTextFromDocumentOutput - The return type for the function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-import {SUPPORTED_DOCUMENT_TYPES} from './document-utils';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
+import { SUPPORTED_DOCUMENT_TYPES } from './document-utils';
 
 const ExtractTextFromDocumentInputSchema = z.object({
   document: z
@@ -38,16 +38,19 @@ export async function extractTextFromDocument(
 
 const textExtractionPrompt = ai.definePrompt({
   name: 'textExtractionPrompt',
-  input: {schema: ExtractTextFromDocumentInputSchema},
-  output: {schema: ExtractTextFromDocumentOutputSchema},
-  prompt: `Você recebe um documento em formato {{#if documentType}}{{documentType}}{{else}}desconhecido{{/if}} codificado em base64.
+  input: { schema: ExtractTextFromDocumentInputSchema },
+  output: { schema: ExtractTextFromDocumentOutputSchema },
+  prompt: `Você recebe um documento em formato {{#if documentType}}{{documentType}}{{else}}desconhecido{{/if}} Documento: {{media url=document}}
 
-Quando o documento for uma imagem, transcreva o conteúdo mantendo números e colunas sempre que possível.
-Quando o documento for um PDF, leia todas as páginas e devolva os dados em texto corrido, listando tabelas linha a linha.
+**Contexto:** Você é um especialista em OCR contábil. O documento fornecido contém informações fiscais (DAS, Extratos do Simples, Declarações de IR ou Planilhas Financeiras).
 
-Retorne apenas o texto extraído, sem comentários adicionais.
+**Instruções:**
+1. **Identificação:** Identifique e transcreva com PROPRIEDADE MÁXIMA data fields como: CNPJ, Razão Social, Período de Apuração (Competência) e Valor da Receita Bruta.
+2. **Tabelas:** Se for uma tabela (ex: PGDAS), mantenha a estrutura linha a linha.
+3. **Números:** Atenção redobrada para diferenciar '0' de 'O', e '1' de 'I'. Formate números decimais com ponto ou vírgula conforme o original.
+4. **Limpeza:** Ignore rodapés irrelevantes ou marcas d'água que não sejam dados financeiros.
 
-Documento: {{media url=document}}`,
+Transcreva todo o texto legível abaixo:`,
 });
 
 const extractTextFromDocumentFlow = ai.defineFlow(
@@ -57,7 +60,7 @@ const extractTextFromDocumentFlow = ai.defineFlow(
     outputSchema: ExtractTextFromDocumentOutputSchema,
   },
   async input => {
-    const {output} = await textExtractionPrompt(input);
+    const { output } = await textExtractionPrompt(input);
     return output!;
   }
 );

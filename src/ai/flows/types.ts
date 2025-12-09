@@ -1,4 +1,4 @@
-import {z} from 'genkit';
+import { z } from 'genkit';
 
 export const GenerateTaxScenariosInputSchema = z.object({
   clientType: z.enum(['Novo aberturas de empresa', 'Transferências de contabilidade']).describe('The type of client.'),
@@ -25,21 +25,21 @@ export const GenerateTaxScenariosInputSchema = z.object({
     .describe(
       'Flag para indicar se a empresa é uma Sociedade Uniprofissional (SUP) para fins de ISS Fixo.'
     ),
-});
+}).strict();
 export type GenerateTaxScenariosInput = z.infer<typeof GenerateTaxScenariosInputSchema>;
 
 export const TaxDetailSchema = z.object({
   name: z.string().describe('Nome do tributo (ex: IRPJ, CSLL, PIS, COFINS, ISS, CPP).'),
   rate: z.number().describe('Alíquota do tributo, em porcentagem (ex: 4.0).'),
   value: z.number().describe('Valor do tributo (ex: 480.00).'),
-});
+}).strict();
 
 export const ProLaboreAnalysisSchema = z.object({
   baseValue: z.number().describe('Valor base do pró-labore utilizado no cálculo.'),
   inssValue: z.number().describe('Valor da contribuição do INSS sobre o pró-labore.'),
   irrfValue: z.number().describe('Valor do IRRF retido na fonte sobre o pró-labore.'),
   netValue: z.number().describe('Valor líquido do pró-labore após deduções.'),
-});
+}).strict();
 
 export const ScenarioDetailSchema = z.object({
   name: z.string().describe('O nome do cenário (ex: "Simples Nacional Anexo III com Faturamento de R$ 10.000,00").'),
@@ -52,7 +52,7 @@ export const ScenarioDetailSchema = z.object({
   proLaboreAnalysis: ProLaboreAnalysisSchema.describe('Análise detalhada do impacto do pró-labore.'),
   netProfitDistribution: z.number().describe('Lucro líquido disponível para distribuição ao sócio após todos os impostos e encargos.'),
   notes: z.string().describe('Observações importantes sobre o cenário, como o uso do Fator R ou o cálculo do INSS patronal.'),
-});
+}).strict();
 export type ScenarioDetail = z.infer<typeof ScenarioDetailSchema>;
 
 export const GenerateTaxScenariosOutputSchema = z.object({
@@ -61,5 +61,5 @@ export const GenerateTaxScenariosOutputSchema = z.object({
   scenarios: z.array(ScenarioDetailSchema).describe('Uma lista de cenários tributários detalhados, incluindo projeções de receita.'),
   executiveSummary: z.string().describe('Resumo executivo em Markdown com a recomendação final sobre o melhor cenário para o faturamento atual, e análise sobre os pontos de inflexão com base nas projeções de receita. Use ** para negrito nos títulos.'),
   breakEvenAnalysis: z.string().optional().describe('Análise textual sobre os pontos de equilíbrio de faturamento entre os regimes.'),
-});
+}).strict();
 export type GenerateTaxScenariosOutput = z.infer<typeof GenerateTaxScenariosOutputSchema>;

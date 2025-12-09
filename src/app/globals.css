@@ -2,63 +2,94 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  /* font-family: Arial, Helvetica, sans-serif; */
-}
-
 @layer base {
   :root {
-    --background: 207 42% 12%;
-    --foreground: 210 40% 96%;
-    --card: 208 38% 18%;
-    --card-foreground: 210 40% 96%;
-    --popover: 208 38% 18%;
-    --popover-foreground: 210 40% 96%;
-    --primary: 207 90% 61%;
-    --primary-foreground: 210 40% 96%;
-    --secondary: 206 40% 22%;
-    --secondary-foreground: 210 40% 90%;
-    --muted: 207 32% 28%;
-    --muted-foreground: 210 28% 78%;
-    --accent: 199 92% 56%;
-    --accent-foreground: 210 40% 14%;
-    --destructive: 0 75% 55%;
-    --destructive-foreground: 210 40% 96%;
-    --border: 207 34% 26%;
-    --input: 207 34% 26%;
-    --ring: 207 90% 61%;
-    --chart-1: 207 90% 61%;
-    --chart-2: 199 92% 56%;
-    --chart-3: 161 63% 46%;
-    --chart-4: 33 92% 58%;
-    --chart-5: 340 82% 62%;
-    --radius: 0.5rem;
-  }
-  .dark {
-    --background: 210 45% 96%;
-    --foreground: 222 47% 14%;
+    /* Base Colors - Light Mode (Vibrant & Clean) */
+    --background: 210 50% 98%;
+    /* Very light cool gray */
+    --foreground: 224 71% 4%;
+    /* Deep gorgeous blue-black */
+
+    /* Glass Effect Base */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 14%;
+    --card-foreground: 224 71% 4%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 14%;
-    --primary: 214 84% 56%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 34% 95%;
-    --secondary-foreground: 222 47% 24%;
-    --muted: 210 28% 92%;
-    --muted-foreground: 222 40% 28%;
-    --accent: 204 94% 45%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 75% 55%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 214 26% 78%;
-    --input: 214 26% 78%;
-    --ring: 214 84% 56%;
-    --chart-1: 214 84% 56%;
-    --chart-2: 204 94% 45%;
-    --chart-3: 34 100% 55%;
-    --chart-4: 160 60% 48%;
-    --chart-5: 12 86% 63%;
+    --popover-foreground: 224 71% 4%;
+
+    /* Brand Colors - Financial Premium */
+    --primary: 221 83% 53%;
+    /* Royal Blue (Trustworthy) */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 150 100% 30%;
+    /* Deep Emerald (Money/Growth) */
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+
+    --radius: 1rem;
+    /* More rounded corners for modern friendly look */
+
+    /* Chart Colors - Professional & Distinct */
+    --chart-1: 221 83% 53%;
+    /* Royal Blue */
+    --chart-2: 150 80% 35%;
+    /* Emerald */
+    --chart-3: 200 20% 40%;
+    /* Slate Blue */
+    --chart-4: 45 90% 55%;
+    /* Gold */
+    --chart-5: 10 70% 55%;
+    /* Brick Red */
+  }
+
+  .dark {
+    /* Base Colors - Dark Mode (Deep Space) */
+    --background: 224 71% 4%;
+    --foreground: 210 40% 98%;
+
+    --card: 224 71% 4%;
+    --card-foreground: 210 40% 98%;
+    --popover: 224 71% 4%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 221 80% 60%;
+    /* Lighter Royal Blue for Dark Mode */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+
+    --accent: 215 27.9% 16.9%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 221 80% 60%;
+
+    /* Charts Dark Mode */
+    --chart-1: 221 80% 60%;
+    --chart-2: 150 70% 45%;
+    --chart-3: 45 80% 55%;
+    --chart-4: 200 40% 50%;
+    --chart-5: 10 70% 60%;
   }
 }
 
@@ -66,42 +97,72 @@ body {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
 }
 
-@media print {
-  @page {
-    size: A4 landscape;
-    margin: 1.5cm;
+@layer utilities {
+  .glass {
+    @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-xl dark:bg-black/30 dark:border-white/10;
   }
-  body {
-    background: white !important;
-    color: #0f172a !important;
-    font-size: 11pt;
-    line-height: 1.4;
+
+  .glass-card {
+    @apply bg-white/60 backdrop-blur-md border border-white/40 shadow-sm transition-all hover:bg-white/70 dark:bg-slate-900/50 dark:border-slate-700/50 dark:hover:bg-slate-900/70;
   }
-  .no-print,
-  .no-print * {
-    display: none !important;
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(37, 99, 235, 0.5);
+    /* Blue glow */
   }
-  .print\:hidden {
-    display: none !important;
-  }
-  .print\:block {
-    display: block !important;
-  }
-  .print\:page-break-after-always {
-    page-break-after: always !important;
-  }
-  #report-content {
-    width: 100%;
-    position: static;
-    padding: 0;
-    background: transparent !important;
-  }
-  a[href^="http"]::after {
-    content: "";
+
+  @media print {
+
+    /* Esconde elementos de navegação e controles */
+    header,
+    nav,
+    aside,
+    footer,
+    button:not([data-scenario-card]),
+    [role="slider"],
+    [data-section="simulator-controls"],
+    .no-print {
+      display: none !important;
+    }
+
+    /* Ajusta layout para impressão */
+    body {
+      background: white !important;
+      color: black !important;
+    }
+
+    .glass,
+    .glass-card {
+      background: none !important;
+      border: 1px solid #ddd !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+    }
+
+    /* Garante que gráficos e textos apareçam */
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* Remove scroll e ajusta largura */
+    main {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    /* Quebra de página inteligente */
+    section {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
   }
 }

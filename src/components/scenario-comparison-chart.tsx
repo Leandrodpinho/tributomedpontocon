@@ -3,17 +3,17 @@
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis, type LegendProps } from "recharts"
 
 interface ChartData {
-    name: string;
-    totalTax: number;
-    netProfit: number;
+  name: string;
+  totalTax: number;
+  netProfit: number;
 }
 
 interface ScenarioComparisonChartProps {
-    data: ChartData[];
+  data: ChartData[];
 }
 
 const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
 const LegendContent = ({ payload }: LegendProps) => {
@@ -81,7 +81,7 @@ export function ScenarioComparisonChart({ data }: ScenarioComparisonChartProps) 
           verticalAlign="bottom"
           align="left"
           height={48}
-          content={props => <LegendContent {...props} />}
+          content={({ payload }) => <LegendContent payload={payload} />}
         />
         <Bar dataKey="totalTax" name="Carga Tributária" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
         <Bar dataKey="netProfit" name="Lucro Líquido" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />

@@ -3,7 +3,7 @@
 import type { ScenarioDetail } from '@/ai/flows/types';
 import { KpiCard } from '@/components/kpi-card';
 import { formatCurrency, formatPercentage } from '@/lib/formatters';
-import { Banknote, Crown, Percent } from 'lucide-react';
+import { Banknote, Crown, Percent, Target } from 'lucide-react';
 
 type ScenarioMetricsProps = {
   bestScenario?: ScenarioDetail;
@@ -46,14 +46,19 @@ export function ScenarioMetrics({
       },
     },
     {
-      key: 'annual',
+      key: 'benchmarking',
       props: {
-        title: 'Economia Anual',
-        value: formatCurrency(annualSavings),
-        subValue: 'Projeção em 12 meses mantendo o faturamento.',
-        icon: <Banknote className="h-6 w-6" />,
-        highlight: 'neutral' as const,
-        hint: 'Referência útil para planos de reinvestimento em estrutura e pessoal.',
+        title: 'Benchmarking',
+        value: bestScenario?.effectiveRate ? `${formatPercentage(bestScenario.effectiveRate / 100)}` : '-',
+        subValue: bestScenario?.effectiveRate
+          ? `Média do mercado: 16.33% (${(16.33 - bestScenario.effectiveRate).toFixed(2)}% de vantagem)`
+          : 'Compare sua taxa com a média nacional.',
+        icon: <Target className="h-6 w-6" />,
+        highlight: 'success' as const,
+        trend: {
+          direction: 'up' as const,
+          label: 'Alta Competitividade',
+        },
       },
     },
     {
@@ -65,7 +70,7 @@ export function ScenarioMetrics({
         icon: <Percent className="h-6 w-6" />,
         highlight: 'success' as const,
         trend: {
-          direction: economyShare >= 0 ? 'up' : 'down',
+          direction: (economyShare >= 0 ? 'up' : 'down') as 'up' | 'down',
           label: economyShare >= 0 ? 'Economia positiva' : 'Economia negativa',
         },
       },

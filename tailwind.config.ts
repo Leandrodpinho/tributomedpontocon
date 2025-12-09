@@ -7,7 +7,7 @@ const config = {
     './components/**/*.{ts,tsx}',
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
-	],
+  ],
   prefix: "",
   theme: {
     container: {
@@ -71,8 +71,10 @@ const config = {
         },
       },
       backgroundImage: {
-        "app-gradient": "linear-gradient(180deg, rgba(18,30,41,1) 0%, rgba(11,22,32,1) 100%)",
-        "card-glass": "linear-gradient(135deg, rgba(23,39,54,0.85) 0%, rgba(15,28,40,0.92) 100%)",
+        "app-gradient": "linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)", // Light subtle base
+        "mesh-light": "radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%)", // Dark deep mesh
+        "mesh-vibrant": "radial-gradient(at 40% 20%, hsla(260,100%,70%,0.2) 0px, transparent 50%), radial-gradient(at 80% 0%, hsla(189,100%,56%,0.2) 0px, transparent 50%), radial-gradient(at 0% 50%, hsla(340,100%,76%,0.2) 0px, transparent 50%)",
+        "card-glass": "linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.4) 100%)",
       },
       boxShadow: {
         focus: "0 0 0 4px rgba(66,165,245,0.32)",

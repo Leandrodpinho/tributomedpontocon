@@ -6,7 +6,10 @@ import type { GenerateTaxScenariosOutput, ScenarioDetail } from '@/ai/flows/type
 import { BestScenarioCard } from '@/components/dashboard/best-scenario-card';
 import { ScenarioMetrics } from '@/components/dashboard/scenario-metrics';
 import { ScenarioTaxBreakdown } from '@/components/dashboard/scenario-tax-breakdown';
+import { ProLaboreOptimizer } from '@/components/dashboard/pro-labore-optimizer';
 import { ScenarioComparisonChart } from './scenario-comparison-chart';
+import { SimulatorPanel } from '@/components/dashboard/simulator-panel';
+import { AnnualTimeline } from '@/components/dashboard/annual-timeline';
 import { MarkdownRenderer } from './markdown-renderer';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -19,12 +22,14 @@ import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatPercentage } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { saveAs } from 'file-saver';
-import { AlertCircle, Download, FileText, Layers, Menu, Printer, Target } from 'lucide-react';
+import { AlertCircle, Download, FileText, Layers, Menu, MonitorPlay, Printer, Target, TrendingUp } from 'lucide-react';
 import type { IrpfImpact } from '@/types/irpf';
 
 const NAV_ITEMS = [
   { label: 'Visão Geral', href: '#overview', icon: <Layers className="h-4 w-4" /> },
   { label: 'Cenário Recom.', href: '#recommended', icon: <Target className="h-4 w-4" /> },
+  { label: 'Simulador', href: '#simulator', icon: <Target className="h-4 w-4" /> },
+  { label: 'Otimizador', href: '#optimizer', icon: <TrendingUp className="h-4 w-4" /> },
   { label: 'Cenários', href: '#scenarios', icon: <FileText className="h-4 w-4" /> },
   { label: 'Dados Base', href: '#data', icon: <FileText className="h-4 w-4" /> },
   { label: 'Resumo', href: '#summary', icon: <Layers className="h-4 w-4" /> },
@@ -35,6 +40,7 @@ const WEBHOOK_ENDPOINT = process.env.NEXT_PUBLIC_WEBHOOK_URL ?? '';
 type DashboardResultsProps = {
   analysis: GenerateTaxScenariosOutput;
   clientName: string;
+  consultingFirm?: string;
   irpfImpacts?: Record<string, IrpfImpact> | null;
   webhookResponse?: string | null;
   historyRecordId?: string | null;
@@ -44,12 +50,14 @@ type DashboardResultsProps = {
 export function DashboardResults({
   analysis,
   clientName,
+  consultingFirm = 'Doctor.con',
   irpfImpacts,
   webhookResponse,
   historyRecordId,
   historyError,
 }: DashboardResultsProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
   const { toast } = useToast();
   const isWebhookConfigured = WEBHOOK_ENDPOINT.length > 0;
   const webhookError = webhookResponse ? /falha|erro/i.test(webhookResponse.toLowerCase()) : false;
@@ -71,7 +79,7 @@ export function DashboardResults({
 
   if (!hasScenarios) {
     return (
-      <Card className="border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-sm">
+      <div className="glass-card flex flex-col rounded-xl p-6">
         <CardHeader>
           <CardTitle className="text-lg font-semibold text-foreground">Nenhum cenário gerado</CardTitle>
           <CardDescription className="text-muted-foreground">
@@ -94,7 +102,7 @@ export function DashboardResults({
             </Alert>
           )}
         </CardContent>
-      </Card>
+      </div>
     );
   }
 
@@ -232,7 +240,8 @@ export function DashboardResults({
 
     const clonedReport = reportElement.cloneNode(true) as HTMLElement;
 
-    clonedReport.querySelector('[data-section="overview"]')?.remove();
+    // Mantemos a Visão Geral para exibir o Benchmarking e métricas
+    // clonedReport.querySelector('[data-section="overview"]')?.remove();
     clonedReport.querySelector('[data-section="data"]')?.remove();
 
     const scenariosSection = clonedReport.querySelector('[data-section="scenarios"]');
@@ -335,7 +344,7 @@ export function DashboardResults({
       : 'text-emerald-600 dark:text-emerald-300';
 
     return (
-      <Card className="border border-[hsl(var(--border))] shadow-sm">
+      <div className="glass-card rounded-xl">
         <CardHeader>
           <CardTitle className="text-lg font-semibold text-foreground">Impacto no IRPF</CardTitle>
           <CardDescription className="text-muted-foreground">
@@ -369,7 +378,7 @@ export function DashboardResults({
             {details.summary}
           </p>
         </CardFooter>
-      </Card>
+      </div>
     );
   };
 
@@ -384,8 +393,14 @@ export function DashboardResults({
   );
 
   return (
-    <div className="grid min-h-[calc(100vh-4rem)] w-full bg-[hsl(var(--background))] text-[hsl(var(--foreground))] lg:grid-cols-[260px_1fr] print:block">
-      <aside className="hidden border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-sm lg:block no-print">
+    <div className={cn(
+      "grid min-h-[calc(100vh-4rem)] w-full text-[hsl(var(--foreground))] print:block transition-all duration-500 ease-in-out",
+      isPresentationMode ? "lg:grid-cols-1" : "lg:grid-cols-[260px_1fr]"
+    )}>
+      <aside className={cn(
+        "glass hidden border-r border-white/20 shadow-sm lg:block no-print z-10 transition-all duration-500",
+        isPresentationMode ? "-ml-[260px] opacity-0 overflow-hidden w-0" : "opacity-100"
+      )}>
         <div className="sticky top-16 flex h-[calc(100vh-4rem)] flex-col gap-6 p-6">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Relatório</p>
@@ -400,11 +415,11 @@ export function DashboardResults({
       </aside>
 
       <section className="flex flex-col print:w-full">
-        <header className="flex flex-col gap-4 border-b border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-8 no-print">
+        <header className="glass sticky top-0 z-20 flex flex-col gap-4 border-b border-white/20 px-4 py-4 shadow-sm backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:px-8 no-print">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Planejamento tributário</p>
             <h1 className="mt-1 text-2xl font-semibold text-foreground">
-              {clientName} <span className="text-brand-600">| Doctor.con</span>
+              {clientName} <span className="text-brand-600">| {consultingFirm}</span>
             </h1>
             <p className="text-sm text-muted-foreground">
               Baseado no faturamento mensal selecionado ({formatCurrency(selectedRevenue)}).
@@ -425,7 +440,7 @@ export function DashboardResults({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="sm:hidden"
+                  className={cn("sm:hidden", isPresentationMode && "hidden")}
                 >
                   <Menu className="h-4 w-4" />
                   <span className="sr-only">Abrir navegação</span>
@@ -477,11 +492,25 @@ export function DashboardResults({
                 {formatCurrency(selectedRevenue)}
               </Badge>
             )}
-            <Button variant="outline" size="sm" onClick={handlePrint} className="border-[hsl(var(--border))] text-foreground hover:bg-[hsl(var(--secondary))]">
+            <Button variant="outline" size="sm" onClick={() => window.print()} className="no-print border-[hsl(var(--border))] text-foreground hover:bg-[hsl(var(--secondary))]">
               <Printer className="mr-2 h-4 w-4" /> Imprimir / PDF
             </Button>
             <Button size="sm" onClick={handleDownloadDocx} disabled={isDownloading} className="bg-brand-600 text-white hover:bg-brand-500">
               <Download className="mr-2 h-4 w-4" /> {isDownloading ? 'Gerando...' : 'Baixar Word'}
+            </Button>
+            <Button
+              variant={isPresentationMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setIsPresentationMode(!isPresentationMode)}
+              className={cn(
+                "transition-all",
+                isPresentationMode
+                  ? "bg-brand-600/90 text-white hover:bg-brand-500 shadow-lg shadow-brand-500/20"
+                  : "border-[hsl(var(--border))] text-foreground hover:bg-[hsl(var(--secondary))]"
+              )}
+            >
+              <MonitorPlay className="mr-2 h-4 w-4" />
+              {isPresentationMode ? 'Sair da Apresentação' : 'Modo Apresentação'}
             </Button>
           </div>
         </header>
@@ -506,7 +535,7 @@ export function DashboardResults({
               </div>
             </div>
             <div className="text-xs uppercase tracking-[0.45em] text-muted-foreground">
-              Doctor.con • Inteligência Fiscal
+              {consultingFirm} • Inteligência Fiscal
             </div>
           </div>
         </div>
@@ -522,7 +551,7 @@ export function DashboardResults({
                 Resumo das economias e comparação dos regimes avaliados para o faturamento informado.
               </p>
             </div>
-            {hasOutliers && (
+            {hasOutliers && !isPresentationMode && (
               <Alert className="border border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-100">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Números fora do padrão</AlertTitle>
@@ -532,26 +561,36 @@ export function DashboardResults({
                 </AlertDescription>
               </Alert>
             )}
-            <ScenarioMetrics
-              bestScenario={bestScenario}
-              worstScenario={worstScenario}
-              monthlySavings={monthlySavings}
-              annualSavings={annualSavings}
-              economyShare={economyShare}
-            />
+            <div className="print:break-inside-avoid">
+              <ScenarioMetrics
+                bestScenario={bestScenario}
+                worstScenario={worstScenario}
+                monthlySavings={monthlySavings}
+                annualSavings={annualSavings}
+                economyShare={economyShare}
+              />
+            </div>
             {chartData.length > 0 && (
-              <Card className="border border-[hsl(var(--border))] shadow-sm">
+              <div className="glass-card rounded-xl print:break-inside-avoid">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold text-foreground">Comparativo de Cenários</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Avalie o impacto de cada regime sobre a carga tributária e o lucro líquido.
-          </CardDescription>
+                  <CardDescription className="text-muted-foreground">
+                    Avalie o impacto de cada regime sobre a carga tributária e o lucro líquido.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ScenarioComparisonChart data={chartData} />
                 </CardContent>
-              </Card>
+              </div>
             )}
+          </section>
+
+          <section id="simulator" data-section="simulator" className="space-y-6">
+            <SimulatorPanel initialRevenue={selectedRevenue} />
+          </section>
+
+          <section id="optimizer" data-section="optimizer" className="space-y-6">
+            <ProLaboreOptimizer initialRevenue={selectedRevenue} />
           </section>
 
           {bestScenario && (
@@ -559,9 +598,9 @@ export function DashboardResults({
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-semibold text-foreground">Cenário Recomendado</h2>
-                <p className="text-sm text-muted-foreground">
-                  Regime com menor carga tributária projetada mantendo o faturamento atual.
-                </p>
+                  <p className="text-sm text-muted-foreground">
+                    Regime com menor carga tributária projetada mantendo o faturamento atual.
+                  </p>
                 </div>
                 <Badge variant="secondary" className="bg-brand-500/10 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
                   Otimização média de {formatCurrency(monthlySavings)} / mês
@@ -577,9 +616,9 @@ export function DashboardResults({
             <section id="scenarios" data-section="scenarios" className="space-y-6">
               <div>
                 <h2 className="text-xl font-semibold text-foreground">Demais Cenários Simulados</h2>
-              <p className="text-sm text-muted-foreground">
-                Compare as principais métricas de cada regime avaliado pela inteligência artificial.
-              </p>
+                <p className="text-sm text-muted-foreground">
+                  Compare as principais métricas de cada regime avaliado pela inteligência artificial.
+                </p>
               </div>
               <div className="grid gap-4">
                 {otherScenarios.map(scenario => {
@@ -594,13 +633,13 @@ export function DashboardResults({
                   const netImpactIsPositive = netImpactValue >= 0;
 
                   return (
-                    <Card
+                    <div
                       key={scenario.name}
                       data-scenario-card="true"
                       data-best={String(scenario === bestScenario)}
                       className={cn(
-                        'border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-sm transition-all hover:border-brand-400/60',
-                        scenario === bestScenario && 'ring-2 ring-brand-500/50'
+                        'glass-card rounded-xl transition-all hover:bg-white/40',
+                        scenario === bestScenario && 'ring-2 ring-primary/50 bg-primary/5'
                       )}
                     >
                       <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -662,102 +701,102 @@ export function DashboardResults({
                           )}
                         </div>
                       </CardContent>
-                    </Card>
+                    </div>
                   );
                 })}
               </div>
             </section>
           )}
 
-          <section id="data" data-section="data" className="space-y-4">
-            <div>
-              <h2 className="text-xl font-semibold text-foreground">Dados Utilizados na Análise</h2>
-              <p className="text-sm text-muted-foreground">
-                Informações fornecidas pelo cliente e transcritas automaticamente para alimentar os cálculos.
-              </p>
-            </div>
-            <Card className="border border-[hsl(var(--border))] shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-foreground">Transcrição de Documentos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="max-h-[320px] overflow-auto rounded-md bg-[hsl(var(--secondary))] p-4 text-sm leading-relaxed">
-                  {analysis.transcribedText ? (
-                    <p className="whitespace-pre-wrap text-foreground">{analysis.transcribedText}</p>
-                  ) : (
-                    <p className="text-muted-foreground">Nenhum documento foi anexado para transcrição.</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border border-[hsl(var(--border))] shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-foreground">Retorno do Webhook</CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  {isWebhookConfigured ? (
-                    <>
-                      Payload enviado para{' '}
-                      <a
-                        href={WEBHOOK_ENDPOINT}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-medium text-brand-600 dark:text-brand-300"
-                      >
-                        {WEBHOOK_ENDPOINT}
-                      </a>.
-                    </>
-                  ) : (
-                    'Nenhum endpoint configurado. Defina as variáveis NEXT_PUBLIC_WEBHOOK_URL e WEBHOOK_URL para habilitar este envio.'
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {!isWebhookConfigured && !webhookResponse && (
-                  <Alert className="border border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Envio desabilitado</AlertTitle>
-                    <AlertDescription>
-                      Configure um endpoint válido para registrar o histórico do planejamento em integrações externas.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {(isWebhookConfigured || webhookResponse) && (
-                  <div className="max-h-[240px] overflow-auto rounded-md bg-[hsl(var(--secondary))] p-4 text-sm leading-relaxed">
-                    {webhookResponse ? (
-                      webhookError ? (
-                        <Alert variant="destructive" className="border border-red-200 bg-red-50 text-red-900 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-100">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertTitle>Falha ao enviar</AlertTitle>
-                          <AlertDescription className="space-y-2 text-sm">
-                            <p>Revise o endpoint informado ou tente novamente mais tarde.</p>
-                            <pre className="max-h-40 overflow-auto rounded bg-red-900/10 p-3 text-xs leading-relaxed text-red-900 dark:bg-red-300/10 dark:text-red-100">
-{`${
-  webhookResponse.length > 2000
-    ? `${webhookResponse.slice(0, 2000)}…`
-    : webhookResponse
-}`}
-                            </pre>
-                          </AlertDescription>
-                        </Alert>
-                      ) : (
-                        <pre className="whitespace-pre-wrap break-words text-foreground">
-{`${
-  webhookResponse.length > 2000
-    ? `${webhookResponse.slice(0, 2000)}…`
-    : webhookResponse
-}`}
-                        </pre>
-                      )
+          {!isPresentationMode && (
+            <section id="data" data-section="data" className="space-y-4">
+              <div>
+                <h2 className="text-xl font-semibold text-foreground">Dados Utilizados na Análise</h2>
+                <p className="text-sm text-muted-foreground">
+                  Informações fornecidas pelo cliente e transcritas automaticamente para alimentar os cálculos.
+                </p>
+              </div>
+              <div className="glass-card rounded-xl">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold text-foreground">Transcrição de Documentos</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="max-h-[320px] overflow-auto rounded-md bg-[hsl(var(--secondary))] p-4 text-sm leading-relaxed">
+                    {analysis.transcribedText ? (
+                      <p className="whitespace-pre-wrap text-foreground">{analysis.transcribedText}</p>
                     ) : (
-                      <p className="text-muted-foreground">
-                        Nenhuma resposta recebida do endpoint até o momento.
-                      </p>
+                      <p className="text-muted-foreground">Nenhum documento foi anexado para transcrição.</p>
                     )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </section>
+                </CardContent>
+              </div>
+              <div className="glass-card rounded-xl">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold text-foreground">Retorno do Webhook</CardTitle>
+                  <CardDescription className="text-muted-foreground">
+                    {isWebhookConfigured ? (
+                      <>
+                        Payload enviado para{' '}
+                        <a
+                          href={WEBHOOK_ENDPOINT}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium text-brand-600 dark:text-brand-300"
+                        >
+                          {WEBHOOK_ENDPOINT}
+                        </a>.
+                      </>
+                    ) : (
+                      'Nenhum endpoint configurado. Defina as variáveis NEXT_PUBLIC_WEBHOOK_URL e WEBHOOK_URL para habilitar este envio.'
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!isWebhookConfigured && !webhookResponse && (
+                    <Alert className="border border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Envio desabilitado</AlertTitle>
+                      <AlertDescription>
+                        Configure um endpoint válido para registrar o histórico do planejamento em integrações externas.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {(isWebhookConfigured || webhookResponse) && (
+                    <div className="max-h-[240px] overflow-auto rounded-md bg-[hsl(var(--secondary))] p-4 text-sm leading-relaxed">
+                      {webhookResponse ? (
+                        webhookError ? (
+                          <Alert variant="destructive" className="border border-red-200 bg-red-50 text-red-900 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-100">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Falha ao enviar</AlertTitle>
+                            <AlertDescription className="space-y-2 text-sm">
+                              <p>Revise o endpoint informado ou tente novamente mais tarde.</p>
+                              <pre className="max-h-40 overflow-auto rounded bg-red-900/10 p-3 text-xs leading-relaxed text-red-900 dark:bg-red-300/10 dark:text-red-100">
+                                {`${webhookResponse.length > 2000
+                                  ? `${webhookResponse.slice(0, 2000)}…`
+                                  : webhookResponse
+                                  }`}
+                              </pre>
+                            </AlertDescription>
+                          </Alert>
+                        ) : (
+                          <pre className="whitespace-pre-wrap break-words text-foreground">
+                            {`${webhookResponse.length > 2000
+                              ? `${webhookResponse.slice(0, 2000)}…`
+                              : webhookResponse
+                              }`}
+                          </pre>
+                        )
+                      ) : (
+                        <p className="text-muted-foreground">
+                          Nenhuma resposta recebida do endpoint até o momento.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </div>
+            </section>
+          )}
 
           <section id="summary" data-section="summary" className="space-y-6">
             <div>
@@ -766,16 +805,16 @@ export function DashboardResults({
                 Síntese executiva com recomendações e pontos de atenção para a tomada de decisão.
               </p>
             </div>
-            <Card className="border border-[hsl(var(--border))] shadow-sm">
+            <div className="glass-card rounded-xl">
               <CardHeader>
                 <CardTitle className="text-lg font-semibold text-foreground">Resumo Executivo</CardTitle>
               </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-foreground">
+              <CardContent className="prose prose-sm max-w-none text-foreground">
                 <MarkdownRenderer content={analysis.executiveSummary} />
               </CardContent>
-            </Card>
+            </div>
             {analysis.breakEvenAnalysis && (
-              <Card className="border border-[hsl(var(--border))] shadow-sm">
+              <div className="glass-card rounded-xl">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold text-foreground">Pontes de Equilíbrio</CardTitle>
                 </CardHeader>
@@ -784,11 +823,11 @@ export function DashboardResults({
                     {analysis.breakEvenAnalysis}
                   </p>
                 </CardContent>
-              </Card>
+              </div>
             )}
           </section>
         </main>
       </section>
-    </div>
+    </div >
   );
 }
