@@ -40,7 +40,7 @@ const mapScenarioNameToTaxRegime = (name: string): SupportedTaxRegime | null => 
   return null;
 };
 
-const WEBHOOK_URL = (process.env.WEBHOOK_URL ?? process.env.NEXT_PUBLIC_WEBHOOK_URL ?? "").trim();
+const WEBHOOK_URL = ""; // (process.env.WEBHOOK_URL ?? process.env.NEXT_PUBLIC_WEBHOOK_URL ?? "").trim();
 const MAX_ATTACHMENT_BYTES = 12 * 1024 * 1024; // 12 MB
 const ALLOWED_ATTACHMENT_TYPES = new Set([
   "application/pdf",
@@ -100,9 +100,9 @@ export async function getAnalysis(
   const fs12Num = parseDecimal(fs12);
   const parsedCnaes = rawCnaes
     ? rawCnaes
-        .split(",")
-        .map(code => code.trim())
-        .filter(code => code.length > 0)
+      .split(",")
+      .map(code => code.trim())
+      .filter(code => code.length > 0)
     : undefined;
 
 
@@ -138,7 +138,7 @@ export async function getAnalysis(
         historyError: null,
       };
     }
-    
+
     if (hasAttachments) {
       const oversizedFile = validFiles.find(file => file.size > MAX_ATTACHMENT_BYTES);
       if (oversizedFile) {
@@ -249,34 +249,34 @@ export async function getAnalysis(
 
     const webhookPromise: Promise<string | null> = WEBHOOK_URL
       ? (async () => {
-          try {
-            const response = await fetch(WEBHOOK_URL, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(webhookPayload),
-              cache: "no-store",
-            });
+        try {
+          const response = await fetch(WEBHOOK_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(webhookPayload),
+            cache: "no-store",
+          });
 
-            const contentType = response.headers.get("content-type") ?? "";
-            if (!response.ok) {
-              return `Falha ao enviar dados ao webhook (${response.status} ${response.statusText}).`;
-            }
-
-            if (contentType.includes("application/json")) {
-              const json = await response.json();
-              return JSON.stringify(json, null, 2);
-            }
-
-            return await response.text();
-          } catch (error) {
-            console.error("Erro ao enviar dados para o webhook:", error);
-            return error instanceof Error
-              ? `Erro ao conectar ao webhook: ${error.message}`
-              : "Erro desconhecido ao conectar ao webhook.";
+          const contentType = response.headers.get("content-type") ?? "";
+          if (!response.ok) {
+            return `Falha ao enviar dados ao webhook (${response.status} ${response.statusText}).`;
           }
-        })()
+
+          if (contentType.includes("application/json")) {
+            const json = await response.json();
+            return JSON.stringify(json, null, 2);
+          }
+
+          return await response.text();
+        } catch (error) {
+          console.error("Erro ao enviar dados para o webhook:", error);
+          return error instanceof Error
+            ? `Erro ao conectar ao webhook: ${error.message}`
+            : "Erro desconhecido ao conectar ao webhook.";
+        }
+      })()
       : Promise.resolve(null);
 
     // 3. Call the main AI flow with all data consolidated
@@ -295,7 +295,7 @@ export async function getAnalysis(
       isUniprofessionalSociety,
       documentsAsText: allDocumentsText,
     });
-    
+
     // 4. Guarantees that the return is pure, serializable JSON
     const serializableResponse: GenerateTaxScenariosOutput = JSON.parse(
       JSON.stringify(aiResponse)
@@ -387,7 +387,7 @@ export async function getAnalysis(
       error instanceof Error
         ? error.message
         : "Ocorreu um erro desconhecido no servidor.";
-    
+
     // 5. Ensure the error return path is also a simple, serializable object
     return {
       aiResponse: null,
@@ -411,7 +411,7 @@ export async function generateDocx(htmlContent: string): Promise<{ docx: string 
     if (!(fileBuffer instanceof ArrayBuffer)) {
       throw new Error("A saída do gerador DOCX não é um ArrayBuffer válido.");
     }
-    
+
     const buffer = Buffer.from(fileBuffer);
     return { docx: buffer.toString('base64'), error: null };
   } catch (error) {

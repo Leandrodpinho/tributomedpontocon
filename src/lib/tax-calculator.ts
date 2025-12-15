@@ -41,7 +41,7 @@ const SIMPLES_ANEXO_V = [
     { range: 4800000, rate: 0.305, deduction: 540000 },
 ];
 
-const IRPF_2025 = [
+export const IRPF_2025 = [
     { limit: 2259.20, rate: 0, deduction: 0 },
     { limit: 2826.65, rate: 0.075, deduction: 169.44 },
     { limit: 3751.05, rate: 0.150, deduction: 381.44 },
