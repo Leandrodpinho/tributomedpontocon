@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   ClipboardList,
   FileSignature,
@@ -84,7 +84,8 @@ const WIZARD_STEPS = [
 const FINANCIAL_STEP_INDEX = WIZARD_STEPS.findIndex(step => step.id === "financial-data");
 
 export default function Home() {
-  const [state, formAction, pending] = useActionState(getAnalysis, initialState);
+  const [state, setState] = useState<AnalysisState>(initialState);
+  const [pending, startTransition] = useTransition();
   const [showForm, setShowForm] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -248,7 +249,18 @@ export default function Home() {
                     </div>
                   </div>
                 </CardHeader>
-                <form ref={formRef} action={formAction} className="flex-1 flex flex-col">
+                <form
+                  ref={formRef}
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    startTransition(async () => {
+                      const newState = await getAnalysis(state, formData);
+                      setState(newState);
+                    });
+                  }}
+                  className="flex-1 flex flex-col"
+                >
                   <CardContent className="space-y-10">
                     <section
                       data-step="documents"
@@ -636,7 +648,7 @@ export default function Home() {
                           Próxima etapa
                         </Button>
                       ) : (
-                        <SubmitButton className="sm:min-w-[220px]">Gerar Planejamento</SubmitButton>
+                        <SubmitButton className="sm:min-w-[220px]" isLoading={pending}>Gerar Planejamento</SubmitButton>
                       )}
                     </div>
                   </CardFooter>
