@@ -1,6 +1,6 @@
 'use server';
 
-import {LEGAL_CONSTANTS_2025} from './legal-constants';
+import { LEGAL_CONSTANTS_2025 } from './legal-constants';
 /**
  * @fileOverview Generates potential tax scenarios tailored for medical professionals and clinics.
  *
@@ -9,8 +9,8 @@ import {LEGAL_CONSTANTS_2025} from './legal-constants';
  * - GenerateTaxScenariosOutput - The return type for the generateTaxScenarios function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 import {
   GenerateTaxScenariosInput,
   GenerateTaxScenariosInputSchema,
@@ -36,8 +36,8 @@ export async function generateTaxScenarios(input: GenerateTaxScenariosInput): Pr
 
 const prompt = ai.definePrompt({
   name: 'generateTaxScenariosPrompt',
-  input: {schema: GenerateTaxScenariosWithConstantsInputSchema},
-  output: {schema: GenerateTaxScenariosOutputSchema},
+  input: { schema: GenerateTaxScenariosWithConstantsInputSchema },
+  output: { schema: GenerateTaxScenariosOutputSchema },
   prompt: `Você é um contador-chefe e consultor de negócios para profissionais da área médica no Brasil, um especialista com domínio completo da legislação vigente de 2025 e das jurisprudências consolidadas. Sua tarefa é criar um planejamento tributário estratégico e profundo, que sirva como ferramenta para tomada de decisão. Responda sempre em português do Brasil.
 
 **BASE DE CONHECIMENTO LEGAL (LEGISLAÇÃO 2025):**
@@ -117,7 +117,26 @@ Para cada cenário gerado, preencha TODOS os campos do schema \`ScenarioDetailSc
     *   **Recomendação para o Cenário Atual:** Indique o regime mais vantajoso para o faturamento atual, com a economia em R$ e %.
     *   **Pontos de Atenção:** Liste os pontos cruciais (ex: necessidade de manter o Fator R, requisitos para Equiparação Hospitalar, verificação da lei municipal para ISS Fixo).
 
-2.  **Análise de Ponto de Equilíbrio (\`breakEvenAnalysis\`):** Forneça uma análise textual sobre os pontos de inflexão. Exemplo: "O Lucro Presumido tende a se tornar mais vantajoso que o Simples Nacional quando o faturamento aumenta, pois sua alíquota é fixa sobre uma base presumida, enquanto a do Simples é progressiva sobre a receita total."
+2.  **Análise de Ponto de Equilíbrio (\`breakEvenAnalysis\`):** Forneça uma análise textual sobre os pontos de inflexão.
+
+**ETAPA 5: AUDITORIA DE COMPLIANCE E OPORTUNIDADES (NOVO E CRÍTICO)**
+Analise profundamente o texto ('docs', 'transcript', 'clientData') e cruze com os dados estruturados ('cnaes'). Preencha o campo \`complianceAnalysis\` com:
+
+1.  **Validação de CNAEs (\`cnaeValidation\`):**
+    *   Leia as atividades descritas no texto (ex: "dou aulas", "faço gestão", "telemedicina", "pequenas cirurgias").
+    *   Verifique se os CNAEs informados cobrem essas atividades.
+    *   Liste cada atividade identificada e dê um veredito (ex: "Telemedicina: Coberto pelo CNAE 8630-5/03" ou "Aulas: NÃO coberto pelo CNAE atual").
+
+2.  **Natureza Jurídica - Trava de Risco (\`naturezaJuridicaCheck\`):**
+    *   Se o texto mencionar "firma individual", "EI", "Empresário Individual" ou "MEI" para atividade MÉDICA, isso é um **ERRO GRAVE**.
+    *   Gere um texto explicando que a medicina é atividade intelectual (art. 966, parágrafo único do CC) e não pode ser EI (exceto se tiver "elemento de empresa", o que é risco). Sugira LTDA ou Sociedade Unipessoal.
+
+3.  **Alertas e Oportunidades (\`alerts\`):**
+    *   Gere objetos de alerta com: \`type\` (danger/warning/info/opportunity), \`title\`, \`description\`, \`suggestion\`.
+    *   **ALERTA DE CNAE (Warning):** Se detectou atividade (ex: aulas) sem CNAE correspondente (ex: 8599-6/04).
+    *   **ALERTA DE EI (Danger):** Se detectou risco de Empresário Individual.
+    *   **OPORTUNIDADE (Opportunity):** Se o médico menciona receitas distintas (ex: plantão + aulas), sugira segregar as receitas (aulas podem ser Simples, plantão Presumido) ou criar uma holding se o patrimônio for alto.
+    *   **CENÁRIOS OCULTOS:** Se o texto sugere receitas não declaradas nos números (ex: "recebo parte PF"), crie um alerta do tipo 'danger' sobre "Risco de Omissão de Receita / Caixa 2".
 
 Sua resposta deve seguir estritamente a estrutura do JSON de saída. Seja analítico, preciso e aja como o especialista que você é.`,
 });
@@ -129,11 +148,23 @@ const generateTaxScenariosFlow = ai.defineFlow(
     outputSchema: GenerateTaxScenariosOutputSchema,
   },
   async input => {
+    // Implementação de Cache Simples (In-Memory)
+    const cacheKey = generateCacheKey(input);
+    const cached = getFromCache(cacheKey);
+    if (cached) {
+      console.log('Cache hit for tax scenarios:', cacheKey);
+      return cached;
+    }
+
     try {
-      const {output} = await prompt(input);
+      const { output } = await prompt(input);
       if (!output) {
         throw new Error('A IA não retornou uma saída válida.');
       }
+
+      // Salva no cache
+      saveToCache(cacheKey, output);
+
       return output;
     } catch (error) {
       // Log aprimorado para depuração em produção
@@ -145,3 +176,34 @@ const generateTaxScenariosFlow = ai.defineFlow(
     }
   }
 );
+
+// --- Cache Util --
+import { createHash } from 'crypto';
+
+const REQUEST_CACHE = new Map<string, { data: GenerateTaxScenariosOutput; expiresAt: number }>();
+const CACHE_TTL_MS = 1000 * 60 * 60; // 1 hora
+
+function generateCacheKey(input: any): string {
+  const stableString = JSON.stringify(input, Object.keys(input).sort());
+  return createHash('sha256').update(stableString).digest('hex');
+}
+
+function getFromCache(key: string): GenerateTaxScenariosOutput | null {
+  const entry = REQUEST_CACHE.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    REQUEST_CACHE.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function saveToCache(key: string, data: GenerateTaxScenariosOutput) {
+  // Limpeza preventiva se ficar muito grande (simples LRU-like ou apenas clear)
+  if (REQUEST_CACHE.size > 100) REQUEST_CACHE.clear();
+
+  REQUEST_CACHE.set(key, {
+    data,
+    expiresAt: Date.now() + CACHE_TTL_MS
+  });
+}

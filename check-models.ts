@@ -15,28 +15,40 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 async function listModels() {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        // There isn't a direct "listModels" on the client usually, but we can try to "countTokens" or similar to check validity, 
-        // OR we can just try to hit the list endpoint if the SDK supports it. 
-        // Actually the SDK doesn't always expose listModels directly in the high level client.
+        // Unfortunately the SDK doesn't expose listModels trivially in the main class in all versions, 
+        // but we can try to use the model manager if available or just infer from documentation.
+        // Actually, older SDKs didn't have listModels. Let's try to just hit the endpoint via fetch if needed.
+        // But let's try a direct test of "gemini-1.5-flash" again with the full "models/" prefix which sometimes helps.
 
-        // Let's use fetch directly to be sure.
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        if (!response.ok) {
-            console.error(`Error listing models: ${response.status} ${response.statusText}`);
-            const text = await response.text();
-            console.error(text);
-            return;
+        const modelsToCheck = [
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-001",
+            "gemini-1.5-flash-002",
+            "gemini-pro",
+            "models/gemini-1.5-flash",
+            "models/gemini-pro"
+        ];
+
+        for (const modelName of modelsToCheck) {
+            console.log(`Checking ${modelName}...`);
+            try {
+                const model = genAI.getGenerativeModel({ model: modelName });
+                const result = await model.generateContent("Test");
+                console.log(`✅ SUCCESS: ${modelName}`);
+                await result.response;
+                break; // Found one!
+            } catch (e: any) {
+                console.log(`❌ FAILED: ${modelName} - ${e.status || e.message}`);
+                if (e.response) {
+                    console.log('Error details:', JSON.stringify(await e.response.json(), null, 2));
+                } else {
+                    console.log('Full error:', JSON.stringify(e, Object.getOwnPropertyNames(e), 2));
+                }
+            }
         }
-        const data = await response.json();
-        const models = data.models.filter((m: any) => m.name.includes("1.5"));
-        console.log("AVAILABLE 1.5 MODELS:");
-        models.forEach((m: any) => {
-            console.log(`- ${m.name}`);
-        });
 
     } catch (error) {
-        console.error("Error:", error);
+        console.error("LIST FAILED:", error);
     }
 }
 

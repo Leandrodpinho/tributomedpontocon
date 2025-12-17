@@ -1,0 +1,81 @@
+
+> nextn@0.1.0 lint
+> next lint
+
+`next lint` is deprecated and will be removed in Next.js 16.
+For new projects, use create-next-app to choose your preferred linter.
+For existing projects, migrate to the ESLint CLI:
+npx @next/codemod@canary next-lint-to-eslint-cli .
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /Users/leandropinho/package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * /Users/leandropinho/Downloads/Apps Firebase/Tributo Med/tributomedpontocon/package-lock.json
+
+
+./src/ai/flows/calculate-irpf-impact.ts
+24:36  Warning: 'calculateINSS' is defined but never used.  @typescript-eslint/no-unused-vars
+26:7  Warning: 'CalculateIRPFImpactInputSchema' is assigned a value but only used as a type.  @typescript-eslint/no-unused-vars
+45:7  Warning: 'CalculateIRPFImpactOutputSchema' is assigned a value but only used as a type.  @typescript-eslint/no-unused-vars
+
+./src/ai/flows/generate-tax-scenarios.ts
+186:34  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/analysis-form.tsx
+3:28  Warning: 'useTransition' is defined but never used.  @typescript-eslint/no-unused-vars
+10:5  Warning: 'FileText' is defined but never used.  @typescript-eslint/no-unused-vars
+11:5  Warning: 'HelpCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+28:5  Warning: 'Tooltip' is defined but never used.  @typescript-eslint/no-unused-vars
+29:5  Warning: 'TooltipContent' is defined but never used.  @typescript-eslint/no-unused-vars
+30:5  Warning: 'TooltipProvider' is defined but never used.  @typescript-eslint/no-unused-vars
+31:5  Warning: 'TooltipTrigger' is defined but never used.  @typescript-eslint/no-unused-vars
+38:10  Warning: 'cn' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/dashboard/pro-labore-optimizer.tsx
+4:10  Warning: 'Card' is defined but never used.  @typescript-eslint/no-unused-vars
+4:16  Warning: 'CardContent' is defined but never used.  @typescript-eslint/no-unused-vars
+5:10  Warning: 'Button' is defined but never used.  @typescript-eslint/no-unused-vars
+10:10  Warning: 'ArrowRight' is defined but never used.  @typescript-eslint/no-unused-vars
+10:59  Warning: 'AlertTriangle' is defined but never used.  @typescript-eslint/no-unused-vars
+10:74  Warning: 'Info' is defined but never used.  @typescript-eslint/no-unused-vars
+36:11  Warning: 'chartData' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+41:19  Warning: 'scenarios' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+59:19  Warning: 'inss' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+61:17  Warning: 'ir' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+61:17  Error: 'ir' is never reassigned. Use 'const' instead.  prefer-const
+66:32  Warning: 'rateDAS' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/dashboard/scenario-metrics.tsx
+20:3  Warning: 'annualSavings' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/dashboard/sensitivity-analysis-chart.tsx
+118:66  Error: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+118:74  Error: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+219:81  Error: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+219:89  Error: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+
+./src/components/dashboard/simulator-panel.tsx
+4:10  Warning: 'Card' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/dashboard-results.tsx
+17:10  Warning: 'AnnualTimeline' is defined but never used.  @typescript-eslint/no-unused-vars
+21:10  Warning: 'Card' is defined but never used.  @typescript-eslint/no-unused-vars
+71:9  Warning: 'generatedAt' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+72:9  Warning: 'formattedMonthlyRevenue' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+116:28  Error: React Hook "useCallback" is called conditionally. React Hooks must be called in the exact same order in every component render.  react-hooks/rules-of-hooks
+123:26  Error: React Hook "useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render.  react-hooks/rules-of-hooks
+137:29  Error: React Hook "useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render.  react-hooks/rules-of-hooks
+146:55  Error: React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render.  react-hooks/rules-of-hooks
+148:3  Error: React Hook "useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render.  react-hooks/rules-of-hooks
+152:27  Error: React Hook "useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render.  react-hooks/rules-of-hooks
+157:3  Error: React Hook "useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render.  react-hooks/rules-of-hooks
+175:75  Error: React Hook "useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render.  react-hooks/rules-of-hooks
+221:28  Error: React Hook "useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+237:9  Warning: 'handlePrint' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/lib/tax-calculator.ts
+127:11  Warning: 'inssPF' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules

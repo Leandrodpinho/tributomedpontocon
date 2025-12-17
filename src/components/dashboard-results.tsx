@@ -2,11 +2,16 @@
 
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { AnalysisState } from '@/app/actions';
 import type { GenerateTaxScenariosOutput, ScenarioDetail } from '@/ai/flows/types';
 import { BestScenarioCard } from '@/components/dashboard/best-scenario-card';
 import { ScenarioMetrics } from '@/components/dashboard/scenario-metrics';
 import { ScenarioTaxBreakdown } from '@/components/dashboard/scenario-tax-breakdown';
+
+import { PrintLayout } from '@/components/dashboard/print-layout';
 import { ProLaboreOptimizer } from '@/components/dashboard/pro-labore-optimizer';
+import { ComplianceCard } from '@/components/dashboard/compliance-card';
+import { SensitivityAnalysisChart } from '@/components/dashboard/sensitivity-analysis-chart';
 import { ScenarioComparisonChart } from './scenario-comparison-chart';
 import { SimulatorPanel } from '@/components/dashboard/simulator-panel';
 import { AnnualTimeline } from '@/components/dashboard/annual-timeline';
@@ -45,6 +50,7 @@ type DashboardResultsProps = {
   webhookResponse?: string | null;
   historyRecordId?: string | null;
   historyError?: string | null;
+  initialParameters?: AnalysisState['initialParameters'];
 };
 
 export function DashboardResults({
@@ -55,17 +61,14 @@ export function DashboardResults({
   webhookResponse,
   historyRecordId,
   historyError,
+  initialParameters,
 }: DashboardResultsProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isPresentationMode, setIsPresentationMode] = useState(false);
   const { toast } = useToast();
   const isWebhookConfigured = WEBHOOK_ENDPOINT.length > 0;
   const webhookError = webhookResponse ? /falha|erro/i.test(webhookResponse.toLowerCase()) : false;
-  const generatedAt = useMemo(() => new Date(), []);
-  const formattedMonthlyRevenue = useMemo(
-    () => formatCurrency(analysis.monthlyRevenue ?? 0),
-    [analysis.monthlyRevenue]
-  );
+
 
   const scenarios = useMemo(() => analysis?.scenarios ?? [], [analysis.scenarios]);
   const hasScenarios = scenarios.length > 0;
@@ -77,34 +80,7 @@ export function DashboardResults({
     return historyError;
   }, [historyError]);
 
-  if (!hasScenarios) {
-    return (
-      <div className="glass-card flex flex-col rounded-xl p-6">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-foreground">Nenhum cenário gerado</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Revise os dados enviados ou adicione anexos com detalhamento financeiro para permitir a simulação.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert className="border border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-100">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Dados insuficientes</AlertTitle>
-            <AlertDescription>
-              A IA retornou sem projeções para este cliente. Informe faturamento, folha e anexos-chave para habilitar os cálculos.
-            </AlertDescription>
-          </Alert>
-          {historyNotice && (
-            <Alert className="border border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-500/40 dark:bg-slate-500/10 dark:text-slate-100">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Histórico não salvo</AlertTitle>
-              <AlertDescription>{historyNotice}</AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </div>
-    );
-  }
+
 
   const normalizeRevenue = useCallback((value?: number) => {
     if (typeof value !== 'number' || Number.isNaN(value)) {
@@ -224,52 +200,35 @@ export function DashboardResults({
   const hasOutliers = outlierScenarios.length > 0;
 
   if (!hasScenarios) {
-    return null;
+    return (
+      <div className="glass-card flex flex-col rounded-xl p-6">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-foreground">Nenhum cenário gerado</CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Revise os dados enviados ou adicione anexos com detalhamento financeiro para permitir a simulação.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert className="border border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-100">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Dados insuficientes</AlertTitle>
+            <AlertDescription>
+              A IA retornou sem projeções para este cliente. Informe faturamento, folha e anexos-chave para habilitar os cálculos.
+            </AlertDescription>
+          </Alert>
+          {historyNotice && (
+            <Alert className="border border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-500/40 dark:bg-slate-500/10 dark:text-slate-100">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Histórico não salvo</AlertTitle>
+              <AlertDescription>{historyNotice}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </div>
+    );
   }
 
-  const handlePrint = () => {
-    const reportElement = document.getElementById('report-content');
-    if (!reportElement || !bestScenario) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao Imprimir',
-        description: 'Não foi possível preparar o relatório para impressão.',
-      });
-      return;
-    }
 
-    const clonedReport = reportElement.cloneNode(true) as HTMLElement;
-
-    // Mantemos a Visão Geral para exibir o Benchmarking e métricas
-    // clonedReport.querySelector('[data-section="overview"]')?.remove();
-    clonedReport.querySelector('[data-section="data"]')?.remove();
-
-    const scenariosSection = clonedReport.querySelector('[data-section="scenarios"]');
-    if (scenariosSection) {
-      const heading = scenariosSection.querySelector('h2');
-      if (heading) heading.textContent = 'Regime Tributário Recomendado';
-      scenariosSection.querySelectorAll('[data-scenario-card]').forEach(card => {
-        if (card instanceof HTMLElement && card.dataset.best !== 'true') {
-          card.remove();
-        }
-      });
-    }
-
-    const printWindow = window.open('', '', 'height=800,width=1000');
-    if (printWindow) {
-      const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'));
-      const stylesHTML = styles.map(style => style.outerHTML).join('');
-      printWindow.document.write(
-        `<!DOCTYPE html><html><head><title>Relatório Tributário - ${clientName}</title>${stylesHTML}</head><body class="p-8">${clonedReport.innerHTML}</body></html>`
-      );
-      printWindow.document.close();
-      printWindow.onload = function () {
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-      };
-    }
-  };
 
   const handleDownloadDocx = async () => {
     if (!bestScenario) {
@@ -515,31 +474,6 @@ export function DashboardResults({
           </div>
         </header>
 
-        <div className="hidden print:block print:page-break-after-always">
-          <div className="mx-auto flex h-[18cm] w-full max-w-5xl flex-col justify-between rounded-3xl border border-[hsl(var(--border))] bg-gradient-to-br from-brand-500/15 via-white to-emerald-500/10 p-12 text-center shadow-xl">
-            <div className="space-y-4">
-              <p className="text-sm uppercase tracking-[0.4em] text-brand-600">Planejamento Tributário</p>
-              <h1 className="text-4xl font-bold text-foreground">{clientName}</h1>
-              <p className="text-lg text-muted-foreground">
-                Relatório executivo emitido em {generatedAt.toLocaleDateString('pt-BR')}
-              </p>
-            </div>
-            <div className="mx-auto grid w-full max-w-3xl gap-4 text-left sm:grid-cols-2">
-              <div className="rounded-2xl border border-[hsl(var(--border))] bg-white/90 p-5 shadow-sm">
-                <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Faturamento considerado</p>
-                <p className="mt-3 text-2xl font-semibold text-foreground">{formattedMonthlyRevenue}</p>
-              </div>
-              <div className="rounded-2xl border border-[hsl(var(--border))] bg-white/90 p-5 shadow-sm">
-                <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Cenários avaliados</p>
-                <p className="mt-3 text-2xl font-semibold text-foreground">{analysis.scenarios?.length ?? 0}</p>
-              </div>
-            </div>
-            <div className="text-xs uppercase tracking-[0.45em] text-muted-foreground">
-              {consultingFirm} • Inteligência Fiscal
-            </div>
-          </div>
-        </div>
-
         <main
           id="report-content"
           className="flex flex-1 flex-col gap-8 px-4 py-6 lg:px-8" data-selected-revenue={selectedRevenue}
@@ -570,23 +504,50 @@ export function DashboardResults({
                 economyShare={economyShare}
               />
             </div>
-            {chartData.length > 0 && (
-              <div className="glass-card rounded-xl print:break-inside-avoid">
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-foreground">Comparativo de Cenários</CardTitle>
-                  <CardDescription className="text-muted-foreground">
-                    Avalie o impacto de cada regime sobre a carga tributária e o lucro líquido.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ScenarioComparisonChart data={chartData} />
-                </CardContent>
+
+            {/* Auditoria de Compliance */}
+            {analysis.complianceAnalysis && (
+              <div className="print:break-inside-avoid">
+                <ComplianceCard analysis={analysis.complianceAnalysis} />
               </div>
             )}
+
+            {/* Gráficos de Análise (Comparativo atual + Sensibilidade futura) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:break-inside-avoid">
+              {chartData.length > 0 && (
+                <div className="glass-card rounded-xl print:break-inside-avoid">
+                  <CardHeader>
+                    <CardTitle>Comparativo de Regimes (Cenário Atual)</CardTitle>
+                    <CardDescription>
+                      Visualização da carga tributária e lucro líquido para o faturamento de {formatCurrency(analysis.monthlyRevenue)}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pl-0">
+                    <ScenarioComparisonChart data={chartData} />
+                  </CardContent>
+                </div>
+              )}
+
+              <SensitivityAnalysisChart
+                currentRevenue={analysis.monthlyRevenue}
+                payrollExpenses={initialParameters?.payrollExpenses || 0}
+                issRate={initialParameters?.issRate || 0}
+                numberOfPartners={initialParameters?.numberOfPartners || 1}
+                realProfitMargin={initialParameters?.realProfitMargin}
+                isUniprofessional={initialParameters?.isUniprofessionalSociety || false}
+              />
+            </div>
           </section>
 
           <section id="simulator" data-section="simulator" className="space-y-6">
-            <SimulatorPanel initialRevenue={selectedRevenue} />
+            <SimulatorPanel
+              initialRevenue={selectedRevenue}
+              initialPayroll={initialParameters?.payrollExpenses}
+              initialIssRate={initialParameters?.issRate}
+              initialPartners={initialParameters?.numberOfPartners}
+              initialRealMargin={initialParameters?.realProfitMargin}
+              initialIsSup={initialParameters?.isUniprofessionalSociety}
+            />
           </section>
 
           <section id="optimizer" data-section="optimizer" className="space-y-6">
@@ -828,6 +789,12 @@ export function DashboardResults({
           </section>
         </main>
       </section>
-    </div >
+
+      <PrintLayout
+        analysis={analysis}
+        clientName={clientName}
+        consultingFirm={consultingFirm}
+      />
+    </div>
   );
 }

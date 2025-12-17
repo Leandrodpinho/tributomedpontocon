@@ -14,7 +14,7 @@ if (!apiKey) {
 const genAI = new GoogleGenerativeAI(apiKey);
 
 async function testGeneration() {
-    const modelName = "gemini-2.5-flash-lite"; // The one we configured
+    const modelName = "gemini-pro"; // Fallback to classic
     console.log(`Testing generation with model: ${modelName}`);
 
     try {

@@ -19,6 +19,15 @@ export interface AnalysisState {
   error: string | null;
   historyRecordId: string | null;
   historyError: string | null;
+  initialParameters?: {
+    monthlyRevenue: number;
+    payrollExpenses?: number;
+    issRate?: number;
+    numberOfPartners?: number;
+    realProfitMargin?: number;
+    isHospitalEquivalent?: boolean;
+    isUniprofessionalSociety?: boolean;
+  };
 }
 
 type SupportedTaxRegime = CalculateIRPFImpactInput["taxRegime"];
@@ -85,6 +94,8 @@ export async function getAnalysis(
   const cnpj = formData.get("cnpj") as string | null;
   const monthlyRevenue = formData.get("monthlyRevenue") as string | null;
   const negotiationTranscript = formData.get("negotiationTranscript") as string | null;
+  const numberOfPartners = formData.get("numberOfPartners") as string | null;
+  const realProfitMargin = formData.get("realProfitMargin") as string | null;
 
   const parseDecimal = (value: string | null) => {
     if (!value) return undefined;
@@ -98,6 +109,8 @@ export async function getAnalysis(
   const issRateNum = parseDecimal(issRate);
   const rbt12Num = parseDecimal(rbt12) ?? (monthlyRevenueNum !== undefined ? monthlyRevenueNum * 12 : undefined);
   const fs12Num = parseDecimal(fs12);
+  const numberOfPartnersNum = numberOfPartners ? parseInt(numberOfPartners, 10) : undefined;
+  const realProfitMarginNum = parseDecimal(realProfitMargin);
   const parsedCnaes = rawCnaes
     ? rawCnaes
       .split(",")
@@ -379,6 +392,15 @@ export async function getAnalysis(
       error: null,
       historyRecordId: persistenceResult.saved ? persistenceResult.documentId : null,
       historyError: persistenceResult.saved ? null : (persistenceResult.error ?? null),
+      initialParameters: {
+        monthlyRevenue: monthlyRevenueNum,
+        payrollExpenses: payrollExpensesNum,
+        issRate: issRateNum,
+        numberOfPartners: numberOfPartnersNum,
+        realProfitMargin: realProfitMarginNum,
+        isHospitalEquivalent,
+        isUniprofessionalSociety
+      }
     };
 
   } catch (error) {
