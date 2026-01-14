@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { REFORM_TIMELINE, DIFFERENTIATED_REGIMES, BASIC_BASKET, KEY_CONCEPTS } from '@/lib/reform-knowledge';
 import { useReformNews } from '@/hooks/use-reform-news';
 import { NewsCard } from '@/components/reform/news-card';
+import { ImpactAnalysis } from '@/components/reform/impact-analysis';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 // Componente para exibir notícias dinâmicas
@@ -141,26 +142,7 @@ export default function ReformaTributariaPage() {
 
                 {/* Impactos Tab */}
                 <TabsContent value="impactos" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <TrendingUp className="h-5 w-5" />
-                                Análise de Impactos
-                            </CardTitle>
-                            <CardDescription>
-                                Veja como a reforma afetará diferentes regimes tributários
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-center py-12 text-muted-foreground">
-                                <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                <p className="text-lg font-semibold mb-2">Análise Personalizada</p>
-                                <p className="text-sm">
-                                    A análise de impacto será exibida automaticamente após gerar cenários tributários
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <ImpactAnalysis />
                 </TabsContent>
 
                 {/* Novidades Tab */}

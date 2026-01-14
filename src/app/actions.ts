@@ -10,6 +10,8 @@ import { inferDocumentType } from "@/ai/flows/document-utils";
 import htmlToDocx from "html-to-docx";
 import type { IrpfImpact } from "@/types/irpf";
 import { persistAnalysisRecord } from "@/lib/firebase-admin";
+import { generateImpactReport } from "@/lib/reform-impact-calculator";
+import type { SavedTaxAnalysis } from "@/types/reform-impact";
 
 export interface AnalysisState {
   aiResponse: GenerateTaxScenariosOutput | null;
@@ -383,6 +385,41 @@ export async function getAnalysis(
       irpfImpacts,
       webhookResponse,
     });
+
+    // ✨ NOVO: Calcular impacto da Reforma Tributária
+    try {
+      if (serializableResponse?.scenarios && serializableResponse.scenarios.length > 0) {
+        const reformImpact = generateImpactReport(
+          serializableResponse.scenarios,
+          {
+            companyName: companyName ?? undefined,
+            monthlyRevenue: monthlyRevenueNum!,
+            regime: serializableResponse.scenarios[0]?.name,
+            sector: 'Saúde', // Inferir do CNAE se possível
+            cnaes: parsedCnaes,
+          }
+        );
+
+        // Salvar no localStorage (client-side será feito via useEffect)
+        const savedAnalysis: SavedTaxAnalysis = {
+          timestamp: new Date(),
+          clientData: {
+            companyName: companyName ?? undefined,
+            monthlyRevenue: monthlyRevenueNum!,
+            regime: serializableResponse.scenarios[0]?.name,
+            cnaes: parsedCnaes,
+          },
+          scenarios: serializableResponse.scenarios,
+          reformImpact,
+        };
+
+        // Retornar dados para serem salvos no client-side
+        (serializableResponse as any).reformImpact = reformImpact;
+      }
+    } catch (reformError) {
+      console.error('Erro ao calcular impacto da reforma:', reformError);
+      // Não falhar a análise principal se houver erro no cálculo da reforma
+    }
 
     return {
       aiResponse: serializableResponse,
