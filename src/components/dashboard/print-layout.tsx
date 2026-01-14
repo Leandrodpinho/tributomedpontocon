@@ -81,15 +81,15 @@ export function PrintLayout({ analysis, clientName, consultingFirm }: PrintLayou
                             <div className="grid grid-cols-3 gap-8 pt-4">
                                 <div>
                                     <p className="text-xs text-slate-500 uppercase">Imposto Mensal Est.</p>
-                                    <p className="text-xl font-bold text-slate-900">{formatCurrency(bestScenario.totalTaxValue)}</p>
+                                    <p className="text-xl font-bold text-slate-900">{formatCurrency(bestScenario.totalTaxValue ?? 0)}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-slate-500 uppercase">Carga Efetiva</p>
-                                    <p className="text-xl font-bold text-slate-900">{formatPercentage(bestScenario.effectiveRate / 100)}</p>
+                                    <p className="text-xl font-bold text-slate-900">{formatPercentage((bestScenario.effectiveRate ?? 0) / 100)}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-slate-500 uppercase">Lucro Líquido Est.</p>
-                                    <p className="text-xl font-bold text-emerald-600">{formatCurrency(bestScenario.netProfitDistribution)}</p>
+                                    <p className="text-xl font-bold text-emerald-600">{formatCurrency(bestScenario.netProfitDistribution ?? 0)}</p>
                                 </div>
                             </div>
                         </div>
@@ -129,10 +129,10 @@ export function PrintLayout({ analysis, clientName, consultingFirm }: PrintLayou
                             return (
                                 <tr key={scenario.name} className={isBest ? "bg-emerald-50/50 font-medium" : ""}>
                                     <td className="p-3">{scenario.name} {isBest && <span className="text-xs text-emerald-600 ml-2 font-bold">(Melhor)</span>}</td>
-                                    <td className="p-3">{formatCurrency(scenario.totalTaxValue)}</td>
-                                    <td className="p-3">{formatCurrency(scenario.proLaboreAnalysis.baseValue)}</td>
-                                    <td className="p-3">{formatPercentage(scenario.effectiveRate / 100)}</td>
-                                    <td className="p-3 text-right">{formatCurrency(scenario.netProfitDistribution)}</td>
+                                    <td className="p-3">{formatCurrency(scenario.totalTaxValue ?? 0)}</td>
+                                    <td className="p-3">{formatCurrency(scenario.proLaboreAnalysis?.baseValue ?? 0)}</td>
+                                    <td className="p-3">{formatPercentage((scenario.effectiveRate ?? 0) / 100)}</td>
+                                    <td className="p-3 text-right">{formatCurrency(scenario.netProfitDistribution ?? 0)}</td>
                                 </tr>
                             );
                         })}

@@ -7,11 +7,17 @@ if (typeof DOMMatrix === "undefined") {
     };
 }
 
-// @ts-ignore
-let pdf = require("pdf-parse/dist/pdf-parse/cjs/index.cjs");
-// Handle CJS/ESM interop just in case
-if (typeof pdf !== 'function' && pdf.default) {
-    pdf = pdf.default;
+// Dynamic require for pdf-parse to work with Next.js/Turbopack
+let pdf: any;
+try {
+    pdf = require("pdf-parse");
+    // Handle both default and named exports
+    if (pdf && typeof pdf === 'object' && pdf.default) {
+        pdf = pdf.default;
+    }
+} catch (e) {
+    console.error("Failed to load pdf-parse:", e);
+    pdf = null;
 }
 // @ts-ignore
 const { fromBuffer } = require("pdf2pic");
@@ -24,6 +30,12 @@ import path from "node:path";
 const execFileAsync = promisify(execFile);
 
 export async function extractTextFromPdfBuffer(buffer: Buffer): Promise<string> {
+    // If pdf-parse failed to load, skip directly to OCR
+    if (!pdf || typeof pdf !== 'function') {
+        console.warn("pdf-parse not available, using OCR directly");
+        return await ocrPdf(buffer);
+    }
+
     try {
         // 1. Try fast extraction with pdf-parse
         // pdf-parse library acts on a buffer and returns a promise with text

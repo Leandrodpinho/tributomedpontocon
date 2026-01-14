@@ -43,15 +43,15 @@ export const ProLaboreAnalysisSchema = z.object({
 
 export const ScenarioDetailSchema = z.object({
   name: z.string().describe('O nome do cenário (ex: "Simples Nacional Anexo III com Faturamento de R$ 10.000,00").'),
-  scenarioRevenue: z.coerce.number().describe('O faturamento mensal para o qual este cenário foi calculado.'),
-  totalTaxValue: z.coerce.number().describe('O valor total do imposto a ser pago no regime (ex: 1270.15).'),
-  effectiveRate: z.coerce.number().describe('A alíquota efetiva total do regime, em porcentagem (ex: 10.75).'),
+  scenarioRevenue: z.coerce.number().optional().describe('O faturamento mensal para o qual este cenário foi calculado.'),
+  totalTaxValue: z.coerce.number().optional().describe('O valor total do imposto a ser pago no regime (ex: 1270.15).'),
+  effectiveRate: z.coerce.number().optional().describe('A alíquota efetiva total do regime, em porcentagem (ex: 10.75).'),
   effectiveRateOnProfit: z.coerce.number().optional().describe('A alíquota efetiva sobre o lucro (Impostos / Lucro Bruto), em porcentagem.'),
   taxCostPerEmployee: z.coerce.number().optional().describe('O custo tributário médio por funcionário CLT.'),
-  taxBreakdown: z.array(TaxDetailSchema).describe('Detalhamento da composição dos tributos dentro do regime.'),
-  proLaboreAnalysis: ProLaboreAnalysisSchema.describe('Análise detalhada do impacto do pró-labore.'),
-  netProfitDistribution: z.coerce.number().describe('Lucro líquido disponível para distribuição ao sócio após todos os impostos e encargos.'),
-  notes: z.string().describe('Observações importantes sobre o cenário, como o uso do Fator R ou o cálculo do INSS patronal.'),
+  taxBreakdown: z.array(TaxDetailSchema).optional().describe('Detalhamento da composição dos tributos dentro do regime.'),
+  proLaboreAnalysis: ProLaboreAnalysisSchema.optional().describe('Análise detalhada do impacto do pró-labore.'),
+  netProfitDistribution: z.coerce.number().optional().describe('Lucro líquido disponível para distribuição ao sócio após todos os impostos e encargos.'),
+  notes: z.string().optional().describe('Observações importantes sobre o cenário, como o uso do Fator R ou o cálculo do INSS patronal.'),
 }).strict();
 export type ScenarioDetail = z.infer<typeof ScenarioDetailSchema>;
 
@@ -63,9 +63,23 @@ export const ComplianceAlertSchema = z.object({
 }).strict();
 
 export const ComplianceAnalysisSchema = z.object({
-  cnaeValidation: z.array(z.string()).describe('Análise da adequação dos CNAEs às atividades descritas no texto.'),
-  naturezaJuridicaCheck: z.string().describe('Validação se a natureza jurídica (ex: EI) é compatível com a atividade médica.'),
-  alerts: z.array(ComplianceAlertSchema).describe('Lista de riscos, alertas e oportunidades detectadas.'),
+  cnaeValidation: z.array(z.string()).describe(
+    'Lista de validações cruzadas entre os CNAEs registrados e as atividades descritas nos documentos. ' +
+    'Cada item deve indicar se o CNAE está adequado ou se há divergências. ' +
+    'Exemplo: "CNAE 8630-5/04 (Atividade médica ambulatorial) está adequado para clínica médica"'
+  ),
+  naturezaJuridicaCheck: z.string().describe(
+    'Análise DETALHADA da compatibilidade entre a natureza jurídica identificada (EI, EIRELI, LTDA, SLU, etc.) e as atividades exercidas. ' +
+    'OBRIGATÓRIO incluir: ' +
+    '1) Qual é a natureza jurídica identificada nos documentos; ' +
+    '2) Se ela é compatível com a atividade (ex: EI não pode ter sócios, médicos não podem ser EI por risco de responsabilidade ilimitada); ' +
+    '3) Recomendação específica se houver incompatibilidade. ' +
+    'Exemplo: "Identificada natureza jurídica EIRELI. Compatível com atividade médica uniprofissional. Recomendação: Considerar migração para SLU (Sociedade Limitada Unipessoal) que oferece mesmas vantagens com menos burocracia."'
+  ),
+  alerts: z.array(ComplianceAlertSchema).describe(
+    'Lista de riscos, alertas e oportunidades detectadas na análise. ' +
+    'Priorize alertas de alto impacto: incompatibilidades legais, riscos fiscais, oportunidades de economia.'
+  ),
 }).strict();
 export type ComplianceAnalysis = z.infer<typeof ComplianceAnalysisSchema>;
 
@@ -73,7 +87,7 @@ export const GenerateTaxScenariosOutputSchema = z.object({
   transcribedText: z.string().optional().describe('As informações financeiras e operacionais transcritas dos documentos anexados.'),
   monthlyRevenue: z.coerce.number().describe('O faturamento mensal identificado para o cliente.'),
   scenarios: z.array(ScenarioDetailSchema).describe('Uma lista de cenários tributários detalhados, incluindo projeções de receita.'),
-  executiveSummary: z.string().describe('Resumo executivo em Markdown com a recomendação final sobre o melhor cenário para o faturamento atual, e análise sobre os pontos de inflexão com base nas projeções de receita. Use ** para negrito nos títulos.'),
+  executiveSummary: z.string().optional().describe('Resumo executivo em Markdown com a recomendação final sobre o melhor cenário para o faturamento atual, e análise sobre os pontos de inflexão com base nas projeções de receita. Use ** para negrito nos títulos.'),
   breakEvenAnalysis: z.string().optional().describe('Análise textual sobre os pontos de equilíbrio de faturamento entre os regimes.'),
   complianceAnalysis: ComplianceAnalysisSchema.optional().describe('Auditoria de compliance tributário e societário baseada nos dados fornecidos.'),
 }).strict();

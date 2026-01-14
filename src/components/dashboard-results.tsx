@@ -7,6 +7,7 @@ import type { GenerateTaxScenariosOutput, ScenarioDetail } from '@/ai/flows/type
 import { BestScenarioCard } from '@/components/dashboard/best-scenario-card';
 import { ScenarioMetrics } from '@/components/dashboard/scenario-metrics';
 import { ScenarioTaxBreakdown } from '@/components/dashboard/scenario-tax-breakdown';
+import { ClientPresentation } from '@/components/dashboard/client-presentation';
 
 import { PrintLayout } from '@/components/dashboard/print-layout';
 import { ProLaboreOptimizer } from '@/components/dashboard/pro-labore-optimizer';
@@ -15,6 +16,7 @@ import { SensitivityAnalysisChart } from '@/components/dashboard/sensitivity-ana
 import { ScenarioComparisonChart } from './scenario-comparison-chart';
 import { SimulatorPanel } from '@/components/dashboard/simulator-panel';
 import { AnnualTimeline } from '@/components/dashboard/annual-timeline';
+import { SavingsHighlight } from '@/components/dashboard/savings-highlight';
 import { MarkdownRenderer } from './markdown-renderer';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -27,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatPercentage } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { saveAs } from 'file-saver';
-import { AlertCircle, Download, FileText, Layers, Menu, MonitorPlay, Printer, Target, TrendingUp } from 'lucide-react';
+import { AlertCircle, Download, FileText, Layers, Menu, MonitorPlay, Presentation, Printer, Target, TrendingUp } from 'lucide-react';
 import type { IrpfImpact } from '@/types/irpf';
 
 const NAV_ITEMS = [
@@ -65,6 +67,7 @@ export function DashboardResults({
 }: DashboardResultsProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isPresentationMode, setIsPresentationMode] = useState(false);
+  const [showClientPresentation, setShowClientPresentation] = useState(false);
   const { toast } = useToast();
   const isWebhookConfigured = WEBHOOK_ENDPOINT.length > 0;
   const webhookError = webhookResponse ? /falha|erro/i.test(webhookResponse.toLowerCase()) : false;
@@ -458,6 +461,14 @@ export function DashboardResults({
               <Download className="mr-2 h-4 w-4" /> {isDownloading ? 'Gerando...' : 'Baixar Word'}
             </Button>
             <Button
+              size="sm"
+              onClick={() => setShowClientPresentation(true)}
+              className="bg-emerald-600 text-white hover:bg-emerald-500"
+            >
+              <Presentation className="mr-2 h-4 w-4" />
+              Apresentação Cliente
+            </Button>
+            <Button
               variant={isPresentationMode ? "default" : "outline"}
               size="sm"
               onClick={() => setIsPresentationMode(!isPresentationMode)}
@@ -554,19 +565,23 @@ export function DashboardResults({
             <ProLaboreOptimizer initialRevenue={selectedRevenue} />
           </section>
 
+
           {bestScenario && (
-            <section id="recommended" data-section="recommended" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold text-foreground">Cenário Recomendado</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Regime com menor carga tributária projetada mantendo o faturamento atual.
-                  </p>
-                </div>
-                <Badge variant="secondary" className="bg-brand-500/10 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
-                  Otimização média de {formatCurrency(monthlySavings)} / mês
-                </Badge>
+            <section id="recommended" data-section="recommended" className="space-y-8">
+              <div className="flex flex-col gap-2 mb-4">
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Estratégia Recomendada</h2>
+                <p className="text-muted-foreground">
+                  Análise detalhada do regime tributário mais eficiente para o seu perfil.
+                </p>
               </div>
+
+              <SavingsHighlight
+                monthlySavings={monthlySavings}
+                annualSavings={annualSavings}
+                currentTax={worstScenario?.totalTaxValue ?? 0}
+                projectedTax={bestScenario.totalTaxValue ?? 0}
+              />
+
               <BestScenarioCard scenario={bestScenario} />
               <ScenarioTaxBreakdown scenario={bestScenario} className="border-none shadow-md" />
               {irpfImpactForBest && <IrpfImpactSummary impact={irpfImpactForBest} />}
@@ -771,7 +786,7 @@ export function DashboardResults({
                 <CardTitle className="text-lg font-semibold text-foreground">Resumo Executivo</CardTitle>
               </CardHeader>
               <CardContent className="prose prose-sm max-w-none text-foreground">
-                <MarkdownRenderer content={analysis.executiveSummary} />
+                <MarkdownRenderer content={analysis.executiveSummary ?? 'Nenhum resumo executivo disponível.'} />
               </CardContent>
             </div>
             {analysis.breakEvenAnalysis && (
@@ -789,6 +804,15 @@ export function DashboardResults({
           </section>
         </main>
       </section>
+
+      {showClientPresentation && (
+        <ClientPresentation
+          analysis={analysis}
+          clientName={clientName}
+          consultingFirm={consultingFirm}
+          onClose={() => setShowClientPresentation(false)}
+        />
+      )}
 
       <PrintLayout
         analysis={analysis}
