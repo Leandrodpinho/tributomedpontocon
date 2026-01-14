@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatPercentage } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { saveAs } from 'file-saver';
-import { AlertCircle, Download, FileText, Layers, Menu, MonitorPlay, Presentation, Printer, Target, TrendingUp } from 'lucide-react';
+import { AlertCircle, Download, FileText, Layers, Menu, MonitorPlay, Presentation, Printer, Target, TrendingUp, Zap } from 'lucide-react';
 import type { IrpfImpact } from '@/types/irpf';
 
 const NAV_ITEMS = [
@@ -40,6 +40,7 @@ const NAV_ITEMS = [
   { label: 'Cenários', href: '#scenarios', icon: <FileText className="h-4 w-4" /> },
   { label: 'Dados Base', href: '#data', icon: <FileText className="h-4 w-4" /> },
   { label: 'Resumo', href: '#summary', icon: <Layers className="h-4 w-4" /> },
+  { label: 'Reforma Tributária', href: '/reforma-tributaria', icon: <Zap className="h-4 w-4" /> },
 ];
 
 const WEBHOOK_ENDPOINT = process.env.NEXT_PUBLIC_WEBHOOK_URL ?? '';

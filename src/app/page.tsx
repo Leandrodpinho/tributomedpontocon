@@ -61,19 +61,33 @@ export default function Home() {
             </p>
           </div>
         </div>
-        {!showForm && (
+        <div className="flex items-center gap-2">
+          {!showForm && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setShowForm(true);
+                setState(initialState); // Reseta estado ao voltar
+              }}
+              className="hidden md:flex"
+            >
+              <Pencil className="mr-2 h-4 w-4" /> Nova Simulação
+            </Button>
+          )}
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
-            onClick={() => {
-              setShowForm(true);
-              setState(initialState); // Reseta estado ao voltar
-            }}
-            className="hidden md:flex"
+            onClick={() => window.location.href = '/reforma-tributaria'}
+            className="flex items-center gap-2"
           >
-            <Pencil className="mr-2 h-4 w-4" /> Nova Simulação
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span className="hidden sm:inline">Reforma Tributária</span>
+            <span className="sm:hidden">Reforma</span>
           </Button>
-        )}
+        </div>
       </header>
 
       <main className="mx-auto mt-8 flex w-full max-w-7xl flex-1 flex-col gap-10 px-4 pb-12 md:px-8">
