@@ -10,13 +10,13 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
 
         const input: ReformAssistantInput = {
-            pergunta: body.pergunta,
-            historico: body.historico || [],
-            contexto_cliente: body.contexto_cliente,
+            query: body.pergunta || body.query,
+            conversation_history: body.historico || body.conversation_history || [],
+            context: body.contexto_cliente || body.context,
         };
 
         // Validação básica
-        if (!input.pergunta || input.pergunta.trim().length === 0) {
+        if (!input.query || input.query.trim().length === 0) {
             return NextResponse.json(
                 {
                     sucesso: false,
@@ -29,7 +29,13 @@ export async function POST(request: NextRequest) {
         // Executar AI Flow
         const result = await runReformAssistant(input);
 
-        return NextResponse.json(result);
+        return NextResponse.json({
+            sucesso: true,
+            mensagem: result.response,
+            referencias_legais: result.sources || [],
+            topicos_relacionados: result.suggested_questions || [],
+            nivel_complexidade: 'intermediario',
+        });
 
     } catch (error) {
         console.error('Erro na API de Reforma Tributária:', error);

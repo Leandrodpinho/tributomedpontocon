@@ -4,9 +4,8 @@
  */
 
 import { generateText } from 'ai';
-import { google } from '@ai-sdk/google';
-import { z } from 'zod';
-import type { ReformAssistantInput, ReformAssistantOutput, ChatMessage } from '@/types/reform';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import type { ReformAssistantInput, ReformAssistantOutput } from '@/types/reform';
 import {
     REFORM_TIMELINE,
     DIFFERENTIATED_REGIMES,
@@ -15,12 +14,15 @@ import {
     KEY_CONCEPTS
 } from '@/lib/reform-knowledge';
 
-// Schema de saída do assistente
-const ReformAssistantSchema = z.object({
-    resposta: z.string().describe('Resposta completa e detalhada do assistente, formatada em Markdown'),
-    referencias_legais: z.array(z.string()).describe('Referências às leis (LC 214/2025, PLP 108/2024) mencionadas'),
-    topicos_relacionados: z.array(z.string()).describe('Tópicos relacionados que o usuário pode querer explorar'),
-    nivel_complexidade: z.enum(['basico', 'intermediario', 'avancado']).describe('Nível de complexidade da resposta'),
+// Configurar API key do Google Gemini
+const GOOGLE_API_KEY = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+
+if (!GOOGLE_API_KEY) {
+    throw new Error('⚠️ API key do Google Gemini não configurada. Configure GOOGLE_GENAI_API_KEY no .env.local');
+}
+
+const google = createGoogleGenerativeAI({
+    apiKey: GOOGLE_API_KEY,
 });
 
 /**
@@ -32,44 +34,40 @@ function buildKnowledgeContext(): string {
     // Cronograma
     context.push('## CRONOGRAMA DA REFORMA TRIBUTÁRIA (2026-2033)\n');
     REFORM_TIMELINE.forEach(item => {
-        context.push(`**${item.ano}**: ${item.evento}`);
-        if (item.detalhes) {
-            item.detalhes.forEach(d => context.push(`  - ${d}`));
+        context.push(`**${item.year}**: ${item.phase}`);
+        if (item.changes) {
+            item.changes.forEach(d => context.push(`  - ${d}`));
         }
     });
 
     // Regimes Diferenciados
     context.push('\n## REGIMES DIFERENCIADOS\n');
     DIFFERENTIATED_REGIMES.forEach(regime => {
-        context.push(`**${regime.setor}** (Alíquota: ${regime.aliquota_reduzida})`);
-        context.push(`Critérios: ${regime.criterios.join(', ')}`);
-        if (regime.observacoes) {
-            context.push(`Obs: ${regime.observacoes}`);
+        context.push(`**${regime.name}** (Redução: ${regime.reduction_percentage}%)`);
+        context.push(`Descrição: ${regime.description}`);
+        if (regime.sectors && regime.sectors.length > 0) {
+            context.push(`Setores: ${regime.sectors.slice(0, 5).join(', ')}`);
         }
     });
 
     // Cesta Básica
     context.push('\n## CESTA BÁSICA NACIONAL (Alíquota Zero)\n');
-    BASIC_BASKET.forEach(item => {
-        context.push(`- ${item.produto} (${item.categoria})`);
+    BASIC_BASKET.filter(item => item.tax_treatment === 'zero').slice(0, 15).forEach(item => {
+        context.push(`- ${item.name} (${item.category})`);
     });
 
     // Cashback
     context.push('\n## REGRAS DE CASHBACK\n');
     CASHBACK_RULES.forEach(rule => {
-        context.push(`**${rule.publico_alvo}**: ${rule.percentual_devolucao} de devolução`);
-        context.push(`Tributos: ${rule.tributos_elegiveis.join(', ')}`);
-        if (rule.limite_mensal) {
-            context.push(`Limite: ${rule.limite_mensal}`);
-        }
+        context.push(`**${rule.product_category}**: CBS ${rule.cbs_return}% + IBS ${rule.ibs_return}%`);
+        context.push(`Elegibilidade: ${rule.eligibility}`);
     });
 
     // Conceitos-Chave
     context.push('\n## CONCEITOS-CHAVE\n');
-    KEY_CONCEPTS.forEach(concept => {
-        context.push(`**${concept.termo}**: ${concept.definicao}`);
-        if (concept.exemplo) {
-            context.push(`Exemplo: ${concept.exemplo}`);
+    Object.entries(KEY_CONCEPTS).forEach(([key, concept]) => {
+        if (typeof concept === 'object' && 'title' in concept && 'description' in concept) {
+            context.push(`**${concept.title}**: ${concept.description}`);
         }
     });
 
@@ -142,9 +140,9 @@ function buildUserPrompt(input: ReformAssistantInput): string {
     const parts: string[] = [];
 
     // Histórico de conversa (últimas 5 mensagens para contexto)
-    if (input.historico && input.historico.length > 0) {
+    if (input.conversation_history && input.conversation_history.length > 0) {
         parts.push('## HISTÓRICO DA CONVERSA\n');
-        const recentHistory = input.historico.slice(-5);
+        const recentHistory = input.conversation_history.slice(-5);
         recentHistory.forEach(msg => {
             const role = msg.role === 'user' ? 'USUÁRIO' : 'ASSISTENTE';
             parts.push(`**${role}**: ${msg.content}\n`);
@@ -153,22 +151,22 @@ function buildUserPrompt(input: ReformAssistantInput): string {
     }
 
     // Contexto do cliente (se disponível)
-    if (input.contexto_cliente) {
+    if (input.context) {
         parts.push('## CONTEXTO DO CLIENTE\n');
-        if (input.contexto_cliente.regime_atual) {
-            parts.push(`- Regime Tributário Atual: ${input.contexto_cliente.regime_atual}`);
+        if (input.context.regime) {
+            parts.push(`- Regime Tributário Atual: ${input.context.regime}`);
         }
-        if (input.contexto_cliente.faturamento_anual) {
-            parts.push(`- Faturamento Anual: R$ ${input.contexto_cliente.faturamento_anual.toLocaleString('pt-BR')}`);
+        if (input.context.monthlyRevenue) {
+            parts.push(`- Faturamento Mensal: R$ ${input.context.monthlyRevenue.toLocaleString('pt-BR')}`);
         }
-        if (input.contexto_cliente.setor) {
-            parts.push(`- Setor: ${input.contexto_cliente.setor}`);
+        if (input.context.cnaes && input.context.cnaes.length > 0) {
+            parts.push(`- CNAEs: ${input.context.cnaes.join(', ')}`);
         }
         parts.push('\n');
     }
 
     // Pergunta atual
-    parts.push(`## PERGUNTA ATUAL\n${input.pergunta}`);
+    parts.push(`## PERGUNTA ATUAL\n${input.query}`);
 
     return parts.join('\n');
 }
@@ -191,33 +189,22 @@ export async function runReformAssistant(
             maxTokens: 2000,
         });
 
-        // Parse da resposta estruturada
-        const response = {
-            resposta: result.text,
-            referencias_legais: extractLegalReferences(result.text),
-            topicos_relacionados: extractRelatedTopics(result.text, input.pergunta),
-            nivel_complexidade: assessComplexity(result.text) as 'basico' | 'intermediario' | 'avancado',
-        };
+        // Extrai informações da resposta
+        const legalRefs = extractLegalReferences(result.text);
+        const relatedTopics = extractRelatedTopics(result.text, input.query);
 
         return {
-            sucesso: true,
-            mensagem: response.resposta,
-            referencias_legais: response.referencias_legais,
-            topicos_relacionados: response.topicos_relacionados,
-            nivel_complexidade: response.nivel_complexidade,
+            response: result.text,
+            sources: legalRefs,
+            suggested_questions: relatedTopics,
         };
 
     } catch (error) {
         console.error('Erro no AI Flow de Reforma Tributária:', error);
 
-        return {
-            sucesso: false,
-            mensagem: 'Desculpe, ocorreu um erro ao processar sua pergunta. Por favor, tente novamente.',
-            referencias_legais: [],
-            topicos_relacionados: [],
-            nivel_complexidade: 'basico',
-            erro: error instanceof Error ? error.message : 'Erro desconhecido',
-        };
+        throw new Error(
+            `Erro ao processar pergunta: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
+        );
     }
 }
 
@@ -274,22 +261,4 @@ function extractRelatedTopics(response: string, question: string): string[] {
 
     // Remover duplicatas e limitar a 5 tópicos
     return Array.from(new Set(topics)).slice(0, 5);
-}
-
-/**
- * Avalia o nível de complexidade da resposta
- */
-function assessComplexity(text: string): string {
-    const technicalTerms = [
-        'creditamento', 'split payment', 'não cumulatividade', 'alíquota efetiva',
-        'regime híbrido', 'comitê gestor', 'imposto seletivo', 'princípio do destino'
-    ];
-
-    const termCount = technicalTerms.filter(term =>
-        text.toLowerCase().includes(term)
-    ).length;
-
-    if (termCount >= 4) return 'avancado';
-    if (termCount >= 2) return 'intermediario';
-    return 'basico';
 }

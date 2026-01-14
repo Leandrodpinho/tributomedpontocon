@@ -134,8 +134,8 @@ Estou aqui para ajudá-lo a entender e se preparar para a **maior transformaçã
                     >
                         <div
                             className={`max-w-[80%] rounded-lg p-4 ${message.role === 'user'
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-card border shadow-sm'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-card border shadow-sm'
                                 }`}
                         >
                             {message.role === 'assistant' ? (
@@ -187,7 +187,7 @@ Estou aqui para ajudá-lo a entender e se preparar para a **maior transformaçã
                                 <p className="text-sm">{message.content}</p>
                             )}
 
-                            <p className="text-xs opacity-70 mt-2">
+                            <p className="text-xs opacity-70 mt-2" suppressHydrationWarning>
                                 {message.timestamp.toLocaleTimeString('pt-BR', {
                                     hour: '2-digit',
                                     minute: '2-digit'

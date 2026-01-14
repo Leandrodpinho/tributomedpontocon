@@ -41,7 +41,7 @@ const prompt = ai.definePrompt({
   // Remove strict output schema to handle raw text and potential truncation manually
   // output: { schema: GenerateTaxScenariosOutputSchema },
   config: {
-    temperature: 0.5,
+    temperature: 0.1,  // ✅ Reduzido de 0.5 para 0.1 - Mais determinístico
     maxOutputTokens: 8192,
   },
   prompt: `Seja como profissional máster em Direito Tributário, Contabilidade Fiscal e Tributária... (prompt original mantido)...
