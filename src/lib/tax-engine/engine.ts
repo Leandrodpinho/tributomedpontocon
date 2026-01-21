@@ -17,9 +17,18 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
     const isHospitalar = input.isHospitalEquivalent || false;
     const isSup = input.isUniprofessionalSociety || false;
 
+    // --- Definição de Folha de Pagamento Efetiva ---
+    // Regra: Toda empresa com sócio administrador deve pagar ao menos 1 Salário Mínimo de Pró-labore.
+    // Se o input for 0, assumimos o mínimo legal para não distorcer a comparação (ex: Presumido parecer sem custo previdenciário).
+    const minimumWage = LEGAL_CONSTANTS_2025.minimumWage;
+    const inputPayroll = input.payrollExpenses || 0;
+
+    // Usamos o maior valor entre o informado e o salário mínimo para os cálculos base
+    const effectivePayroll = Math.max(inputPayroll, minimumWage);
+
     // --- 1. Simples Nacional (Anexo III) ---
     // Regra: Fator R >= 28%
-    const fatorR = payroll / monthlyRevenue;
+    const fatorR = effectivePayroll / monthlyRevenue;
 
     // Se Fator R já é >= 28%, é Anexo III direto.
     // Se for < 28%, podemos sugerir um Pro-Labore para atingir 28%.
@@ -32,8 +41,8 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
         name: `Simples Nacional - Anexo ${anexoAtual} (Fator R: ${(fatorR * 100).toFixed(2)}%)`,
         totalTaxValue: simplesAtual.totalTax,
         effectiveRate: simplesAtual.effectiveRate,
-        netProfitDistribution: monthlyRevenue - simplesAtual.totalTax - payroll,
-        notes: `Cálculo baseado no Fator R atual de ${(fatorR * 100).toFixed(2)}%.`,
+        netProfitDistribution: monthlyRevenue - simplesAtual.totalTax - effectivePayroll,
+        notes: `Cálculo baseado no Fator R atual de ${(fatorR * 100).toFixed(2)}% (Folha considerada: R$ ${effectivePayroll.toFixed(2)}).`,
         taxBreakdown: [
             { name: `DAS (Anexo ${anexoAtual})`, value: simplesAtual.totalTax, rate: simplesAtual.effectiveRate }
         ]
@@ -41,11 +50,11 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
 
     // Cenário 1.2: Simples Nacional Otimizado (com Pró-Labore Ajustado para Fator R 28%)
     if (fatorR < 0.28) {
-        const targetPayroll = monthlyRevenue * 0.28;
+        const targetPayroll = Math.max(monthlyRevenue * 0.28, minimumWage); // Mínimo de 28% ou Salário Mínimo
         // O adicional é apenas o que falta para chegar em 28%. 
         // Se a folha já existe (ex: funcionários), o sócio só precisa complementar ou a própria folha ajuda.
         // Aqui assumimos que payrollExpenses é TOTAL (sócios + funcionários).
-        const additionalPayrollNeeded = Math.max(0, targetPayroll - payroll);
+        const additionalPayrollNeeded = Math.max(0, targetPayroll - effectivePayroll);
 
         // Simples sempre será Anexo III com Fator R >= 28%
         const newSimples = calculateSimplesNacional(revenue12m, monthlyRevenue, 'III');
@@ -82,15 +91,15 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
     // Cenário 2.1: Presumido Geral (32%)
     const lpGeral = calculateLucroPresumido(monthlyRevenue, 'Geral', issRate);
     // Adicionar INSS Patronal (20%) sobre a folha, pois LP paga.
-    const cppGeral = calculateCPP(payroll);
+    const cppGeral = calculateCPP(effectivePayroll);
     const totalLPGeral = lpGeral.totalTax + cppGeral;
 
     scenarios.push({
         name: 'Lucro Presumido (Serviços Gerais - 32%)',
         totalTaxValue: totalLPGeral,
         effectiveRate: (totalLPGeral / monthlyRevenue) * 100,
-        netProfitDistribution: monthlyRevenue - totalLPGeral - payroll,
-        notes: 'Inclui impostos federais, ISS e CPP (INSS Patronal) sobre a folha informada.',
+        netProfitDistribution: monthlyRevenue - totalLPGeral - effectivePayroll,
+        notes: 'Inclui impostos federais, ISS e CPP (INSS Patronal) sobre a folha informada (mínimo de 1 salário).',
         taxBreakdown: [
             { name: 'PIS/COFINS/IRPJ/CSLL', value: lpGeral.totalTax - lpGeral.breakdown.iss, rate: 11.33 },
             { name: 'ISS', value: lpGeral.breakdown.iss, rate: issRate },
@@ -106,7 +115,7 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
         name: 'Lucro Presumido - Equiparação Hospitalar',
         totalTaxValue: totalLPHospitalar,
         effectiveRate: (totalLPHospitalar / monthlyRevenue) * 100,
-        netProfitDistribution: monthlyRevenue - totalLPHospitalar - payroll,
+        netProfitDistribution: monthlyRevenue - totalLPHospitalar - effectivePayroll,
         notes: 'Requer cumprimento dos requisitos da ANVISA e Lei 9.249/95 (estrutura cirúrgica, etc).',
         taxBreakdown: [
             { name: 'Impostos Federais Reduzidos', value: lpHospitalar.totalTax - lpHospitalar.breakdown.iss, rate: 5.93 },
@@ -134,7 +143,7 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
             name: 'Lucro Presumido - SUP (ISS Fixo)',
             totalTaxValue: totalLPSup,
             effectiveRate: (totalLPSup / monthlyRevenue) * 100,
-            netProfitDistribution: monthlyRevenue - totalLPSup - payroll,
+            netProfitDistribution: monthlyRevenue - totalLPSup - effectivePayroll,
             notes: 'Considera ISS Fixo estimado por profissional (varia conforme município).',
             taxBreakdown: [
                 { name: 'Impostos Federais', value: lpSup.totalTax, rate: 11.33 },
@@ -145,12 +154,24 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
     }
 
     // --- 3. Carnê Leão (Pessoa Física) ---
-    const cl = calculateCarneLeao(monthlyRevenue, payroll);
+    // Carnê Leão usa payroll como despesa dedutível?
+    // Não, Carne Leão é PF. "Payroll" aqui seria despesa com funcionários.
+    // Mas input.payrollExpenses pode ser Sócio + Funcionários.
+    // Se for sócio (autônomo), ele é o próprio contribuinte, então não deduz dele mesmo.
+    // Se assumirmos payrollExpenses como "Folha de Funcionários", então deduz.
+    // Mas para comparação justa, se for "Pró-Labore", não deduz.
+    // Vamos manter input.payrollExpenses original aqui para CL, assumindo que é custo operacional externo, 
+    // OU se for 0, é 0.
+    // Mas espere, effectivePayroll = MinWage se input=0.
+    // Se o cliente é Médico PF, ele paga o MinWage pra quem? Pra secretária?
+    // Se não tem funcionários, effectivePayroll não se aplica como "Custo" no CL, mas sim como Custo no PJ (Pro-labore).
+    // Então CL deve usar input.payrollExpenses original (que pode ser 0).
+    const cl = calculateCarneLeao(monthlyRevenue, input.payrollExpenses || 0);
     scenarios.push({
         name: 'Pessoa Física (Carnê Leão)',
         totalTaxValue: cl.totalTax,
         effectiveRate: cl.effectiveRate,
-        netProfitDistribution: monthlyRevenue - cl.totalTax - payroll,
+        netProfitDistribution: monthlyRevenue - cl.totalTax - (input.payrollExpenses || 0),
         notes: 'Geralmente a opção mais onerosa. Válido apenas para faturamentos muito baixos.',
         taxBreakdown: [
             { name: 'INSS Autônomo (20%)', value: cl.breakdown.inss, rate: 0 },

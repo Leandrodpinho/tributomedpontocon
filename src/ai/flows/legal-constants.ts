@@ -7,10 +7,10 @@
 
 export const LEGAL_CONSTANTS_2025 = {
   // --- Parâmetros Gerais ---
-  minimumWage: 1518.00,
+  minimumWage: 1620.99,
   inssCeiling: 8157.41,
 
-  // --- IRPF Progressivo Mensal (2025) ---
+  // --- IRPF Progressivo Mensal (2025/2026) ---
   irpfTable: [
     { limit: 2259.20, rate: 0.00, deduction: 0.00 },
     { limit: 2826.65, rate: 0.075, deduction: 169.44 },
@@ -21,10 +21,10 @@ export const LEGAL_CONSTANTS_2025 = {
   standardDeductionPerDependent: 189.59,
   simplifiedDeduction: 564.80, // Desconto simplificado mensal
 
-  // --- INSS Progressivo (2025) ---
+  // --- INSS Progressivo (Estimativa 2026) ---
   inssTable: [
-    { limit: 1518.00, rate: 0.075, deduction: 0.00 },
-    { limit: 2793.88, rate: 0.09, deduction: 22.77 }, // (1518 * 0.09) - (1518 * 0.075) comp
+    { limit: 1620.99, rate: 0.075, deduction: 0.00 },
+    { limit: 2793.88, rate: 0.09, deduction: 24.31 }, // Ajustado para base 1620.99
     { limit: 4190.83, rate: 0.12, deduction: 106.59 },
     { limit: 8157.41, rate: 0.14, deduction: 190.40 },
   ],

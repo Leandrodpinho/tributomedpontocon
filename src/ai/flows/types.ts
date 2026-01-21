@@ -25,6 +25,7 @@ export const GenerateTaxScenariosInputSchema = z.object({
     .describe(
       'Flag para indicar se a empresa é uma Sociedade Uniprofissional (SUP) para fins de ISS Fixo.'
     ),
+  numberOfPartners: z.number().optional().describe('Número de sócios profissionais (para cálculo de ISS Fixo em SUP).'),
 }).strict();
 export type GenerateTaxScenariosInput = z.infer<typeof GenerateTaxScenariosInputSchema>;
 
