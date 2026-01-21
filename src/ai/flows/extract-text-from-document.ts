@@ -8,7 +8,7 @@
  * - ExtractTextFromDocumentOutput - The return type for the function.
  */
 
-import { z } from 'genkit';
+import { z } from 'zod';
 import { SUPPORTED_DOCUMENT_TYPES } from './document-utils';
 import { extractTextFromPdfBuffer } from './local-extractor';
 

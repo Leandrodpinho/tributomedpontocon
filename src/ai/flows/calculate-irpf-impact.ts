@@ -20,7 +20,7 @@
  * - CalculateIRPFImpactOutput - The return type for the calculateIRPFImpact function.
  */
 
-import { z } from 'genkit';
+import { z } from 'zod';
 import { IRPF_2025, calculateIRPF, calculateINSS } from '@/lib/tax-calculator';
 
 const CalculateIRPFImpactInputSchema = z.object({

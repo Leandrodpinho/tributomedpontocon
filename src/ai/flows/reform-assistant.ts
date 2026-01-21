@@ -10,14 +10,12 @@ import {
 } from '@/lib/reform-knowledge';
 
 // Configurar API key da Groq
+// Configurar API key da Groq
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-if (!GROQ_API_KEY) {
-    throw new Error('⚠️ API key da Groq não configurada. Configure GROQ_API_KEY no .env.local');
-}
-
+// Inicialização lazy ou dentro da função para não quebrar o build
 const groq = createGroq({
-    apiKey: GROQ_API_KEY,
+    apiKey: GROQ_API_KEY || 'dummy-key-for-build',
 });
 
 /**
@@ -173,6 +171,10 @@ export async function runReformAssistant(
     input: ReformAssistantInput
 ): Promise<ReformAssistantOutput> {
     try {
+        if (!GROQ_API_KEY) {
+            throw new Error('⚠️ API key da Groq não configurada. Configure GROQ_API_KEY no .env.local');
+        }
+
         const systemPrompt = buildSystemPrompt();
         const userPrompt = buildUserPrompt(input);
 

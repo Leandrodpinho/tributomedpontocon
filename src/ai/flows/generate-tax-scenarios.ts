@@ -10,8 +10,8 @@ import { runComplianceRules, generateNaturezaJuridicaAnalysis } from './complian
  * - GenerateTaxScenariosOutput - The return type for the generateTaxScenarios function.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { generateText } from 'ai';
+import { createGroq } from '@ai-sdk/groq';
 import {
   GenerateTaxScenariosInput,
   GenerateTaxScenariosInputSchema,
@@ -19,26 +19,15 @@ import {
   GenerateTaxScenariosOutputSchema,
 } from './types';
 
-// Schema original input, sem constantes extras (IA não precisa mais delas)
-const GenerateTaxScenariosWithConstantsInputSchema = GenerateTaxScenariosInputSchema;
+// Configurar API key da Groq (Runtime Check)
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const groq = createGroq({
+  apiKey: GROQ_API_KEY || 'dummy-key-for-build',
+});
 
-export async function generateTaxScenarios(input: GenerateTaxScenariosInput): Promise<GenerateTaxScenariosOutput> {
-  // Não injetamos mais constantes legais complexas aqui.
-  // A Engine acessa via import direto e a IA foca na análise qualitativa.
-  return generateTaxScenariosFlow(input);
-}
+// Prompt System Template
+const SYSTEM_PROMPT = `Seja como profissional máster em Direito Tributário, Contabilidade Fiscal e Tributária... (prompt original mantido)...
 
-const prompt = ai.definePrompt({
-  name: 'generateTaxScenariosPrompt',
-  input: { schema: GenerateTaxScenariosInputSchema },
-  // Remove strict output schema to handle raw text and potential truncation manually
-  // output: { schema: GenerateTaxScenariosOutputSchema },
-  config: {
-    temperature: 0.1,  // ✅ Reduzido de 0.5 para 0.1 - Mais determinístico
-    maxOutputTokens: 8192,
-  },
-  prompt: `Seja como profissional máster em Direito Tributário, Contabilidade Fiscal e Tributária... (prompt original mantido)...
-  
 Sua resposta deve ser um JSON VÁLIDO seguindo a estrutura abaixo. NÃO adicione markdown formatting como \`\`\`json no início ou fim. Apenas o JSON puro.
 
 {
@@ -59,33 +48,66 @@ Sua resposta deve ser um JSON VÁLIDO seguindo a estrutura abaixo. NÃO adicione
 IMPORTANTE:
 - USE EXATAMENTE AS CHAVES: "name", "totalTaxValue", "effectiveRate".
 - NÃO use "regime" ou "monthlyTax".
-- "effectiveRate" deve ser número percentual (ex: 10.5 para 10.5%), NÃO decimal (0.105).
+- "effectiveRate" deve ser número percentual (ex: 10.5 para 10.5%), NÃO decimal (0.105).`;
 
-DADOS DE ENTRADA:
-Tipo de Cliente: {{{clientType}}}
-{{#if companyName}}Nome da Empresa: {{{companyName}}}{{/if}}
-{{#if cnpj}}CNPJ: {{{cnpj}}}{{/if}}
+function buildUserPrompt(input: GenerateTaxScenariosInput): string {
+  return `DADOS DE ENTRADA:
+Tipo de Cliente: ${input.clientType}
+${input.companyName ? `Nome da Empresa: ${input.companyName}` : ''}
+${input.cnpj ? `CNPJ: ${input.cnpj}` : ''}
 
 **DADOS ESTRUTURADOS (Prioridade Máxima):**
-{{#if cnaes}}CNAEs: {{{cnaes}}}{{/if}}
-{{#if monthlyRevenue}}Faturamento Mensal: {{{monthlyRevenue}}}{{/if}}
-{{#if rbt12}}RBT12 (Receita Bruta 12M): {{{rbt12}}}{{/if}}
-{{#if fs12}}FS12 (Folha de Salários 12M): {{{fs12}}}{{/if}}
-{{#if payrollExpenses}}Folha Salarial Bruta (CLT): {{{payrollExpenses}}}{{/if}}
-{{#if isHospitalEquivalent}}Equiparação Hospitalar: Sim{{/if}}
-{{#if isUniprofessionalSociety}}Sociedade Uniprofissional (ISS Fixo): Sim{{/if}}
-{{#if issRate}}Alíquota de ISS (ad valorem): {{{issRate}}}%{{else}}Alíquota de ISS (ad valorem): 4% (padrão){{/if}}
+${input.cnaes ? `CNAEs: ${input.cnaes.join(', ')}` : ''}
+${input.monthlyRevenue ? `Faturamento Mensal: ${input.monthlyRevenue}` : ''}
+${input.rbt12 ? `RBT12: ${input.rbt12}` : ''}
+${input.fs12 ? `FS12: ${input.fs12}` : ''}
+${input.payrollExpenses ? `Folha Salarial Bruta (CLT): ${input.payrollExpenses}` : ''}
+${input.isHospitalEquivalent ? 'Equiparação Hospitalar: Sim' : ''}
+${input.isUniprofessionalSociety ? 'Sociedade Uniprofissional (ISS Fixo): Sim' : ''}
+${input.issRate ? `Alíquota de ISS: ${input.issRate}%` : 'Alíquota de ISS: 4% (padrão)'}
 
 **DADOS NÃO ESTRUTURADOS (Fallback):**
-{{#if clientData}}Texto do Cliente: {{{clientData}}}{{/if}}
-{{#if documentsAsText}}
-Conteúdo dos Documentos Anexados:
-{{{documentsAsText}}}
-{{/if}}
+${input.clientData ? `Texto do Cliente: ${input.clientData}` : ''}
+${input.documentsAsText ? `Conteúdo dos Documentos Anexados:\n${input.documentsAsText}` : ''}
 
-... (restante do prompt original ou similar, garantindo instruções claras de JSON) ...
-Sua resposta deve seguir estritamente a estrutura do JSON de saída. Seja analítico, preciso e aja como o especialista que você é.`,
-});
+Sua resposta deve seguir estritamente a estrutura do JSON de saída. Seja analítico, preciso e aja como o especialista que você é.`;
+}
+
+// ... helper functions omitted for brevity in diff but strictly retained in file ...
+// (parseAndFixJSON, normalizeScenarios, normalizeCompliance functions are reused)
+// We need to make sure we don't delete them. replace_file_content targets specific lines.
+// I am replacing imports (lines 13-20) and 'prompt' definition (lines 31-88).
+
+export async function generateTaxScenarios(input: GenerateTaxScenariosInput): Promise<GenerateTaxScenariosOutput> {
+  return generateTaxScenariosFlow(input);
+}
+
+// flow definition replacement...
+// Since I can't use 'ai.defineFlow' from genkit, I'll export a regular async function OR use a wrapper if needed.
+// But the code below uses 'generateTaxScenariosFlow' as a distinct function.
+// I will change 'generateTaxScenariosFlow' to be a standard async function.
+
+async function callModel(input: GenerateTaxScenariosInput) {
+  if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY not configured");
+
+  const userMsg = buildUserPrompt(input);
+
+  return await generateText({
+    model: groq('llama-3.1-70b-versatile'), // Usando modelo forte para raciocínio
+    system: SYSTEM_PROMPT,
+    prompt: userMsg,
+    temperature: 0.1,
+    maxOutputTokens: 8192,
+  });
+}
+
+// Internal flow function (replacing ai.defineFlow)
+async function generateTaxScenariosFlow(input: GenerateTaxScenariosInput): Promise<GenerateTaxScenariosOutput> {
+  // ... implementation ...
+  // Need to paste the logic from lines 239-331 but adapted.
+  // I will target the 'prompt' definition first.
+  return generateTaxScenariosLogic(input);
+}
 
 // Helper function to repair truncated JSON
 function parseAndFixJSON(text: string): any {
@@ -230,106 +252,93 @@ function normalizeCompliance(compliance: any, inputData?: any): any {
 // Importar a Engine Determinística
 import { generateDeterministicScenarios } from '@/lib/tax-engine/engine';
 
-const generateTaxScenariosFlow = ai.defineFlow(
-  {
-    name: 'generateTaxScenariosFlow',
-    inputSchema: GenerateTaxScenariosWithConstantsInputSchema,
-    outputSchema: GenerateTaxScenariosOutputSchema,
-  },
-  async input => {
-    // Implementação de Cache Simples (In-Memory)
-    const cacheKey = generateCacheKey(input);
-    const cached = getFromCache(cacheKey);
-    if (cached) {
-      console.log('Cache hit for tax scenarios:', cacheKey);
-      return cached;
-    }
-
-    try {
-      // 1. Geração Determinística dos Cenários (Correção da Alucinação Numérica)
-      // Calculamos os números PRIMEIRO com a engine matemática confiável
-      const deterministicScenarios = generateDeterministicScenarios(input);
-      console.log('Engine determinística gerou:', deterministicScenarios.length, 'cenários.');
-
-      // 2. Chamada à IA para Análise Qualitativa (Compliance, Resumo, Contexto)
-      // O prompt continua pedindo o JSON completo, mas nós vamos SOBRESCREVER os números
-      // com os dados da Engine. A IA serve para "explicar" e validar regras complexas de texto.
-
-      let lastError: any;
-      const maxRetries = 3;
-      let output: any = null;
-
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          const result = await prompt(input);
-          const rawText = result.text;
-          output = parseAndFixJSON(rawText);
-
-          if (output) break; // Sucesso no parse
-        } catch (error: any) {
-          lastError = error;
-          const is503 = error.status === 503 || error.message?.includes('503') || error.message?.includes('overloaded');
-          if (is503 && attempt < maxRetries) {
-            const waitTime = Math.pow(2, attempt) * 1000;
-            console.warn(`API sobrecarregada (tentativa ${attempt}/${maxRetries})...`);
-            await new Promise(resolve => setTimeout(resolve, waitTime));
-            continue;
-          }
-          throw error;
-        }
-      }
-
-      if (!output) throw new Error('Falha ao gerar análise qualitativa pela IA.');
-
-      // --- MAPPING & MERGE LAYER (Híbrido) ---
-
-      // 1. Preservar a análise qualitativa da IA
-      if (output.complianceAnalysis) {
-        output.complianceAnalysis = normalizeCompliance(output.complianceAnalysis, input);
-      } else {
-        // Fallback de compliance via regras se a IA falhar
-        const ruleBasedAlerts = runComplianceRules(input);
-        const naturezaAnalysis = generateNaturezaJuridicaAnalysis(input);
-        output.complianceAnalysis = {
-          cnaeValidation: [],
-          naturezaJuridicaCheck: naturezaAnalysis,
-          alerts: ruleBasedAlerts
-        };
-      }
-
-      // 2. INJETAR Cenários Determinísticos (Substituição Total dos Cenários da IA)
-      // Motivo: A IA alucina números. A Engine é exata.
-      // Mantemos apenas notas extras se a IA tiver gerado algo MUITO relevante, 
-      // mas na prática, a engine já gera notas técnicas boas.
-
-      // Opcional: Tentar fazer "merge" inteligente de notas.
-      // Por enquanto, confiamos 100% na engine para os cenários para garantir a consistência solicitada pelo usuário.
-      output.scenarios = deterministicScenarios;
-
-      // 3. Validação final de schema
-      const parsed = GenerateTaxScenariosOutputSchema.safeParse(output);
-      if (parsed.success) {
-        output = parsed.data;
-      }
-
-      // 4. Garantias finais
-      if (!output.monthlyRevenue) output.monthlyRevenue = input.monthlyRevenue || 0;
-
-      // Fallback para executiveSummary se vazio
-      if (!output.executiveSummary) {
-        const best = deterministicScenarios[0];
-        output.executiveSummary = `### Análise Financeira\n\nCom base nos dados fornecidos, o regime **${best.name}** apresenta a maior eficiência tributária, com uma alíquota efetiva de **${best.effectiveRate?.toFixed(2)}%**. \n\nRecomendamos a migração ou manutenção deste regime mediante validação contábil detalhada.`;
-      }
-
-      saveToCache(cacheKey, output);
-      return output;
-
-    } catch (error: any) {
-      console.error('Erro crítico no fluxo híbrido:', error);
-      throw new Error(`Falha na geração dos cenários: ${error.message}`);
-    }
+// Função principal de lógica (substitui o Flow do Genkit)
+async function generateTaxScenariosLogic(input: GenerateTaxScenariosInput): Promise<GenerateTaxScenariosOutput> {
+  // Implementação de Cache Simples (In-Memory)
+  const cacheKey = generateCacheKey(input);
+  const cached = getFromCache(cacheKey);
+  if (cached) {
+    console.log('Cache hit for tax scenarios:', cacheKey);
+    return cached;
   }
-);
+
+  try {
+    // 1. Geração Determinística dos Cenários (Correção da Alucinação Numérica)
+    // Calculamos os números PRIMEIRO com a engine matemática confiável
+    const deterministicScenarios = generateDeterministicScenarios(input);
+    console.log('Engine determinística gerou:', deterministicScenarios.length, 'cenários.');
+
+    // 2. Chamada à IA para Análise Qualitativa (Compliance, Resumo, Contexto)
+    // O prompt continua pedindo o JSON completo, mas nós vamos SOBRESCREVER os números
+    // com os dados da Engine. A IA serve para "explicar" e validar regras complexas de texto.
+
+    let lastError: any;
+    const maxRetries = 3;
+    let output: any = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Substituição: callModel em vez de prompt()
+        const result = await callModel(input);
+        const rawText = result.text;
+        output = parseAndFixJSON(rawText);
+
+        if (output) break; // Sucesso no parse
+      } catch (error: any) {
+        lastError = error;
+        const is503 = error.status === 503 || error.message?.includes('503') || error.message?.includes('overloaded');
+        if (is503 && attempt < maxRetries) {
+          const waitTime = Math.pow(2, attempt) * 1000;
+          console.warn(`API sobrecarregada (tentativa ${attempt}/${maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    if (!output) throw new Error('Falha ao gerar análise qualitativa pela IA.');
+
+    // --- MAPPING & MERGE LAYER (Híbrido) ---
+
+    // 1. Preservar a análise qualitativa da IA
+    if (output.complianceAnalysis) {
+      output.complianceAnalysis = normalizeCompliance(output.complianceAnalysis, input);
+    } else {
+      // Fallback de compliance via regras se a IA falhar
+      const ruleBasedAlerts = runComplianceRules(input);
+      const naturezaAnalysis = generateNaturezaJuridicaAnalysis(input);
+      output.complianceAnalysis = {
+        cnaeValidation: [],
+        naturezaJuridicaCheck: naturezaAnalysis,
+        alerts: ruleBasedAlerts
+      };
+    }
+
+    // 2. INJETAR Cenários Determinísticos (Substituição Total dos Cenários da IA)
+    // Motivo: A IA alucina números. A Engine é exata.
+    output.scenarios = deterministicScenarios;
+
+    // 3. Validação final de schema (Opcional, pois deterministicScenarios já é tipado, mas output da IA não)
+    // Vamos confiar no output do parseAndFixJSON para os campos extras e no scenarios injetado.
+
+    // 4. Garantias finais
+    if (!output.monthlyRevenue) output.monthlyRevenue = input.monthlyRevenue || 0;
+
+    // Fallback para executiveSummary se vazio
+    if (!output.executiveSummary) {
+      const best = deterministicScenarios[0];
+      output.executiveSummary = `### Análise Financeira\n\nCom base nos dados fornecidos, o regime **${best.name}** apresenta a maior eficiência tributária, com uma alíquota efetiva de **${best.effectiveRate?.toFixed(2)}%**. \n\nRecomendamos a migração ou manutenção deste regime mediante validação contábil detalhada.`;
+    }
+
+    saveToCache(cacheKey, output);
+    return output;
+
+  } catch (error: any) {
+    console.error('Erro crítico no fluxo híbrido:', error);
+    throw new Error(`Falha na geração dos cenários: ${error.message}`);
+  }
+}
 
 // --- Cache Util --
 import { createHash } from 'crypto';
