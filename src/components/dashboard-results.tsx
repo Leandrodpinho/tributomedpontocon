@@ -165,8 +165,23 @@ export function DashboardResults({
     }));
 
     const bestScenario = effectiveScenarios.reduce<ScenarioDetail | undefined>((acc, scenario) => {
+      // Ignorar cenários de "Oportunidade" para a recomendação principal, a menos que seja o único
+      // Se o usuário ativar Equiparação no form, o nome não terá "Oportunidade", então será elegível.
+      const isOpportunity = scenario.name.toLowerCase().startsWith('oportunidade');
+      const accIsOpportunity = acc?.name.toLowerCase().startsWith('oportunidade');
+
       if (!acc) return scenario;
-      return (scenario.totalTaxValue ?? 0) < (acc.totalTaxValue ?? 0) ? scenario : acc;
+
+      // Se ambos são "reais" ou ambos são "oportunidades", vence o menor imposto
+      if (isOpportunity === accIsOpportunity) {
+        return (scenario.totalTaxValue ?? 0) < (acc.totalTaxValue ?? 0) ? scenario : acc;
+      }
+
+      // Se um é real e o outro é oportunidade, vence o real
+      if (!isOpportunity && accIsOpportunity) return scenario;
+      if (isOpportunity && !accIsOpportunity) return acc;
+
+      return acc;
     }, undefined);
 
     const worstScenario = effectiveScenarios.reduce<ScenarioDetail | undefined>((acc, scenario) => {
