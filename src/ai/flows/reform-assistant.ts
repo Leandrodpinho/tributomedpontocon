@@ -182,7 +182,7 @@ export async function runReformAssistant(
         const userPrompt = buildUserPrompt(input);
 
         const result = await generateText({
-            model: google('gemini-2.0-flash-exp'),
+            model: google('gemini-1.5-flash'),
             system: systemPrompt,
             prompt: userPrompt,
             temperature: 0.7,
