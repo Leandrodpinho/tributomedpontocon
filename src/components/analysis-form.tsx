@@ -176,13 +176,28 @@ export function AnalysisForm({ onSubmit, isPending }: AnalysisFormProps) {
                                     </Label>
                                     <Input
                                         id="monthlyRevenue"
-                                        name="monthlyRevenue"
-                                        type="number"
+                                        name="monthlyRevenueInput" // Nome diferente para não conflitar se formos usar formData direto
+                                        type="text"
+                                        inputMode="decimal"
                                         required
                                         placeholder="0,00"
                                         className="text-lg h-12 bg-white/50 border-brand-200 focus:border-brand-500"
                                         value={revenue}
-                                        onChange={(e) => setRevenue(e.target.value)}
+                                        onChange={(e) => {
+                                            // Aceita apenas números e vírgula/ponto
+                                            const value = e.target.value.replace(/[^0-9,.]/g, '');
+                                            setRevenue(value);
+                                        }}
+                                        onBlur={(e) => {
+                                            // Formata para decimal padrão ao sair do campo (opcional, ou manter raw)
+                                            // Vamos manter o valor raw no state para edição fácil, mas garantir parse no submit
+                                        }}
+                                    />
+                                    {/* Input hidden para enviar o valor numérico limpo */}
+                                    <input
+                                        type="hidden"
+                                        name="monthlyRevenue"
+                                        value={revenue.replace(/\./g, '').replace(',', '.')}
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -191,12 +206,21 @@ export function AnalysisForm({ onSubmit, isPending }: AnalysisFormProps) {
                                     </Label>
                                     <Input
                                         id="payrollExpenses"
-                                        name="payrollExpenses"
-                                        type="number"
+                                        name="payrollExpensesInput"
+                                        type="text"
+                                        inputMode="decimal"
                                         placeholder="0,00"
                                         className="text-lg h-12 bg-white/50"
                                         value={payroll}
-                                        onChange={(e) => setPayroll(e.target.value)}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/[^0-9,.]/g, '');
+                                            setPayroll(value);
+                                        }}
+                                    />
+                                    <input
+                                        type="hidden"
+                                        name="payrollExpenses"
+                                        value={payroll ? payroll.replace(/\./g, '').replace(',', '.') : '0'}
                                     />
                                 </div>
                             </div>

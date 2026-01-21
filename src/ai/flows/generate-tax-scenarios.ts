@@ -19,25 +19,18 @@ import {
   GenerateTaxScenariosOutputSchema,
 } from './types';
 
-// Define an extended schema that includes the legal constants for type safety and validation within the flow.
-const GenerateTaxScenariosWithConstantsInputSchema =
-  GenerateTaxScenariosInputSchema.extend({
-    minimumWage: z.number(),
-    inssCeiling: z.number(),
-  });
+// Schema original input, sem constantes extras (IA não precisa mais delas)
+const GenerateTaxScenariosWithConstantsInputSchema = GenerateTaxScenariosInputSchema;
 
 export async function generateTaxScenarios(input: GenerateTaxScenariosInput): Promise<GenerateTaxScenariosOutput> {
-  // Injeta as constantes legais no payload que será enviado para a IA.
-  const fullInput = {
-    ...input,
-    ...LEGAL_CONSTANTS_2025,
-  };
-  return generateTaxScenariosFlow(fullInput);
+  // Não injetamos mais constantes legais complexas aqui.
+  // A Engine acessa via import direto e a IA foca na análise qualitativa.
+  return generateTaxScenariosFlow(input);
 }
 
 const prompt = ai.definePrompt({
   name: 'generateTaxScenariosPrompt',
-  input: { schema: GenerateTaxScenariosWithConstantsInputSchema },
+  input: { schema: GenerateTaxScenariosInputSchema },
   // Remove strict output schema to handle raw text and potential truncation manually
   // output: { schema: GenerateTaxScenariosOutputSchema },
   config: {
@@ -234,6 +227,9 @@ function normalizeCompliance(compliance: any, inputData?: any): any {
   return normalized;
 }
 
+// Importar a Engine Determinística
+import { generateDeterministicScenarios } from '@/lib/tax-engine/engine';
+
 const generateTaxScenariosFlow = ai.defineFlow(
   {
     name: 'generateTaxScenariosFlow',
@@ -250,142 +246,87 @@ const generateTaxScenariosFlow = ai.defineFlow(
     }
 
     try {
-      // Retry logic for overloaded API (503 errors)
+      // 1. Geração Determinística dos Cenários (Correção da Alucinação Numérica)
+      // Calculamos os números PRIMEIRO com a engine matemática confiável
+      const deterministicScenarios = generateDeterministicScenarios(input);
+      console.log('Engine determinística gerou:', deterministicScenarios.length, 'cenários.');
+
+      // 2. Chamada à IA para Análise Qualitativa (Compliance, Resumo, Contexto)
+      // O prompt continua pedindo o JSON completo, mas nós vamos SOBRESCREVER os números
+      // com os dados da Engine. A IA serve para "explicar" e validar regras complexas de texto.
+
       let lastError: any;
       const maxRetries = 3;
+      let output: any = null;
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          // Get raw text response
           const result = await prompt(input);
           const rawText = result.text;
+          output = parseAndFixJSON(rawText);
 
-          let output: any = parseAndFixJSON(rawText);
-
-          if (!output) {
-            throw new Error('A IA não retornou um JSON válido, e a reparação falhou.');
-          }
-
-          // --- MAPPING LAYER (TRANSFORMERS) ---
-          // 1. Normalize Scenarios (Consultant -> Schema)
-          if (output.scenarios && Array.isArray(output.scenarios)) {
-            output.scenarios = normalizeScenarios(output.scenarios);
-          }
-
-          // 2. Normalize Compliance (Flat consultant notes -> Structured Alerts)
-          if (output.complianceAnalysis) {
-            output.complianceAnalysis = normalizeCompliance(output.complianceAnalysis, input);
-          } else {
-            // Attempt to find compliance fields at root if completely unstructured
-            const rootCompliance: any = {};
-            if (output.cnaeValidation) rootCompliance.cnaeValidation = output.cnaeValidation;
-            if (output.naturezaJuridicaCheck) rootCompliance.naturezaJuridicaCheck = output.naturezaJuridicaCheck;
-            if (output.equiparaçãoHospitalarRequirements) rootCompliance.equiparaçãoHospitalarRequirements = output.equiparaçãoHospitalarRequirements;
-            if (output.sociedadeUniprofissionalNotes) rootCompliance.sociedadeUniprofissionalNotes = output.sociedadeUniprofissionalNotes;
-
-            if (Object.keys(rootCompliance).length > 0) {
-              output.complianceAnalysis = normalizeCompliance(rootCompliance, input);
-            }
-          }
-
-          // Validate against Schema (safely)
-          const parsed = GenerateTaxScenariosOutputSchema.safeParse(output);
-
-          if (!parsed.success) {
-            console.warn("Schema validation failed on partial JSON:", parsed.error);
-            // usage of partial data is allowed, so we proceed with 'output' (which is 'any' here)
-            // but ideally we should only use valid parts. 
-            // For now, we trust the repair + fallback logic below.
-          } else {
-            output = parsed.data;
-          }
-
-          // Fallback Logic: Ensure robust output even if AI truncates
-          if (!output.executiveSummary) {
-            output.executiveSummary = "### Análise Parcial\n\nO resumo executivo não pôde ser gerado completamente devido ao limite de tokens. Por favor, analise os cenários calculados individualmente na tabela acima.";
-          }
-
-          if (!output.scenarios) {
-            output.scenarios = [];
-          } else {
-            output.scenarios = output.scenarios.map((s: any) => {
-              return s;
-            }).filter(Boolean) as any;
-          }
-
-          if (!output.complianceAnalysis) {
-            // Executar regras de compliance baseadas em lógica
-            const ruleBasedAlerts = runComplianceRules(input);
-            const naturezaAnalysis = generateNaturezaJuridicaAnalysis(input);
-
-            output.complianceAnalysis = {
-              cnaeValidation: [],
-              naturezaJuridicaCheck: naturezaAnalysis,
-              alerts: ruleBasedAlerts.length > 0 ? ruleBasedAlerts : [{
-                type: 'warning',
-                title: 'Documentação Incompleta',
-                description: 'Não foi possível realizar auditoria de compliance devido à falta de documentos essenciais.',
-                suggestion: 'Anexe: Cartão CNPJ, Contrato Social, e/ou DAS/DARF dos últimos 3 meses para análise completa.'
-              }]
-            };
-          } else {
-            // Enriquecer compliance da IA com regras automáticas
-            const ruleBasedAlerts = runComplianceRules(input);
-            const existingAlertTitles = new Set(output.complianceAnalysis.alerts.map((a: any) => a.title));
-
-            // Adicionar alertas de regras que não foram detectados pela IA
-            for (const alert of ruleBasedAlerts) {
-              if (!existingAlertTitles.has(alert.title)) {
-                output.complianceAnalysis.alerts.push(alert);
-              }
-            }
-
-            // Se a IA não gerou análise de natureza jurídica válida, usar a baseada em regras
-            if (!output.complianceAnalysis.naturezaJuridicaCheck ||
-              output.complianceAnalysis.naturezaJuridicaCheck.length < 20 ||
-              output.complianceAnalysis.naturezaJuridicaCheck.includes('não padronizada')) {
-              output.complianceAnalysis.naturezaJuridicaCheck = generateNaturezaJuridicaAnalysis(input);
-            }
-          }
-
-          // Ensure monthlyRevenue is set if missing (critical field)
-          if (!output.monthlyRevenue) {
-            output.monthlyRevenue = input.monthlyRevenue || 0;
-          }
-
-          // Salva no cache
-          saveToCache(cacheKey, output);
-
-          return output;
-
+          if (output) break; // Sucesso no parse
         } catch (error: any) {
           lastError = error;
-
-          // Check if it's a 503 (overloaded) error
           const is503 = error.status === 503 || error.message?.includes('503') || error.message?.includes('overloaded');
-
           if (is503 && attempt < maxRetries) {
-            const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
-            console.warn(`API sobrecarregada (tentativa ${attempt}/${maxRetries}). Aguardando ${waitTime}ms antes de tentar novamente...`);
+            const waitTime = Math.pow(2, attempt) * 1000;
+            console.warn(`API sobrecarregada (tentativa ${attempt}/${maxRetries})...`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
-            continue; // Retry
+            continue;
           }
-
-          // If not 503 or max retries reached, throw
           throw error;
         }
       }
 
-      // If we got here, all retries failed
-      throw lastError;
-    } catch (error: any) {
-      // Log aprimorado para depuração em produção
-      console.error('Erro crítico ao gerar cenários tributários. Input:', JSON.stringify(input, null, 2));
-      console.error('Detalhes do erro Completo:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      if (!output) throw new Error('Falha ao gerar análise qualitativa pela IA.');
 
-      const errorMessage = error.message || JSON.stringify(error);
-      // Re-lança um erro para o frontend
-      throw new Error(`Falha na geração dos cenários tributários: ${errorMessage}`);
+      // --- MAPPING & MERGE LAYER (Híbrido) ---
+
+      // 1. Preservar a análise qualitativa da IA
+      if (output.complianceAnalysis) {
+        output.complianceAnalysis = normalizeCompliance(output.complianceAnalysis, input);
+      } else {
+        // Fallback de compliance via regras se a IA falhar
+        const ruleBasedAlerts = runComplianceRules(input);
+        const naturezaAnalysis = generateNaturezaJuridicaAnalysis(input);
+        output.complianceAnalysis = {
+          cnaeValidation: [],
+          naturezaJuridicaCheck: naturezaAnalysis,
+          alerts: ruleBasedAlerts
+        };
+      }
+
+      // 2. INJETAR Cenários Determinísticos (Substituição Total dos Cenários da IA)
+      // Motivo: A IA alucina números. A Engine é exata.
+      // Mantemos apenas notas extras se a IA tiver gerado algo MUITO relevante, 
+      // mas na prática, a engine já gera notas técnicas boas.
+
+      // Opcional: Tentar fazer "merge" inteligente de notas.
+      // Por enquanto, confiamos 100% na engine para os cenários para garantir a consistência solicitada pelo usuário.
+      output.scenarios = deterministicScenarios;
+
+      // 3. Validação final de schema
+      const parsed = GenerateTaxScenariosOutputSchema.safeParse(output);
+      if (parsed.success) {
+        output = parsed.data;
+      }
+
+      // 4. Garantias finais
+      if (!output.monthlyRevenue) output.monthlyRevenue = input.monthlyRevenue || 0;
+
+      // Fallback para executiveSummary se vazio
+      if (!output.executiveSummary) {
+        const best = deterministicScenarios[0];
+        output.executiveSummary = `### Análise Financeira\n\nCom base nos dados fornecidos, o regime **${best.name}** apresenta a maior eficiência tributária, com uma alíquota efetiva de **${best.effectiveRate?.toFixed(2)}%**. \n\nRecomendamos a migração ou manutenção deste regime mediante validação contábil detalhada.`;
+      }
+
+      saveToCache(cacheKey, output);
+      return output;
+
+    } catch (error: any) {
+      console.error('Erro crítico no fluxo híbrido:', error);
+      throw new Error(`Falha na geração dos cenários: ${error.message}`);
     }
   }
 );

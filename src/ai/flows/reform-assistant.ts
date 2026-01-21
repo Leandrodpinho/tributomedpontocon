@@ -1,10 +1,5 @@
-/**
- * AI Flow: Assistente Virtual de Reforma Tributária
- * Especialista em LC 214/2025 e PLP 108/2024
- */
-
 import { generateText } from 'ai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createGroq } from '@ai-sdk/groq';
 import type { ReformAssistantInput, ReformAssistantOutput } from '@/types/reform';
 import {
     REFORM_TIMELINE,
@@ -14,15 +9,15 @@ import {
     KEY_CONCEPTS
 } from '@/lib/reform-knowledge';
 
-// Configurar API key do Google Gemini
-const GOOGLE_API_KEY = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+// Configurar API key da Groq
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-if (!GOOGLE_API_KEY) {
-    throw new Error('⚠️ API key do Google Gemini não configurada. Configure GOOGLE_GENAI_API_KEY no .env.local');
+if (!GROQ_API_KEY) {
+    throw new Error('⚠️ API key da Groq não configurada. Configure GROQ_API_KEY no .env.local');
 }
 
-const google = createGoogleGenerativeAI({
-    apiKey: GOOGLE_API_KEY,
+const groq = createGroq({
+    apiKey: GROQ_API_KEY,
 });
 
 /**
@@ -182,11 +177,11 @@ export async function runReformAssistant(
         const userPrompt = buildUserPrompt(input);
 
         const result = await generateText({
-            model: google('gemini-1.5-flash'),
+            model: groq('llama-3.1-8b-instant'),
             system: systemPrompt,
             prompt: userPrompt,
             temperature: 0.7,
-            maxTokens: 2000,
+            maxOutputTokens: 2000,
         });
 
         // Extrai informações da resposta

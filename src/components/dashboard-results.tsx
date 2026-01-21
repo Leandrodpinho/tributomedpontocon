@@ -107,55 +107,55 @@ export function DashboardResults({
       .sort((a, b) => a.value - b.value);
   }, [scenarios, normalizeRevenue]);
 
+  // Simplificação: Usa o monthlyRevenue da análise como source of truth primário
   const defaultRevenueKey = useMemo(() => {
-    const normalizedMonthly = normalizeRevenue(analysis.monthlyRevenue);
-    const normalizedKey = normalizedMonthly.toFixed(2);
-    if (revenueOptions.some(option => option.key === normalizedKey)) {
-      return normalizedKey;
-    }
-    return revenueOptions[0]?.key ?? normalizedKey;
-  }, [analysis.monthlyRevenue, normalizeRevenue, revenueOptions]);
+    return normalizeRevenue(analysis.monthlyRevenue).toFixed(2);
+  }, [analysis.monthlyRevenue, normalizeRevenue]);
 
   const [selectedRevenueKey, setSelectedRevenueKey] = useState(defaultRevenueKey);
 
-  useEffect(() => {
-    setSelectedRevenueKey(defaultRevenueKey);
-  }, [defaultRevenueKey]);
-
+  // Se o usuário mudar a chave, atualizamos. Se não, usamos o default.
+  // Garante que nunca fique zerado se houver analysis.monthlyRevenue
   const selectedRevenue = useMemo(() => {
-    const parsedRevenue = Number.parseFloat(selectedRevenueKey);
-    return Number.isNaN(parsedRevenue) ? normalizeRevenue(analysis.monthlyRevenue) : parsedRevenue;
-  }, [analysis.monthlyRevenue, normalizeRevenue, selectedRevenueKey]);
+    const parsed = Number.parseFloat(selectedRevenueKey);
+    return isNaN(parsed) || parsed === 0 ? normalizeRevenue(analysis.monthlyRevenue) : parsed;
+  }, [selectedRevenueKey, analysis.monthlyRevenue, normalizeRevenue]);
 
+  // Efeito para persistir estado no sessionStorage para evitar perda ao navegar
   useEffect(() => {
-    if (!hasScenarios) return;
-    const hasMatchingScenario = scenarios.some(
-      scenario => Math.abs(normalizeRevenue(scenario.scenarioRevenue) - selectedRevenue) < 0.01
-    );
-    if (!hasMatchingScenario) {
-      const closest = scenarios.reduce<ScenarioDetail | null>((acc, scenario) => {
-        if (!acc) return scenario;
-        const currentDiff = Math.abs(normalizeRevenue(scenario.scenarioRevenue) - selectedRevenue);
-        const accDiff = Math.abs(normalizeRevenue(acc.scenarioRevenue) - selectedRevenue);
-        return currentDiff < accDiff ? scenario : acc;
-      }, null);
-      if (closest) {
-        setSelectedRevenueKey(normalizeRevenue(closest.scenarioRevenue).toFixed(2));
-      }
+    if (analysis && analysis.scenarios.length > 0) {
+      sessionStorage.setItem('last_tax_analysis', JSON.stringify({
+        analysis,
+        clientName,
+        timestamp: Date.now()
+      }));
     }
-  }, [hasScenarios, scenarios, normalizeRevenue, selectedRevenue]);
+  }, [analysis, clientName]);
 
-  const { scenariosForRevenue, chartData, bestScenario, worstScenario } = useMemo(() => {
-    const matchingScenarios = scenarios.filter((scenario: ScenarioDetail) => {
-      return Math.abs(normalizeRevenue(scenario.scenarioRevenue) - selectedRevenue) < 0.01;
-    });
+  // Efeito para restaurar (se este componente for montado vazio, o que não deve acontecer se for Server Component, 
+  // mas se for Client Component wrapper, ajuda. Mas a lógica principal de restore deve ser na page raiz)
 
-    const effectiveScenarios = matchingScenarios.length > 0 ? matchingScenarios : scenarios;
+  // Ajuste na lógica de matching para ser mais tolerante (centavos)
+  const scenariosForRevenue = useMemo(() => {
+    if (!analysis.scenarios) return [];
+
+    // Tenta encontrar match exato
+    const matches = analysis.scenarios.filter(s =>
+      Math.abs((s.scenarioRevenue || 0) - selectedRevenue) < 1.0 // Tolerância de R$ 1,00
+    );
+
+    // Se não achar match exato, retorna todos (assumindo que só tem 1 faixa calculada pela engine determinística)
+    // A engine determinística atual calcula apenas para o faturamento informado.
+    return matches.length > 0 ? matches : analysis.scenarios;
+  }, [analysis.scenarios, selectedRevenue]);
+
+  // Recalcula chartData e best/worst based on scenariosForRevenue
+  const { chartData, bestScenario, worstScenario } = useMemo(() => {
+    const effectiveScenarios = scenariosForRevenue;
 
     const normalizedName = (name: string) =>
       name
-        .replace(/ com Faturamento de R\$ \d+[.,]\d+/i, '')
-        .replace(/Cenário para .*?:\s*/i, '')
+        .replace(/Cw+nário para .*?:\s*/i, '')
         .trim();
 
     const chartData = effectiveScenarios.map((scenario, index) => ({
@@ -174,8 +174,8 @@ export function DashboardResults({
       return (scenario.totalTaxValue ?? 0) > (acc.totalTaxValue ?? 0) ? scenario : acc;
     }, undefined);
 
-    return { scenariosForRevenue: effectiveScenarios, chartData, bestScenario, worstScenario };
-  }, [scenarios, normalizeRevenue, selectedRevenue]);
+    return { chartData, bestScenario, worstScenario };
+  }, [scenariosForRevenue]);
 
   const monthlySavings =
     bestScenario && worstScenario
@@ -621,14 +621,14 @@ export function DashboardResults({
                     >
                       <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                          <CardTitle className="text-lg font-semibold text-foreground">
+                          <CardTitle className="text-lg font-semibold text-foreground break-words hyphens-auto max-w-[200px] sm:max-w-md">
                             {scenario.name.replace(/Cenário para .*?:\s*/i, '')}
                           </CardTitle>
                           <CardDescription>
                             Faturamento considerado: {formatCurrency(scenario.scenarioRevenue ?? selectedRevenue)}
                           </CardDescription>
                         </div>
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs shrink-0">
                           {deltaVersusBest === 0 ? 'Mesmo custo do recomendado' : deltaLabel}
                         </Badge>
                       </CardHeader>

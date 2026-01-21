@@ -15,14 +15,22 @@ export interface ComplianceRule {
 }
 
 /**
- * Detecta a natureza jurídica a partir do texto
+ * Detecta a natureza jurídica a partir do texto (Documentos ou Razão Social)
  */
-export function detectNaturezaJuridica(text: string): NaturezaJuridica {
-    const textUpper = text.toUpperCase();
+export function detectNaturezaJuridica(textOrData: string | any): NaturezaJuridica {
+    let textUpper = '';
+
+    if (typeof textOrData === 'string') {
+        textUpper = textOrData.toUpperCase();
+    } else if (typeof textOrData === 'object') {
+        // Concatena tudo que pode ter a sigla da natureza
+        textUpper = ((textOrData.documentsAsText || '') + ' ' + (textOrData.companyName || '') + ' ' + (textOrData.clientData || '')).toUpperCase();
+    }
 
     if (textUpper.includes('EMPRESARIO INDIVIDUAL') || textUpper.includes('EMPRESÁRIO INDIVIDUAL')) return 'EI';
     if (textUpper.includes('EIRELI')) return 'EIRELI';
     if (textUpper.includes('SOCIEDADE LIMITADA UNIPESSOAL') || textUpper.includes('SLU')) return 'SLU';
+    // LTDA geralmente aparece no fim da razão social
     if (textUpper.includes('LTDA') || textUpper.includes('LIMITADA')) return 'LTDA';
     if (textUpper.includes('S/A') || textUpper.includes('SOCIEDADE ANONIMA') || textUpper.includes('SOCIEDADE ANÔNIMA')) return 'SA';
     if (textUpper.includes('COOPERATIVA')) return 'COOPERATIVA';
@@ -37,7 +45,7 @@ export function detectNaturezaJuridica(text: string): NaturezaJuridica {
 export const MEDICAL_COMPLIANCE_RULES: ComplianceRule[] = [
     {
         check: (data) => {
-            const nj = detectNaturezaJuridica(data.documentsAsText || '');
+            const nj = detectNaturezaJuridica(data); // Passa o objeto full data agora
             const isMedical = data.cnaes?.some((cnae: string) => cnae.startsWith('863')) ||
                 (data.documentsAsText || '').toLowerCase().includes('médic');
             return nj === 'EI' && isMedical;
@@ -51,7 +59,7 @@ export const MEDICAL_COMPLIANCE_RULES: ComplianceRule[] = [
     },
     {
         check: (data) => {
-            const nj = detectNaturezaJuridica(data.documentsAsText || '');
+            const nj = detectNaturezaJuridica(data);
             return nj === 'EIRELI';
         },
         alert: {
@@ -63,7 +71,7 @@ export const MEDICAL_COMPLIANCE_RULES: ComplianceRule[] = [
     },
     {
         check: (data) => {
-            const nj = detectNaturezaJuridica(data.documentsAsText || '');
+            const nj = detectNaturezaJuridica(data);
             return nj === 'MEI';
         },
         alert: {
@@ -112,7 +120,7 @@ export function runComplianceRules(data: any): Array<{
  * Gera análise de natureza jurídica baseada em regras
  */
 export function generateNaturezaJuridicaAnalysis(data: any): string {
-    const nj = detectNaturezaJuridica(data.documentsAsText || '');
+    const nj = detectNaturezaJuridica(data);
 
     const analyses: Record<NaturezaJuridica, string> = {
         'EI': 'Identificada natureza jurídica: Empresário Individual (EI). ATENÇÃO: Responsabilidade ilimitada - patrimônio pessoal responde pelas dívidas. Não recomendado para profissionais da saúde.',

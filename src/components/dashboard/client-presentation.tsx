@@ -61,26 +61,38 @@ export function ClientPresentation({ analysis, clientName, consultingFirm, onClo
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-white flex flex-col">
+        <div className="fixed inset-0 z-[100] bg-slate-50/50 backdrop-blur-sm flex flex-col animate-in fade-in duration-300">
             {/* Header */}
-            <div className="flex items-center justify-between px-8 py-6 bg-white border-b border-slate-200">
-                <div>
-                    <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">Apresentação Executiva</p>
-                    <h1 className="text-xl font-bold text-slate-900">{clientName}</h1>
+            <div className="flex items-center justify-between px-6 py-4 bg-white/90 backdrop-blur-md border-b border-slate-200/60 shadow-sm supports-[backdrop-filter]:bg-white/60">
+                <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-2">
+                        <span className="h-6 w-1 bg-gradient-to-b from-blue-600 to-violet-600 rounded-full"></span>
+                        <h1 className="text-xl font-bold tracking-tight text-slate-900">
+                            {clientName}
+                        </h1>
+                    </div>
+                    <p className="text-xs font-medium text-slate-500 pl-3 uppercase tracking-wider">
+                        Apresentação Executiva • {consultingFirm}
+                    </p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={handleExportPDF}
                         disabled={isExporting}
-                        className="border-brand-600 text-brand-600 hover:bg-brand-600 hover:text-white"
+                        className="border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-sm transition-all hover:border-blue-200 hover:text-blue-700"
                     >
                         <Download className="h-4 w-4 mr-2" />
                         {isExporting ? 'Gerando PDF...' : 'Baixar PDF'}
                     </Button>
-                    <span className="text-sm text-slate-600">{consultingFirm}</span>
-                    <Button variant="ghost" size="icon" onClick={onClose} className="text-slate-600 hover:text-slate-900">
+                    <div className="h-8 w-px bg-slate-200 mx-1"></div>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onClose}
+                        className="h-8 w-8 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                    >
                         <X className="h-5 w-5" />
                     </Button>
                 </div>

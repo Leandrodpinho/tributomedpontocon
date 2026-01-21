@@ -54,17 +54,20 @@ export function ComplianceCard({ analysis }: ComplianceCardProps) {
                             opportunity: "border-emerald-200 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/10 dark:text-emerald-100"
                         };
 
-                        const Icons = {
+                        const Icons: Record<string, typeof AlertTriangle> = {
                             danger: AlertTriangle,
                             warning: AlertTriangle,
                             info: ShieldCheck,
                             opportunity: Lightbulb
                         }
 
-                        const Icon = Icons[alert.type];
+                        // Fallback para tipos não mapeados
+                        const alertType = (alert.type && Icons[alert.type]) ? alert.type : 'info';
+                        const Icon = Icons[alertType];
+                        const style = styles[alertType as keyof typeof styles] || styles.info;
 
                         return (
-                            <Alert key={idx} className={cn("border", styles[alert.type])}>
+                            <Alert key={idx} className={cn("border", style)}>
                                 <Icon className="h-4 w-4" />
                                 <AlertTitle className="font-bold ml-2">{alert.title}</AlertTitle>
                                 <AlertDescription className="mt-2 ml-2 space-y-2">

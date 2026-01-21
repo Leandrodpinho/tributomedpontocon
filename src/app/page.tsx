@@ -38,6 +38,31 @@ export default function Home() {
     }
   }, [state, toast]);
 
+  // Efeito para restaurar estado anterior (Persistência)
+  useEffect(() => {
+    const saved = sessionStorage.getItem('last_tax_analysis');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Verifica se o timestamp é recente (ex: menor que 24h) para não carregar lixo muito antigo
+        if (Date.now() - parsed.timestamp < 1000 * 60 * 60 * 24) {
+          setState(prev => ({
+            ...prev,
+            aiResponse: parsed.analysis,
+            // Podes restaurar outros campos se salvos, mas o principal é o aiResponse
+          }));
+          setShowForm(false);
+          toast({
+            title: "Análise Restaurada",
+            description: "Recuperamos sua última simulação.",
+          });
+        }
+      } catch (e) {
+        console.error("Erro ao restaurar análise", e);
+      }
+    }
+  }, [toast]); // Executa apenas uma vez no mount
+
   const handleFormSubmit = async (formData: FormData) => {
     startTransition(async () => {
       const newState = await getAnalysis(state, formData);
@@ -47,16 +72,19 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[hsl(var(--background))] bg-app-gradient text-[hsl(var(--foreground))] transition-colors duration-300">
-      <header className="sticky top-0 z-10 flex h-20 items-center justify-between border-b border-white/20 bg-white/60 px-4 backdrop-blur-xl transition-all duration-300 md:px-10 dark:bg-slate-950/50 dark:border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="group flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-500 text-white shadow-lg transition-transform group-hover:scale-105">
-            <LogoIcon className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl md:text-5xl">
-              Planejador <span className="text-primary">Tributário</span>
+      <header className="sticky top-0 z-10 flex h-20 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl transition-all duration-300 md:px-10 dark:bg-slate-950/90 dark:border-slate-800/50">
+        <div className="flex items-center gap-4">
+          <div className="flex flex-col">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-white">
+              <span className="bg-gradient-to-r from-slate-900 via-blue-800 to-blue-600 bg-clip-text text-transparent dark:from-white dark:via-blue-300 dark:to-blue-400">
+                Planejador
+              </span>
+              {" "}
+              <span className="bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+                Tributário
+              </span>
             </h1>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 tracking-wide">
               Estratégia fiscal para a área da saúde
             </p>
           </div>

@@ -75,20 +75,30 @@ export default function ReformaTributariaPage() {
         <div className="container mx-auto p-6 max-w-7xl">
             {/* Header */}
             <div className="mb-8">
-                <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                            <Zap className="h-6 w-6 text-primary" />
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-col">
+                        <div className="flex items-center gap-3 mb-1">
+                            <h1 className="text-3xl font-bold tracking-tight">
+                                <span className="bg-gradient-to-r from-slate-900 via-blue-800 to-blue-600 bg-clip-text text-transparent dark:from-white dark:via-blue-300 dark:to-blue-400">
+                                    Reforma
+                                </span>
+                                {" "}
+                                <span className="bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+                                    Tributária
+                                </span>
+                            </h1>
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-semibold">
+                                LC 214/2025
+                            </Badge>
                         </div>
-                        <div>
-                            <h1 className="text-3xl font-bold">Reforma Tributária</h1>
-                            <Badge variant="default" className="mt-1">LC 214/2025</Badge>
-                        </div>
+                        <p className="text-muted-foreground text-sm">
+                            Seu assistente especializado em Reforma Tributária Brasileira • PLP 108/2024
+                        </p>
                     </div>
                     <Button
                         variant="outline"
                         onClick={() => window.location.href = '/'}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -96,9 +106,6 @@ export default function ReformaTributariaPage() {
                         Voltar ao Planejador
                     </Button>
                 </div>
-                <p className="text-muted-foreground">
-                    Seu assistente especializado em Reforma Tributária Brasileira • LC 214/2025 • PLP 108/2024
-                </p>
             </div>
 
             {/* Tabs */}
