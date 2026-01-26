@@ -51,13 +51,17 @@ const SIMPLES_ANEXO_V = [
     { range: 4800000, rate: 0.305, deduction: 540000 },
 ];
 
-export const IRPF_2025 = [
+export const IRPF_TABLE_2026 = [
     { limit: 2259.20, rate: 0, deduction: 0 },
     { limit: 2826.65, rate: 0.075, deduction: 169.44 },
     { limit: 3751.05, rate: 0.150, deduction: 381.44 },
     { limit: 4664.68, rate: 0.225, deduction: 662.77 },
     { limit: Infinity, rate: 0.275, deduction: 896.00 },
 ];
+
+// Desconto simplificado mensal (substitui deduções legais se for mais vantajoso)
+// Valor de 2025/2026: R$ 564,80 (25% da faixa de isenção)
+export const SIMPLIFIED_DISCOUNT = 564.80;
 
 // Tabela Progressiva INSS 2025 (CLT)
 export const INSS_2025_PROGRESSIVE = [
@@ -112,8 +116,12 @@ export function calculateINSS_CLT(grossSalary: number): number {
 }
 
 export function calculateIRPF(taxableIncome: number, inssDeduction: number): number {
-    const base = taxableIncome - inssDeduction;
-    const bracket = IRPF_2025.find(b => base <= b.limit) || IRPF_2025[IRPF_2025.length - 1];
+    // Aplica o desconto simplificado se for mais vantajoso que as deduções legais (INSS)
+    const effectiveDeduction = Math.max(inssDeduction, SIMPLIFIED_DISCOUNT);
+    const base = taxableIncome - effectiveDeduction;
+
+    // Busca na tabela 2026
+    const bracket = IRPF_TABLE_2026.find(b => base <= b.limit) || IRPF_TABLE_2026[IRPF_TABLE_2026.length - 1];
     const irpf = (base * bracket.rate) - bracket.deduction;
     return Math.max(0, irpf);
 }

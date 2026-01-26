@@ -1,0 +1,146 @@
+
+> nextn@0.1.0 lint
+> next lint
+
+`next lint` is deprecated and will be removed in Next.js 16.
+For new projects, use create-next-app to choose your preferred linter.
+For existing projects, migrate to the ESLint CLI:
+npx @next/codemod@canary next-lint-to-eslint-cli .
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /Users/leandropinho/package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * /Users/leandropinho/Planejador Tributário/tributomedpontocon/package-lock.json
+
+
+./src/ai/flows/calculate-irpf-impact.ts
+24:36  Warning: 'calculateINSS' is defined but never used.  @typescript-eslint/no-unused-vars
+26:7  Warning: 'CalculateIRPFImpactInputSchema' is assigned a value but only used as a type.  @typescript-eslint/no-unused-vars
+45:7  Warning: 'CalculateIRPFImpactOutputSchema' is assigned a value but only used as a type.  @typescript-eslint/no-unused-vars
+
+./src/ai/flows/compliance-rules.ts
+8:19  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+20:61  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+102:42  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+108:19  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+122:56  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/ai/flows/extract-text-from-document.ts
+15:7  Warning: 'ExtractTextFromDocumentInputSchema' is assigned a value but only used as a type.  @typescript-eslint/no-unused-vars
+28:7  Warning: 'ExtractTextFromDocumentOutputSchema' is assigned a value but only used as a type.  @typescript-eslint/no-unused-vars
+67:28  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+68:29  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+69:18  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+70:18  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+71:20  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+
+./src/ai/flows/generate-tax-scenarios.ts
+110:41  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+166:42  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+166:59  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+166:65  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+170:21  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+239:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+299:19  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+311:34  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/ai/flows/local-extractor.ts
+4:16  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+11:10  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+13:11  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+22:1  Error: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+23:24  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+74:9  Error: 'imgs' is never reassigned. Use 'const' instead.  prefer-const
+85:17  Error: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+90:22  Warning: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/ai/flows/reform-assistant.ts
+61:44  Warning: 'key' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/(dashboard)/reforma-tributaria/page.tsx
+16:5  Warning: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+285:69  Warning: 'key' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/actions.ts
+404:15  Warning: 'savedAnalysis' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+417:34  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/reform-news/fetch/route.ts
+70:17  Error: 'cleanDescription' is never reassigned. Use 'const' instead.  prefer-const
+154:27  Warning: 'request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/api/reform-news/route.ts
+11:27  Warning: 'request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/api/reform-news/seed/route.ts
+10:27  Warning: 'request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/page.tsx
+7:10  Warning: 'LogoIcon' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/analysis-form.tsx
+3:28  Warning: 'useTransition' is defined but never used.  @typescript-eslint/no-unused-vars
+10:5  Warning: 'FileText' is defined but never used.  @typescript-eslint/no-unused-vars
+11:5  Warning: 'HelpCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+28:5  Warning: 'Tooltip' is defined but never used.  @typescript-eslint/no-unused-vars
+29:5  Warning: 'TooltipContent' is defined but never used.  @typescript-eslint/no-unused-vars
+30:5  Warning: 'TooltipProvider' is defined but never used.  @typescript-eslint/no-unused-vars
+31:5  Warning: 'TooltipTrigger' is defined but never used.  @typescript-eslint/no-unused-vars
+38:10  Warning: 'cn' is defined but never used.  @typescript-eslint/no-unused-vars
+191:50  Warning: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/dashboard/client-presentation.tsx
+8:10  Warning: 'ArrowRight' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/dashboard/pro-labore-optimizer.tsx
+4:10  Warning: 'Card' is defined but never used.  @typescript-eslint/no-unused-vars
+4:16  Warning: 'CardContent' is defined but never used.  @typescript-eslint/no-unused-vars
+5:10  Warning: 'Button' is defined but never used.  @typescript-eslint/no-unused-vars
+10:10  Warning: 'ArrowRight' is defined but never used.  @typescript-eslint/no-unused-vars
+10:59  Warning: 'AlertTriangle' is defined but never used.  @typescript-eslint/no-unused-vars
+10:74  Warning: 'Info' is defined but never used.  @typescript-eslint/no-unused-vars
+36:11  Warning: 'chartData' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+41:19  Warning: 'scenarios' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+58:19  Warning: 'ratio' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/dashboard/savings-highlight.tsx
+6:10  Warning: 'cn' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/dashboard/scenario-metrics.tsx
+20:3  Warning: 'annualSavings' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/dashboard-results.tsx
+18:10  Warning: 'AnnualTimeline' is defined but never used.  @typescript-eslint/no-unused-vars
+23:10  Warning: 'Card' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/reform/chat-interface.tsx
+6:10  Warning: 'Card' is defined but never used.  @typescript-eslint/no-unused-vars
+6:16  Warning: 'CardContent' is defined but never used.  @typescript-eslint/no-unused-vars
+6:29  Warning: 'CardHeader' is defined but never used.  @typescript-eslint/no-unused-vars
+6:41  Warning: 'CardTitle' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/scenario-comparison-chart.tsx
+16:52  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+18:39  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+19:40  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/lib/calculate-reform-impact.ts
+7:10  Warning: 'REFORM_TIMELINE' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/lib/export-presentation-pdf.ts
+24:15  Warning: 'pageHeight' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/lib/tax-calculator.ts
+135:11  Warning: 'inssPF' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/lib/tax-engine/calculators/carne-leao.ts
+1:10  Warning: 'calculateINSS' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/lib/tax-engine/engine.ts
+2:35  Warning: 'calculateLucroRealSimples' is defined but never used.  @typescript-eslint/no-unused-vars
+15:11  Warning: 'payroll' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+57:15  Warning: 'additionalPayrollNeeded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules

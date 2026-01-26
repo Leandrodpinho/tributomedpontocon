@@ -107,6 +107,7 @@ async function generateTaxScenariosFlow(input: GenerateTaxScenariosInput): Promi
 }
 
 // Helper function to repair truncated JSON
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseAndFixJSON(text: string): any {
   // Remove markdown code blocks if present
   let cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -236,7 +237,7 @@ async function generateTaxScenariosLogic(input: GenerateTaxScenariosInput): Prom
     // com os dados da Engine. A IA serve para "explicar" e validar regras complexas de texto.
 
     const maxRetries = 3;
-    let output: any = null;
+    let output: GenerateTaxScenariosOutput | null = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -246,8 +247,9 @@ async function generateTaxScenariosLogic(input: GenerateTaxScenariosInput): Prom
         output = parseAndFixJSON(rawText);
 
         if (output) break; // Sucesso no parse
-      } catch (error: any) {
-        const is503 = error.status === 503 || error.message?.includes('503') || error.message?.includes('overloaded');
+      } catch (error: unknown) {
+        const err = error as { status?: number; message?: string };
+        const is503 = err.status === 503 || err.message?.includes('503') || err.message?.includes('overloaded');
         if (is503 && attempt < maxRetries) {
           const waitTime = Math.pow(2, attempt) * 1000;
           console.warn(`API sobrecarregada (tentativa ${attempt}/${maxRetries})...`);

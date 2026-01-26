@@ -57,15 +57,25 @@ async function fetchGovNews(): Promise<ReformNewsInput[]> {
         // Parse básico do HTML para extrair notícias
         const newsItems: ReformNewsInput[] = [];
 
-        // Regex para encontrar links de notícias (formato do gov.br)
-        const newsRegex = /<article[^>]*>[\s\S]*?<h2[^>]*>[\s\S]*?<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/h2>[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>[\s\S]*?<time[^>]*datetime="([^"]+)"[^>]*>/gi;
+        // Regex atualizado para o layout do gov.br (baseado em inspeção real)
+        // Estrutura: <h2 class="titulo"><a href="...">Titulo</a></h2> ... <span class="data">DD/MM/YYYY</span> ... Texto
+        const newsRegex = /<h2\s+class="titulo">\s*<a\s+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>\s*<\/h2>[\s\S]*?<span\s+class="data">(\d{2}\/\d{2}\/\d{4})<\/span>([\s\S]*?)<div/gi;
 
         let match;
         while ((match = newsRegex.exec(html)) !== null) {
-            const [, url, title, description, datetime] = match;
+            const [, url, title, dateStr, descriptionRaw] = match;
 
             const cleanTitle = title.replace(/<[^>]+>/g, '').trim();
-            const cleanDescription = description.replace(/<[^>]+>/g, '').trim();
+            // Limpar descrição: remover tags, hífens iniciais e espaços extras
+            let cleanDescription = descriptionRaw
+                .replace(/<[^>]+>/g, '') // Remove tags
+                .replace(/^[\s\-]*/, '') // Remove hífens/espaços do início
+                .replace(/\s+/g, ' ')    // Normaliza espaços
+                .trim();
+
+            // Parse data (DD/MM/YYYY)
+            const [day, month, year] = dateStr.split('/');
+            const publishedAt = new Date(`${year}-${month}-${day}T12:00:00`);
 
             // Filtrar apenas notícias relevantes
             if (isRelevant(cleanTitle + ' ' + cleanDescription)) {
@@ -73,7 +83,7 @@ async function fetchGovNews(): Promise<ReformNewsInput[]> {
                     title: cleanTitle,
                     description: cleanDescription,
                     url: url.startsWith('http') ? url : `https://www.gov.br${url}`,
-                    publishedAt: new Date(datetime),
+                    publishedAt: publishedAt,
                     source: 'Ministério da Fazenda',
                 });
             }

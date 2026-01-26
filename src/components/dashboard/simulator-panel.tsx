@@ -9,6 +9,7 @@ import { formatCurrency, formatPercentage } from '@/lib/formatters';
 import { calculateAllScenarios } from '@/lib/tax-calculator';
 import { ScenarioComparisonChart } from '@/components/scenario-comparison-chart';
 import { Input } from '@/components/ui/input';
+import { LegalConfidenceWidget } from './legal-confidence-widget';
 
 interface SimulatorPanelProps {
     initialRevenue: number;
@@ -157,30 +158,69 @@ export function SimulatorPanel({
 
                     <div className="min-h-[300px]">
                         <ScenarioComparisonChart data={chartData} />
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {/* Lista de Cenários - Layout Limpo e Organizado */}
+                        <div className="mt-6 space-y-3">
                             {scenarios.map(s => {
                                 const isWorst = s.isWorst;
                                 const isBest = s.isBest;
-                                let borderClass = 'border-white/20 hover:bg-white/10 input-glass';
-                                if (isBest) borderClass = 'border-brand-500 bg-brand-500/10';
-                                if (isWorst) borderClass = 'border-destructive/50 bg-destructive/10';
 
                                 return (
-                                    <div key={s.name} className={`rounded border p-3 text-xs backdrop-blur-sm transition-colors ${borderClass}`}>
-                                        <strong className={isWorst ? "text-destructive" : ""}>{s.name}</strong>
-                                        <div className="mt-1 flex justify-between">
-                                            <span>Imposto Total:</span>
-                                            <span>{formatCurrency(s.totalTax)}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span>Pró-Labore/Sócio:</span>
-                                            <span>{formatCurrency(s.proLabore)}</span>
-                                        </div>
-                                        {s.notes && s.notes.length > 0 && (
-                                            <div className="mt-2 border-t border-white/10 pt-1 text-[10px] text-muted-foreground">
-                                                {s.notes[0]}
+                                    <div
+                                        key={s.name}
+                                        className={`
+                                            relative flex flex-col md:flex-row md:items-center justify-between gap-4 
+                                            rounded-xl p-5 text-sm transition-all duration-200 
+                                            ${isBest
+                                                ? 'bg-gradient-to-r from-brand-50 to-white border-2 border-brand-400 shadow-md dark:from-brand-900/30 dark:to-slate-900 dark:border-brand-600'
+                                                : isWorst
+                                                    ? 'bg-rose-50/50 border border-rose-200 dark:bg-rose-900/10 dark:border-rose-800'
+                                                    : 'bg-white/50 border border-slate-200 hover:bg-white hover:shadow-sm dark:bg-slate-900/30 dark:border-slate-700 dark:hover:bg-slate-900/50'
+                                            }
+                                        `}
+                                    >
+                                        {/* Nome do Cenário + Badge */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-3 flex-wrap">
+                                                <h4 className={`font-semibold truncate ${isBest ? 'text-brand-700 dark:text-brand-300' : isWorst ? 'text-rose-700 dark:text-rose-300' : 'text-foreground'}`}>
+                                                    {s.name}
+                                                </h4>
+                                                {isBest && (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-brand-600 text-white">
+                                                        ★ Melhor
+                                                    </span>
+                                                )}
+                                                {isWorst && (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-rose-500 text-white">
+                                                        Mais Caro
+                                                    </span>
+                                                )}
                                             </div>
-                                        )}
+                                            {s.notes && s.notes.length > 0 && (
+                                                <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{s.notes[0]}</p>
+                                            )}
+                                        </div>
+
+                                        {/* Métricas em Linha */}
+                                        <div className="flex items-center gap-6 md:gap-8 shrink-0">
+                                            <div className="text-center min-w-[90px]">
+                                                <span className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Imposto</span>
+                                                <span className={`text-base font-bold ${isWorst ? 'text-rose-600' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                    {formatCurrency(s.totalTax)}
+                                                </span>
+                                            </div>
+                                            <div className="text-center min-w-[90px]">
+                                                <span className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Pró-Labore</span>
+                                                <span className="text-base font-semibold text-slate-600 dark:text-slate-300">
+                                                    {formatCurrency(s.proLabore)}
+                                                </span>
+                                            </div>
+                                            <div className="text-center min-w-[70px]">
+                                                <span className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Alic. Efet.</span>
+                                                <span className={`text-base font-bold ${isBest ? 'text-brand-600' : 'text-slate-600 dark:text-slate-300'}`}>
+                                                    {formatPercentage(s.effectiveRate / 100)}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 );
                             })}

@@ -60,7 +60,7 @@ export function BestScenarioCard({ scenario, className }: BestScenarioCardProps)
               </p>
               <DollarSign className="h-5 w-5 text-emerald-500/50" />
             </div>
-            <p className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+            <p className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
               {formatCurrency(scenario.netProfitDistribution)}
             </p>
             <div className="mt-4 flex items-center gap-2">

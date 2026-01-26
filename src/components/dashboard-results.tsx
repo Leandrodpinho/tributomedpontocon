@@ -610,90 +610,72 @@ export function DashboardResults({
               <div>
                 <h2 className="text-xl font-semibold text-foreground">Demais Cenários Simulados</h2>
                 <p className="text-sm text-muted-foreground">
-                  Compare as principais métricas de cada regime avaliado pela inteligência artificial.
+                  Comparativo direto dos outros regimes avaliados.
                 </p>
               </div>
-              <div className="grid gap-4">
+              <div className="flex flex-col gap-4">
                 {otherScenarios.map(scenario => {
                   const deltaVersusBest = bestScenario
                     ? (scenario.totalTaxValue ?? 0) - (bestScenario.totalTaxValue ?? 0)
                     : 0;
                   const deltaLabel = deltaVersusBest >= 0
-                    ? `+${formatCurrency(deltaVersusBest)} em tributos vs. recomendado`
-                    : `${formatCurrency(deltaVersusBest)} em tributos vs. recomendado`;
-                  const scenarioIrpf = irpfImpacts?.[scenario.name];
-                  const netImpactValue = scenarioIrpf?.impactDetails.netImpact ?? 0;
-                  const netImpactIsPositive = netImpactValue >= 0;
+                    ? `+${formatCurrency(deltaVersusBest)}`
+                    : `${formatCurrency(deltaVersusBest)}`;
 
                   return (
                     <div
                       key={scenario.name}
                       data-scenario-card="true"
                       data-best={String(scenario === bestScenario)}
-                      className={cn(
-                        'glass-card rounded-xl transition-all hover:bg-white/40',
-                        scenario === bestScenario && 'ring-2 ring-primary/50 bg-primary/5'
-                      )}
+                      className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white/50 p-5 transition-all hover:bg-white hover:shadow-md dark:border-slate-800 dark:bg-slate-900/40 dark:hover:bg-slate-900"
                     >
-                      <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <CardTitle className="text-lg font-semibold text-foreground break-words hyphens-auto">
-                            {scenario.name.replace(/Cenário para .*?:\s*/i, '')}
-                          </CardTitle>
-                          <CardDescription>
-                            Faturamento considerado: {formatCurrency(scenario.scenarioRevenue ?? selectedRevenue)}
-                          </CardDescription>
+                      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                        {/* Title and Delta */}
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-3">
+                            <h3 className="text-base font-semibold text-foreground">
+                              {scenario.name.replace(/Cenário para .*?:\s*/i, '')}
+                            </h3>
+                            <Badge
+                              variant="secondary"
+                              className={cn(
+                                "text-xs font-normal",
+                                deltaVersusBest > 0 ? "text-rose-600 bg-rose-50 dark:bg-rose-900/20 dark:text-rose-300" : "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-300"
+                              )}
+                            >
+                              {deltaVersusBest === 0 ? 'Mesmo Custo' : `${deltaLabel} vs. Recomendado`}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-1">
+                            {scenario.notes}
+                          </p>
                         </div>
-                        <Badge variant="outline" className="text-xs shrink-0">
-                          {deltaVersusBest === 0 ? 'Mesmo custo do recomendado' : deltaLabel}
-                        </Badge>
-                      </CardHeader>
-                      <CardContent className="space-y-4 text-sm">
-                        <div className={cn("grid gap-4", scenarioIrpf ? "sm:grid-cols-4" : "sm:grid-cols-3")}>
-                          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Carga Tributária</p>
-                            <p className="mt-2 text-xl font-semibold text-destructive">
-                              {formatCurrency(scenario.totalTaxValue ?? 0)}
+
+                        {/* Metrics Horizontal Group */}
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-4 md:flex md:items-center md:gap-8">
+
+                          <div className="space-y-0.5">
+                            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Impostos</span>
+                            <p className="text-lg font-semibold text-rose-600 dark:text-rose-400">
+                              {formatCurrency(scenario.totalTaxValue)}
                             </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {formatPercentage((scenario.effectiveRate ?? 0) / 100)} sobre o faturamento.
-                            </p>
+                            <span className="text-xs text-muted-foreground">
+                              {formatPercentage((scenario.effectiveRate ?? 0) / 100)} Efet.
+                            </span>
                           </div>
-                          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Lucro Líquido</p>
-                            <p className="mt-2 text-xl font-semibold text-emerald-600">
-                              {formatCurrency(scenario.netProfitDistribution ?? 0)}
+
+                          <div className="space-y-0.5">
+                            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Lucro Líquido</span>
+                            <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                              {formatCurrency(scenario.netProfitDistribution)}
                             </p>
-                            {scenario.taxCostPerEmployee !== undefined && (
-                              <p className="mt-1 text-xs text-muted-foreground">
-                                Custo tributário por colaborador: {formatCurrency(scenario.taxCostPerEmployee)}
-                              </p>
-                            )}
+                            <span className="text-xs text-muted-foreground">
+                              {scenario.taxCostPerEmployee ? `Custo/Colab: ${formatCurrency(scenario.taxCostPerEmployee)}` : 'Margem Final'}
+                            </span>
                           </div>
-                          <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Observações</p>
-                            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                              {scenario.notes}
-                            </p>
-                          </div>
-                          {scenarioIrpf && (
-                            <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
-                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Impacto no IRPF</p>
-                              <p
-                                className={cn(
-                                  'mt-2 text-xl font-semibold',
-                                  netImpactIsPositive ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-300'
-                                )}
-                              >
-                                {formatCurrency(netImpactValue)}
-                              </p>
-                              <p className="mt-1 text-xs text-muted-foreground">
-                                {scenarioIrpf.impactDetails.taxBracket} • Base {formatCurrency(scenarioIrpf.impactDetails.taxableIncome)}
-                              </p>
-                            </div>
-                          )}
+
                         </div>
-                      </CardContent>
+                      </div>
                     </div>
                   );
                 })}

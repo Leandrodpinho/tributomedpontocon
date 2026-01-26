@@ -14,7 +14,6 @@ export function calculateINSS(salary: number): number {
 }
 
 function calculateProgressiveINSS(base: number): number {
-    let tax = 0;
     const table = LEGAL_CONSTANTS_2025.inssTable;
 
     // Cálculo simplificado usando dedução
