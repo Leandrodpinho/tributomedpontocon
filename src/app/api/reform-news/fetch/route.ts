@@ -19,6 +19,12 @@ const KEYWORDS = [
     'comitê gestor',
     'cesta básica nacional',
     'cashback tributário',
+    'receita federal',
+    'arrecadação',
+    'tributação',
+    'imposto',
+    'nova lei',
+    'regulamentação',
     'iva dual'
 ];
 

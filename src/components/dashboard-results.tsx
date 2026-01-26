@@ -127,10 +127,11 @@ export function DashboardResults({
       sessionStorage.setItem('last_tax_analysis', JSON.stringify({
         analysis,
         clientName,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        initialParameters
       }));
     }
-  }, [analysis, clientName]);
+  }, [analysis, clientName, initialParameters]);
 
   // Efeito para restaurar (se este componente for montado vazio, o que não deve acontecer se for Server Component, 
   // mas se for Client Component wrapper, ajuda. Mas a lógica principal de restore deve ser na page raiz)
@@ -636,7 +637,7 @@ export function DashboardResults({
                     >
                       <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                          <CardTitle className="text-lg font-semibold text-foreground break-words hyphens-auto max-w-[200px] sm:max-w-md">
+                          <CardTitle className="text-lg font-semibold text-foreground break-words hyphens-auto">
                             {scenario.name.replace(/Cenário para .*?:\s*/i, '')}
                           </CardTitle>
                           <CardDescription>

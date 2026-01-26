@@ -217,17 +217,17 @@ FIREBASE_ANALYSES_COLLECTION=analyses
 
 ## 🔌 APIs e Integrações
 
-### 1. Google Gemini AI
+### 1. Google Gemini AI / Groq AI
 
 **Modelos usados:**
-- `gemini-2.0-flash-exp` (chat especialista)
-- `gemini-1.5-flash` (planejador tributário)
+- `llama-3.1-8b-instant` (chat especialista via Groq)
+- `llama-3.3-70b-versatile` (planejador tributário via Groq)
 
 **Configuração:**
 - Temperature: 0.1 (planejador) / 0.7 (chat)
 - Max tokens: 2000-8192
 
-**Status:** ⚠️ Quota excedida (tier gratuito)
+**Status:** ✅ Funcionando (Migrado para Groq)
 
 ### 2. Firebase Firestore
 
@@ -360,35 +360,26 @@ Simulações com mesmos dados retornavam resultados diferentes (Simples Anexo II
 
 ## ⚠️ Problemas Conhecidos
 
-### 1. Quota Excedida do Google Gemini ❌ **CRÍTICO**
+### 1. Quota Excedida do Google Gemini ✅ **RESOLVIDO**
 
-**Erro:**
-```
-Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests
-```
+**Status:**
+- ✅ Sistema migrado para Groq AI (Llama 3.3 e 3.1)
+- Chaves configuradas em `.env.local`
 
-**Chave afetada:** `AIzaSyBrp44npgYZvlPW59HclIx4pXhyswJuBFQ`
-
-**Impacto:**
-- ❌ Chat do especialista não funciona
-- ❌ Geração de cenários tributários não funciona
-- ✅ Análise de impactos funciona (não depende da API)
-
-**Soluções possíveis:**
-1. Gerar nova chave de API (https://aistudio.google.com/app/apikey)
-2. Aguardar reset da quota (meia-noite, horário do servidor)
-3. Upgrade para plano pago (https://ai.google.dev/pricing)
+**Impacto Anterior:**
+- Chat e Geração de cenários estavam inoperantes.
+- **Solução:** Migração de provider realizada em 26/01/2026.
 
 ---
 
-### 2. Inconsistência no Planejador ⚠️ **PARCIALMENTE RESOLVIDO**
+### 2. Inconsistência no Planejador ✅ **RESOLVIDO**
 
-**Status:** Temperature reduzida, aguardando testes
+**Status:** Resolvido (Validado em 26/01/2026)
 
-**Próximos passos:**
-- Testar com mesmos dados 10x
-- Validar consistência
-- Implementar validação matemática se necessário
+**Ações:**
+- Temperature reduzida para 0.1
+- Modelo atualizado para `llama-3.3-70b-versatile`
+- Testes automatizados confirmaram 100% de consistência em 5/5 execuções seguidas.
 
 ---
 

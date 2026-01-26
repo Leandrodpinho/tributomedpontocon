@@ -1,6 +1,5 @@
 'use server';
 
-import { LEGAL_CONSTANTS_2025 } from './legal-constants';
 import { runComplianceRules, generateNaturezaJuridicaAnalysis } from './compliance-rules';
 /**
  * @fileOverview Generates potential tax scenarios tailored for medical professionals and clinics.
@@ -14,9 +13,7 @@ import { generateText } from 'ai';
 import { createGroq } from '@ai-sdk/groq';
 import {
   GenerateTaxScenariosInput,
-  GenerateTaxScenariosInputSchema,
   GenerateTaxScenariosOutput,
-  GenerateTaxScenariosOutputSchema,
 } from './types';
 
 // Configurar API key da Groq (Runtime Check)
@@ -93,7 +90,7 @@ async function callModel(input: GenerateTaxScenariosInput) {
   const userMsg = buildUserPrompt(input);
 
   return await generateText({
-    model: groq('llama-3.1-70b-versatile'), // Usando modelo forte para raciocínio
+    model: groq('llama-3.3-70b-versatile'), // Usando modelo forte para raciocínio
     system: SYSTEM_PROMPT,
     prompt: userMsg,
     temperature: 0.1,
@@ -116,7 +113,7 @@ function parseAndFixJSON(text: string): any {
 
   try {
     return JSON.parse(cleanText);
-  } catch (e) {
+  } catch {
     console.warn("JSON Parse failed, attempting repair of truncated JSON...");
 
     // Simple heuristic repair for truncated arrays/objects
@@ -124,7 +121,7 @@ function parseAndFixJSON(text: string): any {
     // This is a naive implementation; for production, use a library like 'json-repair' or 'partial-json'
     // For now, we try to close open braces based on a simple counter.
 
-    let stack: string[] = [];
+    const stack: string[] = [];
     let isString = false;
     let escape = false;
 
@@ -163,41 +160,7 @@ function parseAndFixJSON(text: string): any {
   }
 }
 
-// Helper to normalize scenarios if AI uses "creative" field names
-function normalizeScenarios(scenarios: any[]): any[] {
-  if (!Array.isArray(scenarios)) return [];
 
-  return scenarios.map(s => {
-    // Map 'regime' to 'name'
-    if (!s.name && s.regime) s.name = s.regime;
-
-    // Map 'monthlyTax' or 'taxValue' to 'totalTaxValue'
-    if (s.totalTaxValue === undefined) {
-      if (s.monthlyTax !== undefined) s.totalTaxValue = s.monthlyTax;
-      else if (s.taxValue !== undefined) s.totalTaxValue = s.taxValue;
-    }
-
-    // Map 'basis' to 'notes' if notes is empty
-    if (!s.notes && s.basis) s.notes = `Base de cálculo: ${s.basis}`;
-
-    // Normalize effectiveRate (handle 0.14 vs 14.0)
-    if (s.effectiveRate !== undefined) {
-      if (s.effectiveRate < 1 && s.effectiveRate > 0) {
-        s.effectiveRate = Number((s.effectiveRate * 100).toFixed(2));
-      }
-    }
-
-    // Default defaults for missing fields to avoid schema failure
-    if (!s.taxBreakdown) s.taxBreakdown = [];
-    if (!s.proLaboreAnalysis) {
-      s.proLaboreAnalysis = { baseValue: 0, inssValue: 0, irrfValue: 0, netValue: 0 };
-    }
-    if (s.netProfitDistribution === undefined) s.netProfitDistribution = 0;
-    if (s.scenarioRevenue === undefined) s.scenarioRevenue = 0;
-
-    return s;
-  });
-}
 
 // Helper to normalize compliance if AI converts objects to flat fields
 function normalizeCompliance(compliance: any, inputData?: any): any {
@@ -272,7 +235,6 @@ async function generateTaxScenariosLogic(input: GenerateTaxScenariosInput): Prom
     // O prompt continua pedindo o JSON completo, mas nós vamos SOBRESCREVER os números
     // com os dados da Engine. A IA serve para "explicar" e validar regras complexas de texto.
 
-    let lastError: any;
     const maxRetries = 3;
     let output: any = null;
 
@@ -285,7 +247,6 @@ async function generateTaxScenariosLogic(input: GenerateTaxScenariosInput): Prom
 
         if (output) break; // Sucesso no parse
       } catch (error: any) {
-        lastError = error;
         const is503 = error.status === 503 || error.message?.includes('503') || error.message?.includes('overloaded');
         if (is503 && attempt < maxRetries) {
           const waitTime = Math.pow(2, attempt) * 1000;
