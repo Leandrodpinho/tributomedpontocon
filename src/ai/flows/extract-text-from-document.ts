@@ -11,6 +11,13 @@
 import { z } from 'zod';
 import { SUPPORTED_DOCUMENT_TYPES } from './document-utils';
 import { extractTextFromPdfBuffer } from './local-extractor';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
+const execFileAsync = promisify(execFile);
 
 const ExtractTextFromDocumentInputSchema = z.object({
   document: z
@@ -64,12 +71,8 @@ export async function extractTextFromDocument(
       // Given the complexity, let's stick to PDF optimization which was the main goal.
       // If image, we fallback to a simple tesseract execution.
 
-      const { execFile } = require('node:child_process');
-      const { promisify } = require('node:util');
-      const fs = require('node:fs/promises');
-      const os = require('node:os');
-      const path = require('node:path');
-      const execFileAsync = promisify(execFile);
+      // Imports moved to top
+
 
       const uniqueId = Math.random().toString(36).substring(7);
       const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "img-ocr-" + uniqueId + "-"));

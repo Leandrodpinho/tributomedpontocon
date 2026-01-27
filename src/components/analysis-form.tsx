@@ -56,6 +56,8 @@ export function AnalysisForm({ onSubmit, isPending }: AnalysisFormProps) {
     const [payroll, setPayroll] = useState<string>("");
     const [partners, setPartners] = useState(1);
     const [realMargin, setRealMargin] = useState(30);
+    const [issRate, setIssRate] = useState(4); // Padrão: 4% (Montes Claros)
+    const [municipioInfo, setMunicipioInfo] = useState<string | null>(null);
 
     const handleSearchCnpj = async () => {
         const cnpj = cnpjRef.current?.value;
@@ -67,9 +69,14 @@ export function AnalysisForm({ onSubmit, isPending }: AnalysisFormProps) {
             if (companyNameRef.current) companyNameRef.current.value = data.companyName;
             if (cnaesRef.current) cnaesRef.current.value = data.cnaes;
             if (addressRef.current) addressRef.current.value = data.address;
+
+            // Atualizar ISS automaticamente com base no município
+            setIssRate(data.issRate);
+            setMunicipioInfo(`${data.municipio}/${data.uf}`);
+
             toast({
                 title: "Dados encontrados!",
-                description: "Razão social, CNAEs e Endereço preenchidos.",
+                description: `Razão social, CNAEs, Endereço e ISS (${data.issRate}% - ${data.municipio}/${data.uf}) preenchidos.`,
             });
         } catch (error) {
             toast({
@@ -323,7 +330,12 @@ export function AnalysisForm({ onSubmit, isPending }: AnalysisFormProps) {
                                         </div>
                                     </div>
                                     {/* Hidden default value fallbacks */}
-                                    <input type="hidden" name="issRate" value="4" />
+                                    <input type="hidden" name="issRate" value={issRate} />
+                                    {municipioInfo && (
+                                        <p className="text-xs text-muted-foreground mt-2">
+                                            ISS: {issRate}% ({municipioInfo})
+                                        </p>
+                                    )}
                                     <input type="hidden" name="clientType" value="Novo aberturas de empresa" />
                                 </CardContent>
                             </Card>

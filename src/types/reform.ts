@@ -92,12 +92,17 @@ export interface ReformKnowledgeItem {
 
 // Mensagem do chat
 export interface ChatMessage {
-    id: string;
+    id?: string;
     role: 'user' | 'assistant';
     content: string;
     timestamp: Date;
     sources?: string[];
     impact_summary?: string;
+    metadata?: {
+        referencias_legais?: string[];
+        topicos_relacionados?: string[];
+        nivel_complexidade?: string;
+    };
 }
 
 // Input para o assistente

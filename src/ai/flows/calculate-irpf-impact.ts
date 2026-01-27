@@ -21,7 +21,7 @@
  */
 
 import { z } from 'zod';
-import { IRPF_2025, calculateIRPF, calculateINSS } from '@/lib/tax-calculator';
+import { IRPF_TABLE_2026, calculateIRPF, calculateINSS } from '@/lib/tax-calculator';
 
 const CalculateIRPFImpactInputSchema = z.object({
   taxRegime: z.enum(['Simples Nacional Anexo III', 'Simples Nacional Anexo V', 'Lucro Presumido', 'Lucro Real']).describe('The tax regime being considered.'),
@@ -59,7 +59,7 @@ export async function calculateIRPFImpact(input: CalculateIRPFImpactInput): Prom
 
   // Determine Bracket string
   const base = taxableIncome;
-  const bracket = IRPF_2025.find(b => base <= b.limit) || IRPF_2025[IRPF_2025.length - 1];
+  const bracket = IRPF_TABLE_2026.find(b => base <= b.limit) || IRPF_TABLE_2026[IRPF_TABLE_2026.length - 1];
   const taxBracket = (bracket.rate * 100).toFixed(1).replace('.', ',') + '%';
 
   const netImpact = irpfDue; // Simply the tax due for now

@@ -608,78 +608,264 @@ export function DashboardResults({
           {otherScenarios.length > 0 && (
             <section id="scenarios" data-section="scenarios" className="space-y-6">
               <div>
-                <h2 className="text-xl font-semibold text-foreground">Demais Cenários Simulados</h2>
+                <h2 className="text-xl font-semibold text-foreground">Todos os Cenários Tributários</h2>
                 <p className="text-sm text-muted-foreground">
-                  Comparativo direto dos outros regimes avaliados.
+                  Comparativo completo de todos os regimes avaliados, organizados por categoria.
                 </p>
               </div>
-              <div className="flex flex-col gap-4">
-                {otherScenarios.map(scenario => {
-                  const deltaVersusBest = bestScenario
-                    ? (scenario.totalTaxValue ?? 0) - (bestScenario.totalTaxValue ?? 0)
-                    : 0;
-                  const deltaLabel = deltaVersusBest >= 0
-                    ? `+${formatCurrency(deltaVersusBest)}`
-                    : `${formatCurrency(deltaVersusBest)}`;
 
-                  return (
-                    <div
-                      key={scenario.name}
-                      data-scenario-card="true"
-                      data-best={String(scenario === bestScenario)}
-                      className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white/50 p-5 transition-all hover:bg-white hover:shadow-md dark:border-slate-800 dark:bg-slate-900/40 dark:hover:bg-slate-900"
-                    >
-                      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                        {/* Title and Delta */}
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center gap-3">
-                            <h3 className="text-base font-semibold text-foreground">
-                              {scenario.name.replace(/Cenário para .*?:\s*/i, '')}
-                            </h3>
-                            <Badge
-                              variant="secondary"
-                              className={cn(
-                                "text-xs font-normal",
-                                deltaVersusBest > 0 ? "text-rose-600 bg-rose-50 dark:bg-rose-900/20 dark:text-rose-300" : "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-300"
-                              )}
-                            >
-                              {deltaVersusBest === 0 ? 'Mesmo Custo' : `${deltaLabel} vs. Recomendado`}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {scenario.notes}
-                          </p>
-                        </div>
-
-                        {/* Metrics Horizontal Group */}
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-4 md:flex md:items-center md:gap-8">
-
-                          <div className="space-y-0.5">
-                            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Impostos</span>
-                            <p className="text-lg font-semibold text-rose-600 dark:text-rose-400">
-                              {formatCurrency(scenario.totalTaxValue)}
-                            </p>
-                            <span className="text-xs text-muted-foreground">
-                              {formatPercentage((scenario.effectiveRate ?? 0) / 100)} Efet.
-                            </span>
-                          </div>
-
-                          <div className="space-y-0.5">
-                            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Lucro Líquido</span>
-                            <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
-                              {formatCurrency(scenario.netProfitDistribution)}
-                            </p>
-                            <span className="text-xs text-muted-foreground">
-                              {scenario.taxCostPerEmployee ? `Custo/Colab: ${formatCurrency(scenario.taxCostPerEmployee)}` : 'Margem Final'}
-                            </span>
-                          </div>
-
-                        </div>
-                      </div>
+              {/* Cenários PF - Pessoa Física */}
+              {(() => {
+                const pfScenarios = scenariosForRevenue.filter(s => s.scenarioCategory === 'pf');
+                if (pfScenarios.length === 0) return null;
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
+                        Pessoa Física (PF)
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{pfScenarios.length} cenários</span>
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="flex flex-col gap-3">
+                      {pfScenarios.map(scenario => {
+                        const deltaVersusBest = bestScenario
+                          ? (scenario.totalTaxValue ?? 0) - (bestScenario.totalTaxValue ?? 0)
+                          : 0;
+                        const deltaLabel = deltaVersusBest >= 0
+                          ? `+${formatCurrency(deltaVersusBest)}`
+                          : `${formatCurrency(deltaVersusBest)}`;
+                        const isBest = scenario === bestScenario;
+
+                        return (
+                          <div
+                            key={scenario.name}
+                            data-scenario-card="true"
+                            data-best={String(isBest)}
+                            className={cn(
+                              "group relative overflow-hidden rounded-xl border p-5 transition-all hover:shadow-md",
+                              isBest
+                                ? "border-emerald-300 bg-emerald-50/50 dark:border-emerald-700 dark:bg-emerald-900/20"
+                                : "border-slate-200 bg-white/50 hover:bg-white dark:border-slate-800 dark:bg-slate-900/40 dark:hover:bg-slate-900"
+                            )}
+                          >
+                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                              <div className="flex-1 space-y-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h3 className="text-base font-semibold text-foreground">
+                                    {scenario.name.replace(/Cenário para .*?:\s*/i, '')}
+                                  </h3>
+                                  {isBest && (
+                                    <Badge className="bg-emerald-600 text-white">
+                                      ✓ Recomendado
+                                    </Badge>
+                                  )}
+                                  <Badge
+                                    variant="secondary"
+                                    className={cn(
+                                      "text-xs font-normal",
+                                      deltaVersusBest > 0 ? "text-rose-600 bg-rose-50 dark:bg-rose-900/20 dark:text-rose-300" : "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-300"
+                                    )}
+                                  >
+                                    {deltaVersusBest === 0 ? 'Melhor Custo' : `${deltaLabel} vs. Melhor`}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                  {scenario.notes}
+                                </p>
+                              </div>
+                              <div className="grid grid-cols-2 gap-x-6 gap-y-2 md:flex md:items-center md:gap-6">
+                                <div className="space-y-0.5">
+                                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Impostos</span>
+                                  <p className="text-lg font-semibold text-rose-600 dark:text-rose-400">
+                                    {formatCurrency(scenario.totalTaxValue)}
+                                  </p>
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatPercentage((scenario.effectiveRate ?? 0) / 100)} Efet.
+                                  </span>
+                                </div>
+                                <div className="space-y-0.5">
+                                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Líquido</span>
+                                  <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                                    {formatCurrency(scenario.netProfitDistribution)}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Cenários PJ - Pessoa Jurídica */}
+              {(() => {
+                const pjScenarios = scenariosForRevenue.filter(s => s.scenarioCategory === 'pj');
+                if (pjScenarios.length === 0) return null;
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800">
+                        Pessoa Jurídica (PJ)
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{pjScenarios.length} cenários</span>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                      {pjScenarios.map(scenario => {
+                        const deltaVersusBest = bestScenario
+                          ? (scenario.totalTaxValue ?? 0) - (bestScenario.totalTaxValue ?? 0)
+                          : 0;
+                        const deltaLabel = deltaVersusBest >= 0
+                          ? `+${formatCurrency(deltaVersusBest)}`
+                          : `${formatCurrency(deltaVersusBest)}`;
+                        const isBest = scenario === bestScenario;
+                        const isEligible = scenario.isEligible !== false; // true or undefined = elegível
+
+                        return (
+                          <div
+                            key={scenario.name}
+                            data-scenario-card="true"
+                            data-best={String(isBest)}
+                            className={cn(
+                              "group relative overflow-hidden rounded-xl border p-5 transition-all hover:shadow-md",
+                              isBest
+                                ? "border-emerald-300 bg-emerald-50/50 dark:border-emerald-700 dark:bg-emerald-900/20"
+                                : !isEligible
+                                  ? "border-amber-200 bg-amber-50/30 dark:border-amber-700 dark:bg-amber-900/10"
+                                  : "border-slate-200 bg-white/50 hover:bg-white dark:border-slate-800 dark:bg-slate-900/40 dark:hover:bg-slate-900"
+                            )}
+                          >
+                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                              <div className="flex-1 space-y-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h3 className="text-base font-semibold text-foreground">
+                                    {scenario.name.replace(/Cenário para .*?:\s*/i, '')}
+                                  </h3>
+                                  {isBest && (
+                                    <Badge className="bg-emerald-600 text-white">
+                                      ✓ Recomendado
+                                    </Badge>
+                                  )}
+                                  {!isEligible && (
+                                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700">
+                                      ⚠ Requer Ação
+                                    </Badge>
+                                  )}
+                                  <Badge
+                                    variant="secondary"
+                                    className={cn(
+                                      "text-xs font-normal",
+                                      deltaVersusBest > 0 ? "text-rose-600 bg-rose-50 dark:bg-rose-900/20 dark:text-rose-300" : "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-300"
+                                    )}
+                                  >
+                                    {deltaVersusBest === 0 ? 'Melhor Custo' : `${deltaLabel} vs. Melhor`}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                  {scenario.eligibilityNote || scenario.notes}
+                                </p>
+                              </div>
+                              <div className="grid grid-cols-2 gap-x-6 gap-y-2 md:flex md:items-center md:gap-6">
+                                <div className="space-y-0.5">
+                                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Impostos</span>
+                                  <p className={cn(
+                                    "text-lg font-semibold",
+                                    !isEligible ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"
+                                  )}>
+                                    {formatCurrency(scenario.totalTaxValue)}
+                                  </p>
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatPercentage((scenario.effectiveRate ?? 0) / 100)} Efet.
+                                  </span>
+                                </div>
+                                <div className="space-y-0.5">
+                                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Líquido</span>
+                                  <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                                    {formatCurrency(scenario.netProfitDistribution)}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Cenários sem categoria (compatibilidade) */}
+              {(() => {
+                const uncategorized = scenariosForRevenue.filter(s => !s.scenarioCategory && s !== bestScenario);
+                if (uncategorized.length === 0) return null;
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900/20 dark:text-slate-300 dark:border-slate-700">
+                        Outros Cenários
+                      </Badge>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                      {uncategorized.map(scenario => {
+                        const deltaVersusBest = bestScenario
+                          ? (scenario.totalTaxValue ?? 0) - (bestScenario.totalTaxValue ?? 0)
+                          : 0;
+                        const deltaLabel = deltaVersusBest >= 0
+                          ? `+${formatCurrency(deltaVersusBest)}`
+                          : `${formatCurrency(deltaVersusBest)}`;
+
+                        return (
+                          <div
+                            key={scenario.name}
+                            data-scenario-card="true"
+                            className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white/50 p-5 transition-all hover:bg-white hover:shadow-md dark:border-slate-800 dark:bg-slate-900/40 dark:hover:bg-slate-900"
+                          >
+                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center gap-3">
+                                  <h3 className="text-base font-semibold text-foreground">
+                                    {scenario.name.replace(/Cenário para .*?:\s*/i, '')}
+                                  </h3>
+                                  <Badge
+                                    variant="secondary"
+                                    className={cn(
+                                      "text-xs font-normal",
+                                      deltaVersusBest > 0 ? "text-rose-600 bg-rose-50 dark:bg-rose-900/20 dark:text-rose-300" : "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-300"
+                                    )}
+                                  >
+                                    {deltaVersusBest === 0 ? 'Mesmo Custo' : `${deltaLabel} vs. Recomendado`}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground line-clamp-1">
+                                  {scenario.notes}
+                                </p>
+                              </div>
+                              <div className="grid grid-cols-2 gap-x-8 gap-y-4 md:flex md:items-center md:gap-8">
+                                <div className="space-y-0.5">
+                                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Impostos</span>
+                                  <p className="text-lg font-semibold text-rose-600 dark:text-rose-400">
+                                    {formatCurrency(scenario.totalTaxValue)}
+                                  </p>
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatPercentage((scenario.effectiveRate ?? 0) / 100)} Efet.
+                                  </span>
+                                </div>
+                                <div className="space-y-0.5">
+                                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Lucro Líquido</span>
+                                  <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                                    {formatCurrency(scenario.netProfitDistribution)}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </section>
           )}
 

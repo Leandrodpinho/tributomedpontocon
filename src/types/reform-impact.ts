@@ -128,6 +128,8 @@ export interface ImpactReport {
     };
 }
 
+import type { ScenarioDetail } from '@/ai/flows/types';
+
 /**
  * Dados salvos no localStorage
  */
@@ -139,7 +141,7 @@ export interface SavedTaxAnalysis {
         regime?: string;
         cnaes?: string[];
     };
-    scenarios: TaxScenarioResult[];
+    scenarios: ScenarioDetail[];
     reformImpact?: ImpactReport;
 }
 

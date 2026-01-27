@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
+import { AnimatedBackground } from "@/components/ui/animated-background";
+
 
 export const metadata: Metadata = {
   title: "Planejador Tributário",
@@ -31,6 +33,7 @@ export default function RootLayout({
         )}
         suppressHydrationWarning
       >
+        <AnimatedBackground />
         {/* Ambient Background */}
         <div className="fixed inset-0 -z-10 bg-mesh-light dark:bg-slate-950 bg-cover bg-center opacity-40 mix-blend-multiply dark:opacity-20 pointer-events-none" />
         <div className="fixed inset-0 -z-10 bg-gradient-to-tr from-brand-100/50 via-transparent to-brand-50/30 dark:from-brand-900/10 dark:to-slate-900/50 pointer-events-none blur-3xl" />

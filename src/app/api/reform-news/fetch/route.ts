@@ -67,7 +67,7 @@ async function fetchGovNews(): Promise<ReformNewsInput[]> {
 
             const cleanTitle = title.replace(/<[^>]+>/g, '').trim();
             // Limpar descrição: remover tags, hífens iniciais e espaços extras
-            let cleanDescription = descriptionRaw
+            const cleanDescription = descriptionRaw
                 .replace(/<[^>]+>/g, '') // Remove tags
                 .replace(/^[\s\-]*/, '') // Remove hífens/espaços do início
                 .replace(/\s+/g, ' ')    // Normaliza espaços

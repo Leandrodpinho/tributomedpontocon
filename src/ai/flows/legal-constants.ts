@@ -6,9 +6,9 @@
  */
 
 export const LEGAL_CONSTANTS_2025 = {
-  // --- Parâmetros Gerais ---
-  minimumWage: 1620.99,
-  inssCeiling: 8157.41,
+  // --- Parâmetros Gerais 2026 ---
+  minimumWage: 1621.00,
+  inssCeiling: 8475.55,
 
   // --- IRPF Progressivo Mensal (2025/2026) ---
   irpfTable: [
@@ -21,12 +21,12 @@ export const LEGAL_CONSTANTS_2025 = {
   standardDeductionPerDependent: 189.59,
   simplifiedDeduction: 564.80, // Desconto simplificado mensal
 
-  // --- INSS Progressivo (Estimativa 2026) ---
+  // --- INSS Progressivo 2026 ---
   inssTable: [
-    { limit: 1620.99, rate: 0.075, deduction: 0.00 },
-    { limit: 2793.88, rate: 0.09, deduction: 24.31 }, // Ajustado para base 1620.99
-    { limit: 4190.83, rate: 0.12, deduction: 106.59 },
-    { limit: 8157.41, rate: 0.14, deduction: 190.40 },
+    { limit: 1621.00, rate: 0.075, deduction: 0.00 },
+    { limit: 2902.84, rate: 0.09, deduction: 24.32 },
+    { limit: 4354.27, rate: 0.12, deduction: 111.40 },
+    { limit: 8475.55, rate: 0.14, deduction: 198.49 },
   ],
 
   // --- Simples Nacional: Anexo III (Serviços em Geral) ---

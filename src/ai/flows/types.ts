@@ -45,6 +45,19 @@ export const ProLaboreAnalysisSchema = z.object({
 export const ScenarioDetailSchema = z.object({
   name: z.string().describe('O nome do cenário (ex: "Simples Nacional Anexo III com Faturamento de R$ 10.000,00").'),
   scenarioRevenue: z.coerce.number().optional().describe('O faturamento mensal para o qual este cenário foi calculado.'),
+  scenarioCategory: z.enum(['pf', 'pj']).optional().describe('Categoria: Pessoa Física (pf) ou Jurídica (pj).'),
+  scenarioType: z.enum([
+    'carne_leao',
+    'clt',
+    'simples_anexo_iii',
+    'simples_anexo_v',
+    'presumido',
+    'presumido_uniprofissional',
+    'presumido_hospitalar',
+    'lucro_real'
+  ]).optional().describe('Tipo específico do cenário para agrupamento.'),
+  isEligible: z.boolean().optional().describe('Se o cliente atende aos requisitos para este cenário.'),
+  eligibilityNote: z.string().optional().describe('Nota explicando os requisitos ou o que precisa para se tornar elegível.'),
   totalTaxValue: z.coerce.number().optional().describe('O valor total do imposto a ser pago no regime (ex: 1270.15).'),
   effectiveRate: z.coerce.number().optional().describe('A alíquota efetiva total do regime, em porcentagem (ex: 10.75).'),
   effectiveRateOnProfit: z.coerce.number().optional().describe('A alíquota efetiva sobre o lucro (Impostos / Lucro Bruto), em porcentagem.'),

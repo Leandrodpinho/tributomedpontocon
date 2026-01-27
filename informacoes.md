@@ -1,6 +1,6 @@
 # TributoMed - Documentação Completa do Projeto
 
-**Última atualização:** 14 de janeiro de 2026, 17:24
+**Última atualização:** 26 de janeiro de 2026, 17:06
 
 ---
 
@@ -26,10 +26,11 @@
 
 ### Objetivo Principal
 Ferramenta de planejamento tributário especializada em profissionais da saúde, oferecendo:
-- Análise comparativa de regimes tributários
+- Análise comparativa de **8 regimes tributários** (2 PF + 6 PJ)
 - Assistente virtual de Reforma Tributária
 - Cálculos determinísticos de impostos
 - Análise de impactos da reforma CBS/IBS
+- **ISS automático por município** ✨ NOVO
 
 ---
 
@@ -54,21 +55,32 @@ tributomedpontocon/
 │   ├── ai/
 │   │   └── flows/
 │   │       ├── generate-tax-scenarios.ts  # Geração de cenários
+│   │       ├── legal-constants.ts         # Constantes legais 2026 ✨
+│   │       ├── types.ts                   # Tipos com categoria PF/PJ ✨
 │   │       └── reform-assistant.ts        # Assistente IA
 │   ├── components/
 │   │   ├── reform/
 │   │   │   ├── chat-interface.tsx      # Chat do especialista
 │   │   │   ├── impact-analysis.tsx     # Análise de impactos
 │   │   │   └── news-card.tsx           # Card de notícias
+│   │   ├── dashboard-results.tsx       # Dashboard com cenários PF/PJ ✨
+│   │   ├── analysis-form.tsx           # Form com ISS automático ✨
 │   │   └── ui/                         # Componentes shadcn/ui
-│   ├── hooks/
-│   │   ├── use-reform-news.ts          # Hook de notícias
-│   │   └── use-reform-impact.ts        # Hook de impactos
 │   ├── lib/
+│   │   ├── tax-engine/                 # Engine de cálculos refatorada ✨
+│   │   │   ├── engine.ts               # Gera 8 cenários
+│   │   │   └── calculators/
+│   │   │       ├── clt.ts              # Calculadora CLT ✨ NOVO
+│   │   │       ├── carne-leao.ts
+│   │   │       ├── simples-nacional.ts
+│   │   │       ├── lucro-presumido-real.ts
+│   │   │       └── payroll.ts
+│   │   ├── iss-municipal-database.ts   # Base ISS por município ✨ NOVO
 │   │   ├── reform-knowledge.ts         # Base de conhecimento
 │   │   ├── reform-impact-calculator.ts # Calculadora CBS/IBS
-│   │   ├── tax-calculator.ts           # Calculadora determinística
-│   │   └── official-apis.ts            # APIs oficiais catalogadas
+│   │   └── tax-calculator.ts           # Calculadora determinística
+│   ├── services/
+│   │   └── cnpj.ts                     # Busca CNPJ + ISS ✨
 │   └── types/
 │       ├── reform.ts                   # Tipos da reforma
 │       └── reform-impact.ts            # Tipos de impacto
@@ -81,104 +93,102 @@ tributomedpontocon/
 
 ## ✨ Funcionalidades Implementadas
 
-### 1. **Planejador Tributário Principal** ✅
+### 1. **Planejador Tributário com 8 Cenários** ✅ ATUALIZADO 26/01/2026
 
 **Localização:** `/` (página inicial)
 
-**Funcionalidades:**
-- Formulário de entrada de dados do cliente
-- Upload de documentos (PDF, imagens)
-- Cálculo de cenários tributários:
-  - Simples Nacional (Anexo III e V)
-  - Lucro Presumido
-  - Lucro Real
-  - Pessoa Física (Carnê Leão)
-- Análise de IRPF
-- Geração de relatórios
-- Salvamento no Firestore
+**Cenários gerados:**
 
-**Arquivos principais:**
-- `src/app/(dashboard)/page.tsx`
-- `src/app/actions.ts`
-- `src/ai/flows/generate-tax-scenarios.ts`
-- `src/lib/tax-calculator.ts`
+| Categoria | Cenário | Descrição |
+|-----------|---------|-----------|
+| **PF** | Carnê Leão | INSS 20% + IRPF progressivo |
+| **PF** | CLT (Simulação) | Comparativo como empregado |
+| **PJ** | Simples Anexo III | Com Fator R ≥ 28% |
+| **PJ** | Simples Anexo V | Sem otimização de Fator R |
+| **PJ** | Lucro Presumido | ISS variável (2-5%) |
+| **PJ** | LP Uniprofissional | ISS Fixo por profissional |
+| **PJ** | LP Equip. Hospitalar | Base reduzida 8%/12% |
+| **PJ** | Lucro Real | Para margens < 32% |
 
-**Melhorias recentes:**
-- ✅ Temperature da IA reduzida de 0.5 → 0.1 (mais consistência)
-- ✅ Calculadora determinística implementada
-- ✅ Integração com análise de impactos da reforma
+**Novos campos em cada cenário:**
+- `scenarioCategory`: 'pf' ou 'pj'
+- `scenarioType`: identificador único
+- `isEligible`: se está elegível atualmente
+- `eligibilityNote`: explicação dos requisitos
 
----
-
-### 2. **Assistente de Reforma Tributária** ✅
-
-**Localização:** `/reforma-tributaria`
-
-**Funcionalidades:**
-
-#### 2.1. Chat com Especialista
-- Chat interativo com IA especializada em LC 214/2025
-- Base de conhecimento estruturada
-- Referências legais automáticas
-- Sugestões de tópicos relacionados
-- Histórico de conversa
-
-**Arquivos:**
-- `src/components/reform/chat-interface.tsx`
-- `src/ai/flows/reform-assistant.ts`
-- `src/app/api/reform-assistant/route.ts`
-- `src/lib/reform-knowledge.ts`
-
-#### 2.2. Análise de Impactos ✅ **NOVO**
-- Comparação "Antes vs Depois" (Hoje vs Pós-Reforma)
-- Cálculo de CBS + IBS
-- Impacto financeiro (economia/aumento)
-- Mudanças operacionais (Split Payment, Creditamento)
-- Oportunidades e alertas
-- Timeline de transição 2026-2033
-- Resumo executivo com recomendações
-
-**Arquivos:**
-- `src/components/reform/impact-analysis.tsx`
-- `src/lib/reform-impact-calculator.ts`
-- `src/types/reform-impact.ts`
-- `src/hooks/use-reform-impact.ts`
-
-#### 2.3. Novidades (Feed Automático)
-- Busca automática de notícias do gov.br
-- Filtragem por palavras-chave
-- Salvamento no Firestore
-- Exibição dinâmica
-- Cron job diário (9h)
-
-**Arquivos:**
-- `src/app/api/reform-news/fetch/route.ts`
-- `src/app/api/reform-news/route.ts`
-- `src/app/api/reform-news/seed/route.ts`
-- `src/components/reform/news-card.tsx`
-- `src/hooks/use-reform-news.ts`
-
-#### 2.4. Guia Completo
-- Cronograma de transição (2026-2033)
-- Regimes diferenciados (60% redução)
-- Cesta básica nacional
-- Conceitos-chave (CBS, IBS, Split Payment, etc.)
-
-**Arquivo:**
-- `src/lib/reform-knowledge.ts`
+**Arquivos principais atualizados:**
+- `src/lib/tax-engine/engine.ts` - Gera 8 cenários
+- `src/ai/flows/types.ts` - Campos de categoria e elegibilidade
+- `src/ai/flows/legal-constants.ts` - Valores 2026
 
 ---
 
-### 3. **APIs Oficiais Catalogadas** ✅
+### 2. **ISS Automático por Município** ✅ NOVO 26/01/2026
 
-**Arquivo:** `src/lib/official-apis.ts`
+**Funcionalidades:**
+- Base de dados com 16 municípios (MG + capitais)
+- ISS identificado automaticamente ao buscar CNPJ
+- ISS Fixo por profissional para SUP
 
-**APIs documentadas:**
-1. Calculadora CBS/IBS (Receita Federal)
-2. Apuração Assistida CBS
-3. Conformidade Fácil (Classificação Tributária)
-4. Consulta CNPJ (Gov.br Conecta)
-5. DCTFWeb / MIT
+**Arquivos criados:**
+- `src/lib/iss-municipal-database.ts` - Base de alíquotas
+- `src/services/cnpj.ts` - Retorna ISS e CNAEs estruturados
+
+**Municípios na base:**
+| Município | ISS | ISS Fixo (mês) |
+|-----------|-----|----------------|
+| Montes Claros | 4% | R$ 119,71 |
+| Belo Horizonte | 5% | R$ 350 |
+| São Paulo | 5% | R$ 300 |
+| Rio de Janeiro | 5% | R$ 400 |
+| E mais 12 cidades... | | |
+
+---
+
+### 3. **Constantes Legais 2026** ✅ ATUALIZADO 26/01/2026
+
+**Valores atualizados em `legal-constants.ts`:**
+
+| Parâmetro | Valor 2026 |
+|-----------|------------|
+| Salário Mínimo | R$ 1.621,00 |
+| Teto INSS | R$ 8.475,55 |
+
+**Tabela INSS 2026:**
+| Faixa | Alíquota | Dedução |
+|-------|----------|---------|
+| Até R$ 1.621,00 | 7,5% | - |
+| R$ 1.621,01 - R$ 2.902,84 | 9% | R$ 24,32 |
+| R$ 2.902,85 - R$ 4.354,27 | 12% | R$ 111,40 |
+| R$ 4.354,28 - R$ 8.475,55 | 14% | R$ 198,49 |
+
+---
+
+### 4. **Dashboard com Agrupamento PF/PJ** ✅ NOVO 26/01/2026
+
+**Modificações em `dashboard-results.tsx`:**
+- Cenários organizados em seções PF e PJ
+- Badges visuais:
+  - `✓ Recomendado` - cenário com menor custo
+  - `⚠ Requer Ação` - cenário não elegível atualmente
+- Cards com destaque visual baseado em elegibilidade
+
+---
+
+### 5. **Calculadora CLT** ✅ NOVO 26/01/2026
+
+**Arquivo:** `src/lib/tax-engine/calculators/clt.ts`
+
+**Calcula:**
+- INSS do empregado (progressivo)
+- IRRF do empregado
+- Encargos do empregador:
+  - INSS Patronal (20%)
+  - FGTS (8%)
+  - RAT (1%)
+  - Terceiros (5,8%)
+- Custo total para empresa
+- Salário líquido
 
 ---
 
@@ -206,291 +216,139 @@ FIREBASE_ANALYSES_COLLECTION=analyses
 - `analyses` - Análises tributárias
 - `reform-news` - Notícias da reforma
 
-**Índices criados:**
-- `reform-news`: `status` (ASC) + `publishedAt` (DESC)
-
-**Service Account:**
-- Email: `firebase-adminsdk-fbsvc@planejamento-tributario-8d554.iam.gserviceaccount.com`
-- Arquivo: `/Users/leandropinho/Downloads/planejamento-tributario-8d554-firebase-adminsdk-fbsvc-f70f5ef3c8.json`
-
----
-
-## 🔌 APIs e Integrações
-
-### 1. Google Gemini AI / Groq AI
-
-**Modelos usados:**
-- `llama-3.1-8b-instant` (chat especialista via Groq)
-- `llama-3.3-70b-versatile` (planejador tributário via Groq)
-
-**Configuração:**
-- Temperature: 0.1 (planejador) / 0.7 (chat)
-- Max tokens: 2000-8192
-
-**Status:** ✅ Funcionando (Migrado para Groq)
-
-### 2. Firebase Firestore
-
-**Operações:**
-- Salvamento de análises
-- Salvamento de notícias
-- Consultas com índices
-
-**Status:** ✅ Funcionando
-
-### 3. Vercel Cron Jobs
-
-**Arquivo:** `vercel.json`
-
-```json
-{
-  "crons": [{
-    "path": "/api/reform-news/fetch",
-    "schedule": "0 9 * * *"
-  }]
-}
-```
-
-**Função:** Busca automática de notícias diariamente às 9h
-
-**Status:** ⏳ Aguardando deploy
-
 ---
 
 ## 📜 Histórico de Desenvolvimento
 
-### Sessão 1: Implementação do Assistente de Reforma Tributária
-**Data:** 14/01/2026
+### Sessão 5: Analisador Tributário Completo ✨ NOVO
+**Data:** 26/01/2026
+
+**Objetivo:**
+Transformar o planejador em analisador completo que mostra TODOS os cenários para comparação.
 
 **Implementado:**
-1. ✅ Base de conhecimento estruturada
-2. ✅ Chat com especialista IA
-3. ✅ Sistema de notícias automáticas
-4. ✅ Guia completo da reforma
-5. ✅ Botão "Voltar ao Planejador"
+
+#### Fase 2: Busca Automática CNPJ + ISS ✅
+- Base de dados ISS com 16 municípios
+- Serviço CNPJ retorna: município, UF, alíquota ISS, ISS Fixo, CNAEs
+- Formulário preenche ISS automaticamente ao buscar CNPJ
+
+#### Fase 3: Engine de 8 Cenários ✅
+- Reescrita completa da engine de cálculos
+- Sempre gera 8 cenários (2 PF + 6 PJ)
+- Campos novos: categoria, tipo, elegibilidade, nota de elegibilidade
+- Criada calculadora CLT para comparação
+- Removidas condicionais que escondiam cenários
+
+#### Fase 4: Interface Atualizada ✅
+- Dashboard agrupa cenários por PF e PJ
+- Badges de elegibilidade (✓ Recomendado, ⚠ Requer Ação)
+- Cards com destaque visual para status
 
 **Arquivos criados:**
-- `src/lib/reform-knowledge.ts`
-- `src/ai/flows/reform-assistant.ts`
-- `src/app/api/reform-assistant/route.ts`
-- `src/app/api/reform-news/fetch/route.ts`
-- `src/app/api/reform-news/route.ts`
-- `src/app/api/reform-news/seed/route.ts`
-- `src/components/reform/chat-interface.tsx`
-- `src/components/reform/news-card.tsx`
-- `src/hooks/use-reform-news.ts`
-- `src/types/reform.ts`
-- `vercel.json`
-
-**Problemas resolvidos:**
-- Configuração do Firestore
-- Criação de índices
-- Integração com Google Gemini
-- Erro de hydration (timestamps)
-
----
-
-### Sessão 2: Correção de Inconsistência no Planejador
-**Data:** 14/01/2026
-
-**Problema identificado:**
-Simulações com mesmos dados retornavam resultados diferentes (Simples Anexo III, Anexo V, Lucro Presumido variando aleatoriamente).
-
-**Causa:**
-- Temperature da IA muito alta (0.5)
-- Falta de validação matemática
-
-**Solução implementada:**
-1. ✅ Temperature reduzida de 0.5 → 0.1
-2. ✅ Calculadora determinística já existente em `tax-calculator.ts`
-3. ⏳ Validação de resultados (planejado)
-
-**Status:** Parcialmente resolvido (aguardando testes)
-
----
-
-### Sessão 3: Análise de Impactos da Reforma
-**Data:** 14/01/2026
-
-**Implementado:**
-1. ✅ Calculadora de impactos CBS/IBS
-2. ✅ Tipos TypeScript completos
-3. ✅ Hook React `useReformImpact`
-4. ✅ Componente visual `ImpactAnalysis`
-5. ✅ Integração com planejador
-6. ✅ Salvamento no localStorage
-
-**Arquivos criados:**
-- `src/lib/reform-impact-calculator.ts`
-- `src/types/reform-impact.ts`
-- `src/hooks/use-reform-impact.ts`
-- `src/components/reform/impact-analysis.tsx`
+- `src/lib/iss-municipal-database.ts`
+- `src/lib/tax-engine/calculators/clt.ts`
 
 **Arquivos modificados:**
-- `src/app/actions.ts` (integração)
-- `src/app/(dashboard)/reforma-tributaria/page.tsx` (UI)
+- `src/ai/flows/legal-constants.ts` (valores 2026)
+- `src/ai/flows/types.ts` (campos categoria/elegibilidade)
+- `src/lib/tax-engine/engine.ts` (8 cenários)
+- `src/services/cnpj.ts` (retorno expandido)
+- `src/components/analysis-form.tsx` (ISS automático)
+- `src/components/dashboard-results.tsx` (agrupamento PF/PJ)
 
-**Funcionalidades:**
-- Comparação Antes vs Depois
-- Cálculo de economia/aumento
-- Timeline de transição 2026-2033
-- Oportunidades e alertas
-- Resumo executivo
+**Status:** Build passa ✅, Interface precisa ser testada
 
 ---
 
-### Sessão 4: Catalogação de APIs Oficiais
-**Data:** 14/01/2026
+### Sessões Anteriores
 
-**Implementado:**
-1. ✅ Documentação de APIs oficiais da Receita Federal
-2. ✅ Arquivo `official-apis.ts` com metadados
-
-**APIs catalogadas:**
-- Calculadora CBS/IBS (piloto)
-- Apuração Assistida CBS
-- Conformidade Fácil
-- Consulta CNPJ
-- DCTFWeb / MIT
-
-**Arquivo criado:**
-- `src/lib/official-apis.ts`
+- **Sessão 4:** Catalogação de APIs Oficiais
+- **Sessão 3:** Análise de Impactos da Reforma
+- **Sessão 2:** Correção de Inconsistência no Planejador
+- **Sessão 1:** Implementação do Assistente de Reforma
 
 ---
 
 ## ⚠️ Problemas Conhecidos
 
-### 1. Quota Excedida do Google Gemini ✅ **RESOLVIDO**
+### 1. Interface não mostra mudanças ⚠️ PENDENTE
 
-**Status:**
-- ✅ Sistema migrado para Groq AI (Llama 3.3 e 3.1)
-- Chaves configuradas em `.env.local`
+**Status:** Em investigação
 
-**Impacto Anterior:**
-- Chat e Geração de cenários estavam inoperantes.
-- **Solução:** Migração de provider realizada em 26/01/2026.
+**Possíveis causas:**
+- Dados em cache da análise anterior
+- Precisa gerar nova análise para ver os 8 cenários
+- Server Components podem precisar de reload
 
----
-
-### 2. Inconsistência no Planejador ✅ **RESOLVIDO**
-
-**Status:** Resolvido (Validado em 26/01/2026)
-
-**Ações:**
-- Temperature reduzida para 0.1
-- Modelo atualizado para `llama-3.3-70b-versatile`
-- Testes automatizados confirmaram 100% de consistência em 5/5 execuções seguidas.
-
----
-
-### 3. Cron Job Não Testado ⏳
-
-**Status:** Configurado mas não testado em produção
-
-**Próximo passo:** Deploy no Vercel para validar execução diária
+**Próxima ação:** 
+- Testar gerando nova análise
+- Verificar se cenários têm campo `scenarioCategory`
 
 ---
 
 ## 🚀 Próximos Passos
 
-### Curto Prazo (Urgente)
+### Fase 5: Verificação (PENDENTE - Continuar amanhã)
 
-1. **Resolver quota do Gemini** ❗
-   - Gerar nova chave de API
-   - Ou aguardar reset
-   - Ou configurar billing
+1. **Testar interface com nova análise**
+   - Gerar análise com dados de teste
+   - Verificar se 8 cenários aparecem
+   - Confirmar agrupamento PF/PJ
 
-2. **Testar consistência do planejador**
-   - Executar 10 simulações com mesmos dados
-   - Validar se resultados são consistentes
-   - Documentar resultados
+2. **Validar cálculos**
+   - Testar com faturamento R$ 66.000
+   - Comparar com planilha de referência
+   - Verificar economia ISS Fixo vs variável
 
-3. **Deploy no Vercel**
-   - Validar cron job de notícias
-   - Testar em produção
-
-### Médio Prazo
-
-4. **Implementar validação de resultados**
-   - Criar `result-validator.ts`
-   - Verificar consistência matemática
-   - Logs de auditoria
-
-5. **Melhorar UX da Análise de Impactos**
-   - Adicionar gráficos visuais
-   - Animações de transição
-   - Exportar para PDF
-
-6. **Integrar com APIs oficiais**
-   - Implementar chamadas reais
-   - Autenticação com certificado digital
-   - Validação de dados
-
-### Longo Prazo
-
-7. **Dashboard de auditoria**
-   - Histórico de análises
-   - Comparação de versões
-   - Métricas de uso
-
-8. **Testes automatizados**
-   - Unit tests para calculadoras
-   - Integration tests para APIs
-   - E2E tests para fluxos principais
-
-9. **Documentação para usuários**
-   - Guia de uso
-   - Vídeos tutoriais
-   - FAQ
+3. **Testar busca CNPJ**
+   - Usar CNPJ real de Montes Claros
+   - Verificar preenchimento automático de ISS
+   - Confirmar alíquota do município
 
 ---
 
-## 📊 Estatísticas do Projeto
+### Resumo do que falta testar:
 
-**Arquivos criados nesta sessão:** ~20  
-**Linhas de código adicionadas:** ~3.500  
-**Componentes React criados:** 3  
-**APIs implementadas:** 4  
-**Hooks criados:** 2  
-**Tipos TypeScript criados:** 15+  
+| Item | Status |
+|------|--------|
+| 8 cenários no dashboard | ⏳ Pendente |
+| Agrupamento PF/PJ | ⏳ Pendente |
+| Badges de elegibilidade | ⏳ Pendente |
+| ISS automático no form | ⏳ Pendente |
+| Cálculo CLT | ⏳ Pendente |
 
 ---
 
 ## 🔄 Como Retomar o Desenvolvimento
 
-### Para continuar de onde parou:
+### Para continuar amanhã:
 
-1. **Leia este arquivo** (`informacoes.md`)
-2. **Verifique o status atual:**
-   - Servidor rodando? `npm run dev`
-   - Quota do Gemini resolvida?
-   - Últimos commits no Git
+1. **Inicie o servidor:**
+   ```bash
+   cd "/Users/leandropinho/Planejador Tributário/tributomedpontocon"
+   npm run dev
+   ```
 
-3. **Consulte os artifacts:**
+2. **Teste a nova funcionalidade:**
+   - Acesse http://localhost:3000
+   - Preencha CNPJ (ou deixe em branco)
+   - Faturamento: R$ 66.000
+   - Gere o planejamento
+   - Verifique se aparecem 8 cenários organizados em PF e PJ
+
+3. **Se não aparecer os 8 cenários:**
+   - Verificar se a engine está sendo chamada corretamente
+   - Checar console do navegador por erros
+   - Verificar logs do servidor
+
+4. **Arquivos de referência:**
    - `task.md` - Tarefas pendentes
-   - `implementation_plan.md` - Plano atual
-   - `walkthrough.md` - Histórico de testes
-
-4. **Próxima ação sugerida:**
-   - Resolver quota do Gemini
-   - Testar consistência do planejador
-   - Deploy no Vercel
-
----
-
-## 📞 Contatos e Recursos
-
-**Projeto Firebase:** `planejamento-tributario-8d554`  
-**Região:** São Paulo (southamerica-east1)  
-**Repositório:** Local em `/Users/leandropinho/Downloads/Apps Firebase/Tributo Med/tributomedpontocon`
-
-**Recursos úteis:**
-- [Documentação Next.js](https://nextjs.org/docs)
-- [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup)
-- [Google AI Studio](https://aistudio.google.com)
-- [Reforma Tributária (Gov.br)](https://www.gov.br/fazenda/pt-br/acesso-a-informacao/acoes-e-programas/reforma-tributaria)
+   - `implementation_plan.md` - Plano completo
+   - `comparativo_planilha.md` - Fórmulas de referência
 
 ---
 
 **Fim da documentação**  
-*Este arquivo será atualizado continuamente conforme o projeto evolui.*
+*Atualizado em 26/01/2026 às 17:06*
+

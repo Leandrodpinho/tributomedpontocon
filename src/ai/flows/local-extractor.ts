@@ -19,8 +19,8 @@ try {
     console.error("Failed to load pdf-parse:", e);
     pdf = null;
 }
-// @ts-ignore
-const { fromBuffer } = require("pdf2pic");
+
+import { fromBuffer } from "pdf2pic";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs/promises";
@@ -71,7 +71,7 @@ export async function ocrPdf(buffer: Buffer): Promise<string> {
         height: 3508
     };
 
-    let imgs: string[] = [];
+    const imgs: string[] = [];
     try {
         const converter = fromBuffer(buffer, options);
 
