@@ -29,6 +29,15 @@ Sua resposta deve ser um JSON VÁLIDO seguindo a estrutura abaixo. NÃO adicione
 
 {
   "monthlyRevenue": number,
+  "activities": [
+    {
+      "name": "Nome da Atividade (ex: Comércio de Bebidas)",
+      "revenue": number,
+      "type": "commerce" | "service" | "industry",
+      "simplesAnexo": "I" | "II" | "III" | "IV" | "V",
+      "isMeiEligible": boolean
+    }
+  ],
   "scenarios": [
     {
        "name": "...",
@@ -66,6 +75,27 @@ ${input.issRate ? `Alíquota de ISS: ${input.issRate}%` : 'Alíquota de ISS: 4% 
 **DADOS NÃO ESTRUTURADOS (Fallback):**
 ${input.clientData ? `Texto do Cliente: ${input.clientData}` : ''}
 ${input.documentsAsText ? `Conteúdo dos Documentos Anexados:\n${input.documentsAsText}` : ''}
+
+INSTRUÇÕES DE EXTRAÇÃO DE ATIVIDADES:
+1. Analise o texto para IDENTIFICAR as diferentes atividades econômicas.
+2. SEPARE a receita (monthlyRevenue) entre as atividades, se possível (estime se necessário).
+3. CLASSIFIQUE cada atividade:
+   - "commerce": Venda de produtos, bares, restaurantes, lojas. (Geralmente Anexo I).
+   - "industry": Fabricação. (Geralmente Anexo II).
+   - "service": Prestação de serviços.
+4. DETERMINE o Anexo do Simples Nacional:
+   - Anexo I: Comércio.
+   - Anexo II: Indústria.
+   - Anexo III: Serviços gerais, manutenção, instalação, medicina.
+   - Anexo IV: Advocacia, limpeza, construção civil.
+   - Anexo V: Desenvolvimento de software, jornalismo, engenharia (sujeito ao Fator R).
+5. VERIFIQUE ELEGIBILIDADE MEI:
+   - Faturamento anual da atividade < 81k?
+   - Atividade permitida? (Comércio, Bares, Cabeleireiros, etc. são permitidos. Atividades intelectuais regulamentadas como médicos, engenheiros, advogados NÃO são permitidas).
+
+Exemplo: Cliente tem "Bar e Quadra de Esporte".
+- Atividade 1: Bar (Venda de bebidas/alimentos) -> type: "commerce", anexo: "I", isMeiEligible: true.
+- Atividade 2: Aluguel de Quadra -> type: "service", anexo: "III", isMeiEligible: true.
 
 Sua resposta deve seguir estritamente a estrutura do JSON de saída. Seja analítico, preciso e aja como o especialista que você é.`;
 }
@@ -227,21 +257,13 @@ async function generateTaxScenariosLogic(input: GenerateTaxScenariosInput): Prom
   }
 
   try {
-    // 1. Geração Determinística dos Cenários (Correção da Alucinação Numérica)
-    // Calculamos os números PRIMEIRO com a engine matemática confiável
-    const deterministicScenarios = generateDeterministicScenarios(input);
-    console.log('Engine determinística gerou:', deterministicScenarios.length, 'cenários.');
-
-    // 2. Chamada à IA para Análise Qualitativa (Compliance, Resumo, Contexto)
-    // O prompt continua pedindo o JSON completo, mas nós vamos SOBRESCREVER os números
-    // com os dados da Engine. A IA serve para "explicar" e validar regras complexas de texto.
-
+    // 1. Chamada à IA para Extração e Análise Preliminar
+    // A IA extrairá as atividades, faturamento e gerará a análise qualitativa
     const maxRetries = 3;
     let output: GenerateTaxScenariosOutput | null = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        // Substituição: callModel em vez de prompt()
         const result = await callModel(input);
         const rawText = result.text;
         output = parseAndFixJSON(rawText);
@@ -262,13 +284,25 @@ async function generateTaxScenariosLogic(input: GenerateTaxScenariosInput): Prom
 
     if (!output) throw new Error('Falha ao gerar análise qualitativa pela IA.');
 
+    // 2. Geração Determinística dos Cenários (Correção da Alucinação Numérica)
+    // Usamos as atividades extraídas pela IA (ou do input original) para alimentar a engine
+    const engineInput = {
+      ...input,
+      // Prioriza as atividades extraídas pela IA, se houver
+      activities: (output.activities && output.activities.length > 0) ? output.activities : input.activities,
+      // Atualiza monthlyRevenue se a IA tiver corrigido com base nos documentos
+      monthlyRevenue: output.monthlyRevenue || input.monthlyRevenue
+    };
+
+    const deterministicScenarios = generateDeterministicScenarios(engineInput);
+    console.log('Engine determinística gerou:', deterministicScenarios.length, 'cenários baseados em', engineInput.activities?.length || 0, 'atividades.');
+
     // --- MAPPING & MERGE LAYER (Híbrido) ---
 
-    // 1. Preservar a análise qualitativa da IA
+    // 3. Preservar a análise qualitativa da IA e Injetar Cenários Determinísticos
     if (output.complianceAnalysis) {
       output.complianceAnalysis = normalizeCompliance(output.complianceAnalysis, input);
     } else {
-      // Fallback de compliance via regras se a IA falhar
       const ruleBasedAlerts = runComplianceRules(input);
       const naturezaAnalysis = generateNaturezaJuridicaAnalysis(input);
       output.complianceAnalysis = {
@@ -278,8 +312,7 @@ async function generateTaxScenariosLogic(input: GenerateTaxScenariosInput): Prom
       };
     }
 
-    // 2. INJETAR Cenários Determinísticos (Substituição Total dos Cenários da IA)
-    // Motivo: A IA alucina números. A Engine é exata.
+    // Injeção dos cálculos exatos
     output.scenarios = deterministicScenarios;
 
     // 3. Validação final de schema (Opcional, pois deterministicScenarios já é tipado, mas output da IA não)
@@ -287,6 +320,11 @@ async function generateTaxScenariosLogic(input: GenerateTaxScenariosInput): Prom
 
     // 4. Garantias finais
     if (!output.monthlyRevenue) output.monthlyRevenue = input.monthlyRevenue || 0;
+
+    // Garantir que o texto transcrito seja retornado, mesmo que a IA não o ecoe
+    if (!output.transcribedText && input.documentsAsText) {
+      output.transcribedText = input.documentsAsText;
+    }
 
     // Fallback para executiveSummary se vazio
     if (!output.executiveSummary) {
@@ -309,9 +347,11 @@ import { createHash } from 'crypto';
 const REQUEST_CACHE = new Map<string, { data: GenerateTaxScenariosOutput; expiresAt: number }>();
 const CACHE_TTL_MS = 1000 * 60 * 60; // 1 hora
 
+const CACHE_VERSION = "v2_mei_support"; // Increment this to invalidate cache
+
 function generateCacheKey(input: any): string {
   const stableString = JSON.stringify(input, Object.keys(input).sort());
-  return createHash('sha256').update(stableString).digest('hex');
+  return createHash('sha256').update(stableString + CACHE_VERSION).digest('hex');
 }
 
 function getFromCache(key: string): GenerateTaxScenariosOutput | null {

@@ -24,6 +24,9 @@ export function ClientPresentation({ analysis, clientName, consultingFirm, onClo
     // Identify best and worst scenarios
     const scenarios = analysis.scenarios || [];
     const bestScenario = scenarios.reduce<ScenarioDetail | undefined>((acc, scenario) => {
+        // IGNORA cenários marcados explicitamente como INELEGÍVEIS
+        if (scenario.isEligible === false) return acc;
+
         if (!acc) return scenario;
         return (scenario.totalTaxValue ?? 0) < (acc.totalTaxValue ?? 0) ? scenario : acc;
     }, undefined);

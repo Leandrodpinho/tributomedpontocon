@@ -7,12 +7,19 @@ export const GenerateTaxScenariosInputSchema = z.object({
   clientData: z.string().optional().describe('Informações financeiras e operacionais do cliente em texto livre (faturamento, etc.). Usado como fallback se os campos estruturados não forem preenchidos.'),
   documentsAsText: z.string().optional().describe('Texto consolidado transcrito de todos os documentos anexados.'),
   // Campos estruturados para maior precisão
+  activities: z.array(z.object({
+    name: z.string().describe('Nome da atividade (ex: Venda de Mercadorias, Serviços Médicos).'),
+    revenue: z.number().describe('Faturamento mensal desta atividade.'),
+    type: z.enum(['commerce', 'service', 'industry']).describe('Tipo da atividade para fins de base de cálculo (Presumido).'),
+    simplesAnexo: z.enum(['I', 'II', 'III', 'IV', 'V']).describe('Anexo do Simples Nacional aplicável.'),
+    isMeiEligible: z.boolean().describe('Se esta atividade é permitida no MEI.'),
+  })).optional().describe('Lista de atividades exercidas pela empresa com suas respectivas receitas.'),
   cnaes: z.array(z.string()).optional().describe('Lista de códigos CNAE da empresa. Essencial para Fator R e ISS.'),
   issRate: z.number().optional().describe('A alíquota de ISS a ser utilizada no cálculo, em porcentagem (ex: 4.0).'),
   payrollExpenses: z.number().optional().describe('Despesas com a folha de pagamento do cliente (CLT), sem pró-labore.'),
   rbt12: z.number().optional().describe('Receita Bruta Total dos últimos 12 meses. Se não informado, será calculado (faturamento mensal * 12).'),
   fs12: z.number().optional().describe('Folha de Salários, incluindo encargos, dos últimos 12 meses. Se não informado, será estimado pela IA.'),
-  monthlyRevenue: z.number().optional().describe('Faturamento mensal informado pelo cliente. Tem prioridade sobre o valor extraído do texto.'),
+  monthlyRevenue: z.number().optional().describe('Faturamento mensal TOTAL informado pelo cliente. Soma das atividades.'),
   isHospitalEquivalent: z
     .boolean()
     .optional()
@@ -47,10 +54,15 @@ export const ScenarioDetailSchema = z.object({
   scenarioRevenue: z.coerce.number().optional().describe('O faturamento mensal para o qual este cenário foi calculado.'),
   scenarioCategory: z.enum(['pf', 'pj']).optional().describe('Categoria: Pessoa Física (pf) ou Jurídica (pj).'),
   scenarioType: z.enum([
+    'mei',
     'carne_leao',
     'clt',
+    'simples_anexo_i',
+    'simples_anexo_ii',
     'simples_anexo_iii',
+    'simples_anexo_iv',
     'simples_anexo_v',
+    'simples_misto',
     'presumido',
     'presumido_uniprofissional',
     'presumido_hospitalar',
@@ -99,7 +111,14 @@ export type ComplianceAnalysis = z.infer<typeof ComplianceAnalysisSchema>;
 
 export const GenerateTaxScenariosOutputSchema = z.object({
   transcribedText: z.string().optional().describe('As informações financeiras e operacionais transcritas dos documentos anexados.'),
-  monthlyRevenue: z.coerce.number().describe('O faturamento mensal identificado para o cliente.'),
+  monthlyRevenue: z.coerce.number().describe('O faturamento mensal total identificado.'),
+  activities: z.array(z.object({
+    name: z.string(),
+    revenue: z.number(),
+    type: z.enum(['commerce', 'service', 'industry']),
+    simplesAnexo: z.enum(['I', 'II', 'III', 'IV', 'V']),
+    isMeiEligible: z.boolean(),
+  })).optional().describe('Lista detalhada de atividades extraídas.'),
   scenarios: z.array(ScenarioDetailSchema).describe('Uma lista de cenários tributários detalhados, incluindo projeções de receita.'),
   executiveSummary: z.string().optional().describe('Resumo executivo em Markdown com a recomendação final sobre o melhor cenário para o faturamento atual, e análise sobre os pontos de inflexão com base nas projeções de receita. Use ** para negrito nos títulos.'),
   breakEvenAnalysis: z.string().optional().describe('Análise textual sobre os pontos de equilíbrio de faturamento entre os regimes.'),

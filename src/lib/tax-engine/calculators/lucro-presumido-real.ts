@@ -3,14 +3,21 @@ import { LEGAL_CONSTANTS_2025 } from '@/ai/flows/legal-constants';
 /**
  * Calcula Lucro Presumido
  */
+/**
+ * Calcula Lucro Presumido
+ */
 export function calculateLucroPresumido(
     monthlyRevenue: number,
-    type: 'Geral' | 'Hospitalar',
-    issRate: number = 0.05 // 2% a 5%
+    type: 'Geral' | 'Hospitalar' | 'Comercio',
+    issRate: number = 5,
+    icmsRate: number = 0 // Usado apenas se for comércio
 ) {
-    const rules = type === 'Hospitalar'
-        ? LEGAL_CONSTANTS_2025.presumidoHospitalar
-        : LEGAL_CONSTANTS_2025.presumidoGeral;
+    let rules;
+    switch (type) {
+        case 'Hospitalar': rules = LEGAL_CONSTANTS_2025.presumidoHospitalar; break;
+        case 'Comercio': rules = LEGAL_CONSTANTS_2025.presumidoComercio; break;
+        default: rules = LEGAL_CONSTANTS_2025.presumidoGeral;
+    }
 
     // 1. PIS e COFINS (Cumulativo)
     const pis = monthlyRevenue * rules.pisRate;
@@ -29,20 +36,89 @@ export function calculateLucroPresumido(
     const csllBase = monthlyRevenue * rules.csllBase;
     const csll = csllBase * rules.csllRate;
 
-    // 4. ISS (Municipal)
-    const iss = monthlyRevenue * (issRate / 100);
+    // 4. ISS (Municipal) ou ICMS (Estadual)
+    const iss = type === 'Comercio' ? 0 : monthlyRevenue * (issRate / 100);
+    const icms = type === 'Comercio' ? monthlyRevenue * (icmsRate / 100) : 0;
 
-    const totalTax = pis + cofins + irpj + csll + iss;
+    const totalTax = pis + cofins + irpj + csll + iss + icms;
 
     return {
         totalTax,
-        effectiveRate: (totalTax / monthlyRevenue) * 100,
+        effectiveRate: monthlyRevenue > 0 ? (totalTax / monthlyRevenue) * 100 : 0,
         breakdown: {
             pis,
             cofins,
             irpj,
             csll,
-            iss
+            iss,
+            icms
+        }
+    };
+}
+
+/**
+ * Calcula Lucro Presumido para múltiplas atividades (Base Mista)
+ */
+export function calculateMixedPresumido(
+    activities: Array<{ revenue: number, type: 'commerce' | 'service' | 'industry' }>,
+    issRate: number = 5,
+    icmsRate: number = 18
+) {
+    let totalRevenue = 0;
+    let totalPis = 0;
+    let totalCofins = 0;
+    let totalIrpjBase = 0;
+    let totalCsllBase = 0;
+    let totalIss = 0;
+    let totalIcms = 0;
+
+    for (const activity of activities) {
+        totalRevenue += activity.revenue;
+
+        // Regras baseadas no tipo
+        let rules;
+        if (activity.type === 'service') rules = LEGAL_CONSTANTS_2025.presumidoGeral;
+        // Indústria e Comércio tem bases iguais para IRPJ/CSLL na regra geral (8%/12%)
+        else rules = LEGAL_CONSTANTS_2025.presumidoComercio;
+
+        // PIS/COFINS
+        totalPis += activity.revenue * rules.pisRate;
+        totalCofins += activity.revenue * rules.cofinsRate;
+
+        // Formação da Base de Cálculo
+        totalIrpjBase += activity.revenue * rules.irpjBase;
+        totalCsllBase += activity.revenue * rules.csllBase;
+
+        // Impostos Estaduais/Municipais
+        if (activity.type === 'service') {
+            totalIss += activity.revenue * (issRate / 100);
+        } else {
+            totalIcms += activity.revenue * (icmsRate / 100);
+        }
+    }
+
+    // Calcular IRPJ sobre a base total acumulada
+    let totalIrpj = totalIrpjBase * 0.15;
+    if (totalIrpjBase > 20000) {
+        totalIrpj += (totalIrpjBase - 20000) * 0.10;
+    }
+
+    // Calcular CSLL sobre a base total acumulada
+    // Nota: CSLL é 9% para todos no Presumido, exceto financeiras
+    const totalCsll = totalCsllBase * 0.09;
+
+    const totalTax = totalPis + totalCofins + totalIrpj + totalCsll + totalIss + totalIcms;
+
+    return {
+        totalTax,
+        effectiveRate: totalRevenue > 0 ? (totalTax / totalRevenue) * 100 : 0,
+        breakdown: {
+            pis: totalPis,
+            cofins: totalCofins,
+            irpj: totalIrpj,
+            csll: totalCsll,
+            iss: totalIss,
+            icms: totalIcms
         }
     };
 }
@@ -56,7 +132,7 @@ export function calculateLucroPresumido(
  * Para serviços médicos com alta margem, Lucro Real geralmente não compensa, 
  * exceto se houver prejuízo ou margem < 32%.
  */
-export function calculateLucroRealSimples(monthlyRevenue: number, profitMargin: number = 0.40, issRate: number = 0.05) {
+export function calculateLucroRealSimples(monthlyRevenue: number, profitMargin: number = 0.40, issRate: number = 5.0) {
     const rules = LEGAL_CONSTANTS_2025.realServicos;
 
     // PIS/COFINS (Não Cumulativo - alíquotas maiores, mas com crédito. 

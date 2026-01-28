@@ -29,6 +29,7 @@ export interface AnalysisState {
     realProfitMargin?: number;
     isHospitalEquivalent?: boolean;
     isUniprofessionalSociety?: boolean;
+    clientName?: string;
   };
 }
 
@@ -436,7 +437,8 @@ export async function getAnalysis(
         numberOfPartners: numberOfPartnersNum,
         realProfitMargin: realProfitMarginNum,
         isHospitalEquivalent,
-        isUniprofessionalSociety
+        isUniprofessionalSociety,
+        clientName: companyName ?? undefined
       }
     };
 

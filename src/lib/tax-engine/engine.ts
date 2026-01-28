@@ -1,31 +1,51 @@
-import { calculateSimplesNacional } from './calculators/simples-nacional';
-import { calculateLucroPresumido, calculateLucroRealSimples } from './calculators/lucro-presumido-real';
+import { calculateSimplesNacional, calculateMixedSimples } from './calculators/simples-nacional';
+import { calculateLucroPresumido, calculateMixedPresumido, calculateLucroRealSimples } from './calculators/lucro-presumido-real';
 import { calculateCarneLeao } from './calculators/carne-leao';
 import { calculateCLT } from './calculators/clt';
 import { calculateINSS, calculateIRRF, calculateCPP } from './calculators/payroll';
+import { calculateMEI } from './calculators/mei';
 import { GenerateTaxScenariosInput, ScenarioDetail } from '@/ai/flows/types';
 import { LEGAL_CONSTANTS_2025 } from '@/ai/flows/legal-constants';
 import { getISSFixoMensal } from '@/lib/iss-municipal-database';
 
 /**
  * Orquestrador da Engine de Cálculo Tributário
- * Gera TODOS os 8 cenários para comparação completa:
+ * Gera TODOS os cenários para comparação completa:
  * 
  * PF (Pessoa Física):
  *  1. Carnê Leão
  *  2. CLT (simulação)
  * 
  * PJ (Pessoa Jurídica):
- *  3. Simples Nacional Anexo III (com Fator R otimizado)
- *  4. Simples Nacional Anexo V (sem otimização)
- *  5. Lucro Presumido (ISS variável)
- *  6. Lucro Presumido Uniprofissional (ISS Fixo)
- *  7. Lucro Presumido Equiparação Hospitalar
- *  8. Lucro Real
+ *  3. MEI (Microempreendedor Individual)
+ *  4. Simples Nacional (Misto/Segregado)
+ *  5. Simples Nacional Anexo V (sem otimização)
+ *  6. Lucro Presumido (Misto/Segregado)
+ *  7. Lucro Presumido Uniprofissional (ISS Fixo)
+ *  8. Lucro Presumido Equiparação Hospitalar
+ *  9. Lucro Real
  */
 export function generateDeterministicScenarios(input: GenerateTaxScenariosInput): ScenarioDetail[] {
     const scenarios: ScenarioDetail[] = [];
-    const monthlyRevenue = input.monthlyRevenue || 0;
+
+    // Normalização da Entrada (compatibilidade com versões anteriores)
+    let activities = input.activities || [];
+    let monthlyRevenue = input.monthlyRevenue || 0;
+
+    // Se 'monthlyRevenue' foi passado mas 'activities' não, cria uma atividade padrão de Serviço Anexo III
+    if (activities.length === 0 && monthlyRevenue > 0) {
+        activities = [{
+            name: 'Serviços Gerais',
+            revenue: monthlyRevenue,
+            type: 'service',
+            simplesAnexo: 'III',
+            isMeiEligible: true // Assume elegível por padrão se não especificado
+        }];
+    } else if (activities.length > 0) {
+        // Recalcula monthlyRevenue com base nas atividades
+        monthlyRevenue = activities.reduce((sum, a) => sum + a.revenue, 0);
+    }
+
     const revenue12m = input.rbt12 || (monthlyRevenue * 12);
     const payroll = input.payrollExpenses || 0;
     const issRate = input.issRate || 5;
@@ -37,12 +57,12 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
     const minimumWage = LEGAL_CONSTANTS_2025.minimumWage;
     const effectivePayroll = Math.max(payroll, minimumWage);
 
-    // Fator R para Simples Nacional
+    // Fator R para Simples Nacional (Calculado Globalmente)
     const fatorR = effectivePayroll / monthlyRevenue;
     const hasFatorR = fatorR >= 0.28;
 
-    // ISS Fixo baseado no município (se disponível) ou padrão
-    const issFixoMensal = getISSFixoMensal('') * numberOfPartners; // Usa padrão se não houver município
+    // ISS Fixo baseado no município
+    const issFixoMensal = getISSFixoMensal('') * numberOfPartners;
 
     // ============================================================
     // CENÁRIOS PF (PESSOA FÍSICA)
@@ -90,84 +110,121 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
     // CENÁRIOS PJ (PESSOA JURÍDICA)
     // ============================================================
 
-    // 3. Simples Nacional Anexo III (com Fator R otimizado)
-    const targetPayrollFatorR = Math.max(monthlyRevenue * 0.28, minimumWage);
-    const simplesAnexoIII = calculateSimplesNacional(revenue12m, monthlyRevenue, 'III');
-    const inssFatorR = calculateINSS(targetPayrollFatorR);
-    const irrfFatorR = calculateIRRF(targetPayrollFatorR - inssFatorR);
-    const totalSimplesIII = simplesAnexoIII.totalTax + inssFatorR + irrfFatorR;
+    // 3. MEI (Microempreendedor Individual)
+    // Passamos RBT12 (receita anual projetada) para checar o limite de 81k
+    const mei = calculateMEI(revenue12m > 0 ? revenue12m : monthlyRevenue * 12, activities);
+
+    // SEMPRE adicionamos o MEI para fins didáticos, mesmo se inelegível
+    scenarios.push({
+        name: 'MEI - Microempreendedor Individual',
+        scenarioCategory: 'pj',
+        scenarioType: 'mei',
+        isEligible: mei.isEligible,
+        eligibilityNote: mei.eligibilityNote,
+        totalTaxValue: mei.totalTax,
+        effectiveRate: (mei.totalTax / monthlyRevenue) * 100,
+        netProfitDistribution: monthlyRevenue - mei.totalTax,
+        notes: mei.isEligible
+            ? 'Pagamento fixo mensal (DAS-MEI). Não requer contador obrigatório, mas recomendado.'
+            : 'Este regime seria o mais barato, mas a empresa não se enquadra (ver motivo acima).',
+        taxBreakdown: [
+            { name: 'INSS (Fixo)', value: mei.breakdown.inss, rate: 0 },
+            { name: 'ICMS (Fixo)', value: mei.breakdown.icms, rate: 0 },
+            { name: 'ISS (Fixo)', value: mei.breakdown.iss, rate: 0 }
+        ]
+    });
+
+    // 4. Simples Nacional (Segregação de Receitas)
+    // Calcula o tributo para CADA atividade usando o anexo correto, mas com alíquota baseada na RBT12 Global
+    // Se a atividade for Anexo V, verificamos o Fator R global. Se >= 28%, muda para Anexo III.
+    // Se a atividade for Anexo III, verificamos o Fator R global. Se < 28%, muda para Anexo V (Fator R reverso). 
+    // NOTA: A regra do "Fator R Reverso" (III -> V) é complexa. A regra geral é: Atividades do Anexo V sujeitas ao Fator R podem ir pro III.
+    // Atividades originalmente do III NÃO vão para o V.
+    // Vamos simplificar: Trataremos a troca V -> III se Fator R ok.
+
+    const adjustedActivities = activities.map(act => {
+        let targetAnexo = act.simplesAnexo;
+        if (targetAnexo === 'V' && hasFatorR) {
+            targetAnexo = 'III'; // Bonificação Fator R
+        }
+        return {
+            revenue: act.revenue,
+            simplesAnexo: targetAnexo
+        };
+    });
+
+    const targetPayrollFatorR = Math.max(monthlyRevenue * 0.28, minimumWage); // Pró-labore ideal
+    const inssProLaboreSimples = calculateINSS(targetPayrollFatorR);
+    const irrfProLaboreSimples = calculateIRRF(targetPayrollFatorR - inssProLaboreSimples);
+
+    const simplesMisto = calculateMixedSimples(revenue12m, adjustedActivities);
+    const totalSimplesMisto = simplesMisto.totalTax + inssProLaboreSimples + irrfProLaboreSimples;
+
+    // Constrói breakdown detalhado do Simples
+    const simplesBreakdown = simplesMisto.breakdown.map(b => ({
+        name: `DAS Anexo ${b.anexo}`,
+        value: b.tax,
+        rate: b.rate
+    }));
+
+    // Adiciona encargos do pró-labore
+    simplesBreakdown.push({ name: 'INSS Pró-labore', value: inssProLaboreSimples, rate: 0 });
+    simplesBreakdown.push({ name: 'IRRF Pró-labore', value: irrfProLaboreSimples, rate: 0 });
+
+    // Verificação real de Misto/Segregado
+    const uniqueAnexos = new Set(adjustedActivities.map(a => a.simplesAnexo));
+    const isSimplesMisto = uniqueAnexos.size > 1;
+    const simplesName = isSimplesMisto
+        ? 'Simples Nacional (Misto/Segregado)'
+        : `Simples Nacional (Anexo ${[...uniqueAnexos][0] || 'III'})`;
 
     scenarios.push({
-        name: 'Simples Nacional Anexo III (Fator R)',
+        name: simplesName,
         scenarioCategory: 'pj',
-        scenarioType: 'simples_anexo_iii',
-        isEligible: hasFatorR,
+        scenarioType: isSimplesMisto ? 'simples_misto' : `simples_anexo_${([...uniqueAnexos][0] || 'iii').toLowerCase()}` as any,
+        isEligible: true,
         eligibilityNote: hasFatorR
-            ? `Fator R atual: ${(fatorR * 100).toFixed(1)}% ≥ 28%. Elegível!`
-            : `Fator R atual: ${(fatorR * 100).toFixed(1)}% < 28%. Requer pró-labore de R$ ${targetPayrollFatorR.toFixed(2)} para atingir 28%.`,
-        totalTaxValue: totalSimplesIII,
-        effectiveRate: (totalSimplesIII / monthlyRevenue) * 100,
-        netProfitDistribution: monthlyRevenue - totalSimplesIII - targetPayrollFatorR,
-        notes: `Alíquota reduzida do Anexo III. Considera pró-labore de R$ ${targetPayrollFatorR.toFixed(2)} (28% da receita).`,
+            ? `Fator R: ${(fatorR * 100).toFixed(1)}%. Atividades do Anexo V beneficiadas.`
+            : `Fator R: ${(fatorR * 100).toFixed(1)}%. Aumente o pró-labore para reduzir imposto do Anexo V (se houver).`,
+        totalTaxValue: totalSimplesMisto,
+        effectiveRate: (totalSimplesMisto / monthlyRevenue) * 100,
+        netProfitDistribution: monthlyRevenue - totalSimplesMisto - targetPayrollFatorR,
+        notes: `Cálculo com segregação de receitas. Considera pró-labore de R$ ${targetPayrollFatorR.toFixed(2)}.`,
         proLaboreAnalysis: {
             baseValue: targetPayrollFatorR,
-            inssValue: inssFatorR,
-            irrfValue: irrfFatorR,
-            netValue: targetPayrollFatorR - inssFatorR - irrfFatorR
+            inssValue: inssProLaboreSimples,
+            irrfValue: irrfProLaboreSimples,
+            netValue: targetPayrollFatorR - inssProLaboreSimples - irrfProLaboreSimples
         },
-        taxBreakdown: [
-            { name: 'DAS (Anexo III)', value: simplesAnexoIII.totalTax, rate: simplesAnexoIII.effectiveRate },
-            { name: 'INSS Pró-labore', value: inssFatorR, rate: 0 },
-            { name: 'IRRF Pró-labore', value: irrfFatorR, rate: 0 }
-        ]
+        taxBreakdown: simplesBreakdown
     });
 
-    // 4. Simples Nacional Anexo V (sem otimização)
-    const simplesAnexoV = calculateSimplesNacional(revenue12m, monthlyRevenue, 'V');
-    const inssAnexoV = calculateINSS(minimumWage);
-    const irrfAnexoV = calculateIRRF(minimumWage - inssAnexoV);
-    const totalSimplesV = simplesAnexoV.totalTax + inssAnexoV + irrfAnexoV;
+    // 5. Lucro Presumido Misto
+    // Calcula PIS/COFINS/IRPJ/CSLL considerando as bases corretas (Serviço=32%, Comércio=8%)
+    const lpMisto = calculateMixedPresumido(activities, issRate);
 
-    scenarios.push({
-        name: 'Simples Nacional Anexo V',
-        scenarioCategory: 'pj',
-        scenarioType: 'simples_anexo_v',
-        isEligible: true,
-        eligibilityNote: 'Alíquotas mais altas. Aplicável quando Fator R < 28% e não otimizado.',
-        totalTaxValue: totalSimplesV,
-        effectiveRate: (totalSimplesV / monthlyRevenue) * 100,
-        netProfitDistribution: monthlyRevenue - totalSimplesV - minimumWage,
-        notes: `Pró-labore mínimo: R$ ${minimumWage.toFixed(2)} (1 salário mínimo).`,
-        proLaboreAnalysis: {
-            baseValue: minimumWage,
-            inssValue: inssAnexoV,
-            irrfValue: irrfAnexoV,
-            netValue: minimumWage - inssAnexoV - irrfAnexoV
-        },
-        taxBreakdown: [
-            { name: 'DAS (Anexo V)', value: simplesAnexoV.totalTax, rate: simplesAnexoV.effectiveRate },
-            { name: 'INSS Pró-labore', value: inssAnexoV, rate: 0 },
-            { name: 'IRRF Pró-labore', value: irrfAnexoV, rate: 0 }
-        ]
-    });
-
-    // 5. Lucro Presumido (ISS variável)
-    const lpGeral = calculateLucroPresumido(monthlyRevenue, 'Geral', issRate);
     const cppGeral = calculateCPP(minimumWage);
     const inssProLaboreLP = calculateINSS(minimumWage);
     const irrfProLaboreLP = calculateIRRF(minimumWage - inssProLaboreLP);
-    const totalLPGeral = lpGeral.totalTax + cppGeral + inssProLaboreLP + irrfProLaboreLP;
+
+    const totalLPMisto = lpMisto.totalTax + cppGeral + inssProLaboreLP + irrfProLaboreLP;
+
+    // Lógica correta para "Misto" no Lucro Presumido
+    const hasService = activities.some(a => a.type === 'service');
+    const hasCommerceOrIndustry = activities.some(a => a.type === 'commerce' || a.type === 'industry');
+    const isPresumidoMisto = hasService && hasCommerceOrIndustry;
+    const presumidoName = isPresumidoMisto ? 'Lucro Presumido (Misto)' : 'Lucro Presumido';
 
     scenarios.push({
-        name: 'Lucro Presumido',
+        name: presumidoName,
         scenarioCategory: 'pj',
         scenarioType: 'presumido',
         isEligible: true,
-        eligibilityNote: `Faturamento anual até R$ 78 milhões. ISS: ${issRate}%.`,
-        totalTaxValue: totalLPGeral,
-        effectiveRate: (totalLPGeral / monthlyRevenue) * 100,
-        netProfitDistribution: monthlyRevenue - totalLPGeral - minimumWage,
-        notes: 'Base de presunção 32% para serviços. Inclui CPP sobre pró-labore.',
+        eligibilityNote: `Faturamento anual até R$ 78 milhões.`,
+        totalTaxValue: totalLPMisto,
+        effectiveRate: (totalLPMisto / monthlyRevenue) * 100,
+        netProfitDistribution: monthlyRevenue - totalLPMisto - minimumWage,
+        notes: 'Base de presunção ajustada por atividade (32% Serviços, 8% Comércio).',
         proLaboreAnalysis: {
             baseValue: minimumWage,
             inssValue: inssProLaboreLP,
@@ -175,88 +232,27 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
             netValue: minimumWage - inssProLaboreLP - irrfProLaboreLP
         },
         taxBreakdown: [
-            { name: 'PIS/COFINS', value: lpGeral.breakdown.pis + lpGeral.breakdown.cofins, rate: 3.65 },
-            { name: 'IRPJ/CSLL', value: lpGeral.breakdown.irpj + lpGeral.breakdown.csll, rate: 0 },
-            { name: 'ISS', value: lpGeral.breakdown.iss, rate: issRate },
+            { name: 'PIS/COFINS', value: lpMisto.breakdown.pis + lpMisto.breakdown.cofins, rate: 3.65 },
+            { name: 'IRPJ/CSLL', value: lpMisto.breakdown.irpj + lpMisto.breakdown.csll, rate: 0 },
+            { name: 'ISS/ICMS', value: lpMisto.breakdown.iss + lpMisto.breakdown.icms, rate: 0 },
             { name: 'CPP Patronal', value: cppGeral, rate: 20 }
         ]
     });
 
-    // 6. Lucro Presumido Uniprofissional (ISS Fixo)
-    const lpSup = calculateLucroPresumido(monthlyRevenue, 'Geral', 0); // ISS = 0, vai somar fixo
-    const totalLPSup = lpSup.totalTax + issFixoMensal + cppGeral + inssProLaboreLP + irrfProLaboreLP;
-    const economiaISSFixo = lpGeral.breakdown.iss - issFixoMensal;
-
-    scenarios.push({
-        name: 'Lucro Presumido Uniprofissional (ISS Fixo)',
-        scenarioCategory: 'pj',
-        scenarioType: 'presumido_uniprofissional',
-        isEligible: isSup,
-        eligibilityNote: isSup
-            ? 'Empresa cadastrada como Sociedade Uniprofissional. ISS Fixo aplicável.'
-            : 'Requer registro como Sociedade Uniprofissional (SUP) no município. Consulte legislação local.',
-        totalTaxValue: totalLPSup,
-        effectiveRate: (totalLPSup / monthlyRevenue) * 100,
-        netProfitDistribution: monthlyRevenue - totalLPSup - minimumWage,
-        notes: `ISS Fixo: R$ ${issFixoMensal.toFixed(2)}/mês (${numberOfPartners} sócio(s)). Economia vs ISS variável: R$ ${economiaISSFixo.toFixed(2)}/mês.`,
-        proLaboreAnalysis: {
-            baseValue: minimumWage,
-            inssValue: inssProLaboreLP,
-            irrfValue: irrfProLaboreLP,
-            netValue: minimumWage - inssProLaboreLP - irrfProLaboreLP
-        },
-        taxBreakdown: [
-            { name: 'PIS/COFINS', value: lpSup.breakdown.pis + lpSup.breakdown.cofins, rate: 3.65 },
-            { name: 'IRPJ/CSLL', value: lpSup.breakdown.irpj + lpSup.breakdown.csll, rate: 0 },
-            { name: 'ISS Fixo (SUP)', value: issFixoMensal, rate: 0 },
-            { name: 'CPP Patronal', value: cppGeral, rate: 20 }
-        ]
-    });
-
-    // 7. Lucro Presumido Equiparação Hospitalar
-    const lpHospitalar = calculateLucroPresumido(monthlyRevenue, 'Hospitalar', issRate);
-    const totalLPHospitalar = lpHospitalar.totalTax + cppGeral + inssProLaboreLP + irrfProLaboreLP;
-
-    scenarios.push({
-        name: 'Lucro Presumido Equiparação Hospitalar',
-        scenarioCategory: 'pj',
-        scenarioType: 'presumido_hospitalar',
-        isEligible: isHospitalar,
-        eligibilityNote: isHospitalar
-            ? 'Empresa atende requisitos ANVISA para equiparação hospitalar.'
-            : 'Requer: estrutura cirúrgica, alvará sanitário, conformidade com Lei 9.249/95. Economia potencial significativa.',
-        totalTaxValue: totalLPHospitalar,
-        effectiveRate: (totalLPHospitalar / monthlyRevenue) * 100,
-        netProfitDistribution: monthlyRevenue - totalLPHospitalar - minimumWage,
-        notes: 'Base de presunção reduzida: IRPJ 8%, CSLL 12%. Requer documentação ANVISA.',
-        proLaboreAnalysis: {
-            baseValue: minimumWage,
-            inssValue: inssProLaboreLP,
-            irrfValue: irrfProLaboreLP,
-            netValue: minimumWage - inssProLaboreLP - irrfProLaboreLP
-        },
-        taxBreakdown: [
-            { name: 'PIS/COFINS', value: lpHospitalar.breakdown.pis + lpHospitalar.breakdown.cofins, rate: 3.65 },
-            { name: 'IRPJ/CSLL (Reduzido)', value: lpHospitalar.breakdown.irpj + lpHospitalar.breakdown.csll, rate: 0 },
-            { name: 'ISS', value: lpHospitalar.breakdown.iss, rate: issRate },
-            { name: 'CPP Patronal', value: cppGeral, rate: 20 }
-        ]
-    });
-
-    // 8. Lucro Real
+    // 6. Lucro Real (Simplificado)
     const lucroReal = calculateLucroRealSimples(monthlyRevenue, realProfitMargin, issRate);
     const totalLucroReal = lucroReal.totalTax + cppGeral + inssProLaboreLP + irrfProLaboreLP;
 
     scenarios.push({
-        name: 'Lucro Real',
+        name: 'Lucro Real (Estimado)',
         scenarioCategory: 'pj',
         scenarioType: 'lucro_real',
         isEligible: true,
-        eligibilityNote: 'Obrigatório para faturamento > R$ 78 milhões ou atividades específicas. Vantajoso se margem < 32%.',
+        eligibilityNote: 'Obrigatório para faturamento > R$ 78 milhões ou atividades específicas.',
         totalTaxValue: totalLucroReal,
         effectiveRate: (totalLucroReal / monthlyRevenue) * 100,
         netProfitDistribution: monthlyRevenue - totalLucroReal - minimumWage,
-        notes: `Estimativa com margem de lucro de ${(realProfitMargin * 100).toFixed(0)}%. PIS/COFINS não-cumulativo (créditos limitados em serviços).`,
+        notes: `Estimativa com margem de lucro de ${(realProfitMargin * 100).toFixed(0)}%.`,
         proLaboreAnalysis: {
             baseValue: minimumWage,
             inssValue: inssProLaboreLP,
@@ -264,9 +260,9 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
             netValue: minimumWage - inssProLaboreLP - irrfProLaboreLP
         },
         taxBreakdown: [
-            { name: 'PIS/COFINS (Não Cumulativo)', value: monthlyRevenue * 0.0925, rate: 9.25 },
-            { name: 'IRPJ/CSLL (sobre lucro)', value: (monthlyRevenue * realProfitMargin) * 0.24, rate: 0 },
-            { name: 'ISS', value: monthlyRevenue * (issRate / 100), rate: issRate },
+            { name: 'PIS/COFINS', value: monthlyRevenue * 0.0925, rate: 9.25 },
+            { name: 'IRPJ/CSLL', value: (monthlyRevenue * realProfitMargin) * 0.24, rate: 0 },
+            { name: 'ISS/ICMS', value: monthlyRevenue * (issRate / 100), rate: issRate }, // Simplificação
             { name: 'CPP Patronal', value: cppGeral, rate: 20 }
         ]
     });

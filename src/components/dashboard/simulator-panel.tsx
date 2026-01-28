@@ -18,6 +18,13 @@ interface SimulatorPanelProps {
     initialPartners?: number;
     initialRealMargin?: number;
     initialIsSup?: boolean;
+    initialActivities?: Array<{
+        name: string;
+        revenue: number;
+        type: 'commerce' | 'service' | 'industry';
+        simplesAnexo: 'I' | 'II' | 'III' | 'IV' | 'V';
+        isMeiEligible: boolean;
+    }>;
 }
 
 export function SimulatorPanel({
@@ -26,7 +33,8 @@ export function SimulatorPanel({
     initialIssRate = 4,
     initialPartners = 1,
     initialRealMargin = 30,
-    initialIsSup = false
+    initialIsSup = false,
+    initialActivities = []
 }: SimulatorPanelProps) {
     const [revenue, setRevenue] = useState(initialRevenue);
     const [payroll, setPayroll] = useState(initialPayroll);
@@ -34,6 +42,22 @@ export function SimulatorPanel({
     const [isSup, setIsSup] = useState(initialIsSup);
     const [partners, setPartners] = useState(initialPartners);
     const [realMargin, setRealMargin] = useState(initialRealMargin);
+
+    // Persist original activity structure for scaling
+    // We only scale if initial activities exist.
+    const scaledActivities = useMemo(() => {
+        if (!initialActivities || initialActivities.length === 0) return undefined;
+
+        // Avoid division by zero
+        if (initialRevenue === 0) return initialActivities;
+
+        const scaleFactor = revenue / initialRevenue;
+
+        return initialActivities.map(act => ({
+            ...act,
+            revenue: act.revenue * scaleFactor
+        }));
+    }, [initialActivities, initialRevenue, revenue]);
 
     const scenarios = useMemo(() => {
         return calculateAllScenarios({
@@ -43,8 +67,9 @@ export function SimulatorPanel({
             isUniprofessional: isSup,
             numberOfPartners: partners,
             realProfitMargin: realMargin,
+            activities: scaledActivities // Pass scaled activities to engine
         });
-    }, [revenue, payroll, issRate, isSup, partners, realMargin]);
+    }, [revenue, payroll, issRate, isSup, partners, realMargin, scaledActivities]);
 
     const bestScenario = scenarios.find(s => s.isBest) || scenarios[0];
     const chartData = scenarios.map(s => ({
