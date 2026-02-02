@@ -1,8 +1,10 @@
 "use client";
 
-import { Stethoscope, Building2, ShoppingCart, Tractor, Briefcase } from "lucide-react";
+import { Stethoscope, Building2, ShoppingCart, Tractor, Briefcase, History } from "lucide-react";
 import { ModuleCard } from "@/components/module-card";
 import { AnimatedBackground } from "@/components/ui/animated-background";
+import { UserButton, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
 
 export default function HubPage() {
   const modules = [
@@ -69,12 +71,38 @@ export default function HubPage() {
         </div>
 
         <div className="flex items-center gap-4">
-          <button onClick={() => window.location.href = '/reforma-tributaria'} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+          <button onClick={() => window.location.href = '/reforma-tributaria'} className="text-sm font-medium text-slate-300 hover:text-white transition-colors hidden md:block">
             Reforma Tributária
           </button>
-          <div className="h-9 w-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
-            <span className="text-xs font-bold text-slate-300">LP</span>
-          </div>
+          <SignedIn>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.location.href = '/historico'}
+              className="text-slate-300 hover:text-white gap-2"
+            >
+              <History className="h-4 w-4" />
+              <span className="hidden md:inline">Histórico</span>
+            </Button>
+          </SignedIn>
+          {/* Theme toggle removed - light mode only */}
+          <SignedIn>
+            <UserButton
+              afterSignOutUrl="/"
+              appearance={{
+                elements: {
+                  avatarBox: "h-9 w-9",
+                }
+              }}
+            />
+          </SignedIn>
+          <SignedOut>
+            <SignInButton mode="modal">
+              <Button variant="outline" size="sm" className="border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800">
+                Entrar
+              </Button>
+            </SignInButton>
+          </SignedOut>
         </div>
       </header>
 

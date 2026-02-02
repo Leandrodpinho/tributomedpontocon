@@ -106,7 +106,7 @@ const inputHighRevenue: GenerateTaxScenariosInput = {
     activities: [
         { name: 'Hospitalar', revenue: 500000, type: 'service', simplesAnexo: 'III', isMeiEligible: false }
     ],
-    realProfitMargin: 10, // Low margin situation -> Real might be better
+    // Note: realProfitMargin is handled internally by the engine with default 30%
     isHospitalEquivalent: true // Forced hospitalar presumption
 };
 printScenarios("TEST 6: HIGH REVENUE (Hospitalar + Low Margin)", generateDeterministicScenarios(inputHighRevenue));

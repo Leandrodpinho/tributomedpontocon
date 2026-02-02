@@ -99,12 +99,12 @@ export const getFirebaseAdminApp = async (): Promise<App | null> => {
     firebaseApp = isAlreadyInitialized
       ? getApps()[0]!
       : initializeApp({
-          credential: cert({
-            projectId: serviceAccount.projectId,
-            clientEmail: serviceAccount.clientEmail,
-            privateKey: serviceAccount.privateKey,
-          }),
-        });
+        credential: cert({
+          projectId: serviceAccount.projectId,
+          clientEmail: serviceAccount.clientEmail,
+          privateKey: serviceAccount.privateKey,
+        }),
+      });
     return firebaseApp;
   } catch (error) {
     console.error("Falha ao inicializar Firebase Admin:", error);
@@ -113,6 +113,8 @@ export const getFirebaseAdminApp = async (): Promise<App | null> => {
 };
 
 export type PersistAnalysisInput = {
+  userId?: string | null;
+  clientName?: string;
   payload: Record<string, unknown>;
   attachments: Array<{
     name: string;
@@ -148,6 +150,8 @@ export const persistAnalysisRecord = async (
     const db = getFirestore(app);
     const collectionName = process.env.FIREBASE_ANALYSES_COLLECTION ?? "analyses";
     const docRef = await db.collection(collectionName).add({
+      userId: input.userId ?? null,
+      clientName: input.clientName ?? null,
       payload: input.payload,
       attachments: input.attachments,
       aiResponse: input.aiResponse,
@@ -168,5 +172,49 @@ export const persistAnalysisRecord = async (
       documentId: null,
       error: message,
     };
+  }
+};
+
+export type SavedAnalysis = {
+  id: string;
+  userId: string | null;
+  clientName: string | null;
+  createdAt: Date;
+  aiResponse: Record<string, unknown> | null;
+};
+
+export const getAnalysesByUserId = async (
+  userId: string
+): Promise<SavedAnalysis[]> => {
+  const app = await getFirebaseAdminApp();
+  if (!app || !firestoreModule) {
+    return [];
+  }
+
+  try {
+    const { getFirestore } = firestoreModule;
+    const db = getFirestore(app);
+    const collectionName = process.env.FIREBASE_ANALYSES_COLLECTION ?? "analyses";
+
+    const snapshot = await db
+      .collection(collectionName)
+      .where("userId", "==", userId)
+      .orderBy("createdAt", "desc")
+      .limit(50)
+      .get();
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        userId: data.userId ?? null,
+        clientName: data.clientName ?? data.payload?.companyName ?? "Sem nome",
+        createdAt: data.createdAt?.toDate() ?? new Date(),
+        aiResponse: data.aiResponse ?? null,
+      };
+    });
+  } catch (error) {
+    console.error("Erro ao buscar análises:", error);
+    return [];
   }
 };

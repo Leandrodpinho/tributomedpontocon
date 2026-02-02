@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { AnimatedBackground } from "@/components/ui/animated-background";
-
+import { ClerkProvider } from "@clerk/nextjs";
 
 export const metadata: Metadata = {
   title: "Planejador Tributário",
@@ -24,25 +24,60 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt" className={inter.variable} suppressHydrationWarning>
-      <head>
-      </head>
-      <body
-        className={cn(
-          "font-sans antialiased min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 overflow-x-hidden selection:bg-primary selection:text-white"
-        )}
-        suppressHydrationWarning
-      >
-        <AnimatedBackground />
-        {/* Ambient Background */}
-        <div className="fixed inset-0 -z-10 bg-mesh-light dark:bg-slate-950 bg-cover bg-center opacity-40 mix-blend-multiply dark:opacity-20 pointer-events-none" />
-        <div className="fixed inset-0 -z-10 bg-gradient-to-tr from-brand-100/50 via-transparent to-brand-50/30 dark:from-brand-900/10 dark:to-slate-900/50 pointer-events-none blur-3xl" />
+    <ClerkProvider
+      appearance={{
+        layout: {
+          logoImageUrl: '/logo-full.png', // Logo local na pasta public
+          logoPlacement: 'inside',
+          socialButtonsPlacement: 'bottom',
+          socialButtonsVariant: 'blockButton',
+        },
+        variables: {
+          colorPrimary: '#3b82f6', // Blue from logo
+          colorTextOnPrimaryBackground: 'white',
+          colorBackground: '#0f172a', // Slate 900
+          colorInputBackground: '#1e293b', // Slate 800
+          colorInputText: 'white',
+          colorText: 'white',
+          colorTextSecondary: '#94a3b8',
+        },
+        elements: {
+          card: "bg-slate-900 border border-slate-800 shadow-xl",
+          headerTitle: "text-white",
+          headerSubtitle: "text-slate-400",
+          socialButtonsBlockButton: "bg-slate-800 border-slate-700 text-white hover:bg-slate-700",
+          dividerLine: "bg-slate-800",
+          dividerText: "text-slate-500",
+          formFieldLabel: "text-slate-300",
+          formFieldInput: "bg-slate-950 border-slate-800 text-white focus:border-blue-500 focus:ring-blue-500/20",
+          footerActionLink: "text-blue-400 hover:text-blue-300",
+          userButtonPopoverCard: "bg-slate-900 border border-slate-800",
+          userButtonPopoverActionButton: "hover:bg-slate-800 text-slate-200",
+          userButtonPopoverActionButtonIcon: "text-slate-400",
+          userButtonPopoverFooter: "hidden",
+        }
+      }}
+    >
+      <html lang="pt" className={inter.variable}>
+        <head>
+        </head>
+        <body
+          className={cn(
+            "font-sans antialiased min-h-screen bg-slate-50 transition-colors duration-300 overflow-x-hidden selection:bg-primary selection:text-white"
+          )}
+        >
+          <AnimatedBackground />
+          {/* Ambient Background - Light mode only */}
+          <div className="fixed inset-0 -z-10 bg-mesh-light bg-cover bg-center opacity-40 mix-blend-multiply pointer-events-none" />
+          <div className="fixed inset-0 -z-10 bg-gradient-to-tr from-brand-100/50 via-transparent to-brand-50/30 pointer-events-none blur-3xl" />
 
-        <div className="relative flex flex-col min-h-screen">
-          {children}
-        </div>
-        <Toaster />
-      </body>
-    </html>
+          <div className="relative flex flex-col min-h-screen">
+            {children}
+          </div>
+          <Toaster />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
+

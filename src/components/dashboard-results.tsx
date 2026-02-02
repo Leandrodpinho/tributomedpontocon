@@ -39,7 +39,7 @@ const NAV_ITEMS = [
   { label: 'Simulador', href: '#simulator', icon: <Target className="h-4 w-4" />, tabId: 'simulator' },
   { label: 'Otimizador', href: '#optimizer', icon: <TrendingUp className="h-4 w-4" />, tabId: 'optimizer' },
   { label: 'Cenários', href: '#scenarios', icon: <FileText className="h-4 w-4" />, tabId: 'scenarios' },
-  { label: 'Dados Base', href: '#data', icon: <FileText className="h-4 w-4" />, tabId: 'data' },
+
   { label: 'Resumo', href: '#summary', icon: <Layers className="h-4 w-4" />, tabId: 'summary' },
 ];
 
@@ -274,7 +274,6 @@ export function DashboardResults({
 
       const clonedReport = reportElement.cloneNode(true) as HTMLElement;
       clonedReport.querySelector('[data-section="overview"]')?.remove();
-      clonedReport.querySelector('[data-section="data"]')?.remove();
 
       const scenariosSection = clonedReport.querySelector('[data-section="scenarios"]');
       if (scenariosSection) {
@@ -409,6 +408,15 @@ export function DashboardResults({
             </Button>
             <Button size="sm" onClick={handleDownloadDocx} disabled={isDownloading} className="bg-brand-600 text-white hover:bg-brand-500">
               <Download className="mr-2 h-4 w-4" /> {isDownloading ? '...' : 'Word'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => window.location.href = '/reforma-tributaria'}
+              className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/20"
+            >
+              <TrendingUp className="mr-2 h-4 w-4" />
+              Reforma Tributária
             </Button>
             <Button
               size="sm"
@@ -813,98 +821,6 @@ export function DashboardResults({
             })()}
           </section>
         )}
-
-        {/* Aba: Dados Base */}
-        <section id="data" data-section="data" className={cn("space-y-4", activeTab !== 'data' && 'hidden')}>
-          <div>
-            <h2 className="text-xl font-semibold text-foreground">Dados Utilizados na Análise</h2>
-            <p className="text-sm text-muted-foreground">
-              Documentos transcritos e integrações utilizadas para alimentar os cálculos.
-            </p>
-          </div>
-
-          {/* Card: Transcrição de Documentos */}
-          <div className="glass-card rounded-xl">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-foreground">Transcrição de Documentos</CardTitle>
-              <CardDescription>Texto extraído automaticamente dos documentos anexados.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="max-h-[400px] overflow-auto rounded-md bg-[hsl(var(--secondary))] p-4 text-sm leading-relaxed">
-                {analysis.transcribedText ? (
-                  <p className="whitespace-pre-wrap text-foreground">{analysis.transcribedText}</p>
-                ) : (
-                  <p className="text-muted-foreground">Nenhum documento foi anexado para transcrição.</p>
-                )}
-              </div>
-            </CardContent>
-          </div>
-          <div className="glass-card rounded-xl">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-foreground">Retorno do Webhook</CardTitle>
-              <CardDescription className="text-muted-foreground">
-                {isWebhookConfigured ? (
-                  <>
-                    Payload enviado para{' '}
-                    <a
-                      href={WEBHOOK_ENDPOINT}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-medium text-brand-600 dark:text-brand-300"
-                    >
-                      {WEBHOOK_ENDPOINT}
-                    </a>.
-                  </>
-                ) : (
-                  'Nenhum endpoint configurado. Defina as variáveis NEXT_PUBLIC_WEBHOOK_URL e WEBHOOK_URL para habilitar este envio.'
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!isWebhookConfigured && !webhookResponse && (
-                <Alert className="border border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Envio desabilitado</AlertTitle>
-                  <AlertDescription>
-                    Configure um endpoint válido para registrar o histórico do planejamento em integrações externas.
-                  </AlertDescription>
-                </Alert>
-              )}
-              {(isWebhookConfigured || webhookResponse) && (
-                <div className="max-h-[240px] overflow-auto rounded-md bg-[hsl(var(--secondary))] p-4 text-sm leading-relaxed">
-                  {webhookResponse ? (
-                    webhookError ? (
-                      <Alert variant="destructive" className="border border-red-200 bg-red-50 text-red-900 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-100">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Falha ao enviar</AlertTitle>
-                        <AlertDescription className="space-y-2 text-sm">
-                          <p>Revise o endpoint informado ou tente novamente mais tarde.</p>
-                          <pre className="max-h-40 overflow-auto rounded bg-red-900/10 p-3 text-xs leading-relaxed text-red-900 dark:bg-red-300/10 dark:text-red-100">
-                            {`${webhookResponse.length > 2000
-                              ? `${webhookResponse.slice(0, 2000)}…`
-                              : webhookResponse
-                              }`}
-                          </pre>
-                        </AlertDescription>
-                      </Alert>
-                    ) : (
-                      <pre className="whitespace-pre-wrap break-words text-foreground">
-                        {`${webhookResponse.length > 2000
-                          ? `${webhookResponse.slice(0, 2000)}…`
-                          : webhookResponse
-                          }`}
-                      </pre>
-                    )
-                  ) : (
-                    <p className="text-muted-foreground">
-                      Nenhuma resposta recebida do endpoint até o momento.
-                    </p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </div>
-        </section>
 
 
         <section id="summary" data-section="summary" className={cn("space-y-6", activeTab !== 'summary' && 'hidden')}>

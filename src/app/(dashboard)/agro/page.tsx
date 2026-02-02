@@ -290,7 +290,7 @@ export default function AgroPage() {
 
                                         {/* Tax Reform Impact */}
                                         <ReformImpactCard
-                                            currentMonthlyTax={result.lcdprTax / 12}
+                                            currentMonthlyTax={(result.funrural + result.itr + result.irpf) / 12}
                                             monthlyRevenue={inputs.annualRevenue / 12}
                                             sector="AGRO"
                                             isSimples={false}

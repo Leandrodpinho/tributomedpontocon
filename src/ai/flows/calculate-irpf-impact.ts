@@ -9,19 +9,35 @@
  * - CalculateIRPFImpactOutput - The return type for the calculateIRPFImpact function.
  */
 
-// src/ai/flows/calculate-irpf-impact.ts
-'use server';
-
-/**
- * @fileOverview Estimates the impact of different tax regimes on the client's IRPF.
- *
- * - calculateIRPFImpact - A function that calculates the IRPF impact based on the input.
- * - CalculateIRPFImpactInput - The input type for the calculateIRPFImpact function.
- * - CalculateIRPFImpactOutput - The return type for the calculateIRPFImpact function.
- */
-
 import { z } from 'zod';
-import { IRPF_TABLE_2026, calculateIRPF, calculateINSS } from '@/lib/tax-calculator';
+import { LEGAL_CONSTANTS_2025 } from '@/ai/flows/legal-constants';
+
+// Local IRPF calculation functions
+const IRPF_TABLE_2026 = LEGAL_CONSTANTS_2025.irpfTable;
+
+function calculateINSS(proLabore: number): number {
+  const table = LEGAL_CONSTANTS_2025.inssTable;
+  let inss = 0;
+  let previousLimit = 0;
+
+  for (const bracket of table) {
+    if (proLabore > previousLimit) {
+      const taxableAmount = Math.min(proLabore, bracket.limit) - previousLimit;
+      inss += taxableAmount * bracket.rate;
+    }
+    previousLimit = bracket.limit;
+  }
+
+  return Math.min(inss, LEGAL_CONSTANTS_2025.inssCeiling * 0.14);
+}
+
+function calculateIRPF(proLabore: number, inssDeduction: number): number {
+  const base = proLabore - inssDeduction;
+  if (base <= 0) return 0;
+
+  const bracket = IRPF_TABLE_2026.find(b => base <= b.limit) || IRPF_TABLE_2026[IRPF_TABLE_2026.length - 1];
+  return Math.max(0, (base * bracket.rate) - bracket.deduction);
+}
 
 const CalculateIRPFImpactInputSchema = z.object({
   taxRegime: z.enum(['Simples Nacional Anexo III', 'Simples Nacional Anexo V', 'Lucro Presumido', 'Lucro Real']).describe('The tax regime being considered.'),

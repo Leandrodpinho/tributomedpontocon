@@ -81,55 +81,67 @@ export function ProLaboreOptimizer({ initialRevenue }: ProLaboreOptimizerProps) 
         return data;
     }, [revenue]);
 
-    // REVER: O grafico curve é dificil sem refatorar o tax-calculator para aceitar pro-labore arbitrario.
-    // O tax-calculator calcula o "ideal" ou "minimo".
-    // Vou pular o gráfico complexo e focar em melhorar a visualização dos números, como já está bem feito.
-    // O código atual já mostra o "Trade-off" (Lâmpada) e os cards.
-    // Vou adicionar um "Termômetro" ou Barra de Progresso visualizando onde o usuário está (Anexo V) e onde precisa chegar (28%).
+    // Cálcula cenários específicos para comparação
+    const { anexoV, fatorROpt } = useMemo(() => {
+        // 1. Cenário Base (Padrão/Pior Caso - Anexo V)
+        // Simula com Pro-Labore mínimo (1 salário mínimo), resultando em Fator R baixo (< 28%)
+        const scenariosBase = calculateAllScenarios({
+            monthlyRevenue: revenue,
+            payrollExpenses: 0, // Assume 0 só para isolar o efeito
+            proLabore: 1412, // Salário mínimo antigo base ou atual, apenas para garantir < 28%
+            numberOfPartners: 1,
+            issRate: 4
+        });
+        // Encontra o cenário de Anexo V dentro dos gerados (geralmente o menos eficiente do Simples)
+        // Ou força o tipo se a engine permitir. Como a engine é determinística baseada no input:
+        // Se Fator R < 28%, ela gera "Simples Nacional (Anexo V)" ou similar.
+        const base = scenariosBase.find(s => s.name.includes('Anexo V')) || scenariosBase.find(s => s.name.includes('Simples Nacional'));
 
-    const anexoV = analysis.find(s => s.name.includes('Anexo V'));
-    const fatorROpt = analysis.find(s => s.name.includes('Fator R Otimizado'));
 
-    // Se já está no Anexo III Natural, não precisa otimizar
-    const isAlreadyOptimal = analysis.some(s => s.name.includes('Anexo III - Natural'));
+        // 2. Cenário Otimizado (Meta - Anexo III)
+        // Simula com Pro-Labore de exatos 28%
+        const targetProLabore = revenue * 0.28;
+        const scenariosOpt = calculateAllScenarios({
+            monthlyRevenue: revenue,
+            payrollExpenses: 0,
+            proLabore: targetProLabore,
+            numberOfPartners: 1,
+            issRate: 4
+        });
+        // Com Fator R >= 28%, a engine deve gerar "Simples Nacional (Anexo III)" ou similar
+        const opt = scenariosOpt.find(s => s.name.includes('Anexo III') || s.name.includes('Simples Nacional'));
 
-    if (!anexoV || !fatorROpt || isAlreadyOptimal) {
-        if (isAlreadyOptimal) {
-            return (
-                <div className="glass-card flex flex-col rounded-xl border-emerald-500/30 bg-emerald-500/10 p-6">
-                    <CardHeader>
-                        <div className="flex items-center gap-2">
-                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                            <CardTitle className="text-lg text-emerald-900 dark:text-emerald-100">Situação Otimizada!</CardTitle>
-                        </div>
-                        <CardDescription className="text-emerald-800 dark:text-emerald-200">
-                            Seu custo com folha já permite o enquadramento no Anexo III (Fator R {'>'} 28%).
-                        </CardDescription>
-                    </CardHeader>
-                </div>
-            );
-        }
-        return null; // Caso de fallback, não deveria acontecer com a lógica atual
+        return { anexoV: base, fatorROpt: opt };
+    }, [revenue]);
+
+    // Dados para o Gráfico de "Ponto Doce" (Conceitual/Simulado)
+    const chartDataSimple = useMemo(() => {
+        if (!anexoV || !fatorROpt) return [];
+        return [
+            { name: '10%', tax: anexoV.totalTaxValue * 1.05 },
+            { name: '20%', tax: anexoV.totalTaxValue * 1.02 },
+            { name: '27%', tax: anexoV.totalTaxValue },
+            { name: '28%', tax: fatorROpt.totalTaxValue },
+            { name: '35%', tax: fatorROpt.totalTaxValue * 1.05 },
+        ];
+    }, [anexoV, fatorROpt]);
+
+    if (!anexoV || !fatorROpt) {
+        return (
+            <div className="glass-card flex flex-col rounded-xl p-6">
+                <p className="text-muted-foreground">Não foi possível calcular a otimização para este cenário.</p>
+            </div>
+        );
     }
 
-    const savings = anexoV.totalTax - fatorROpt.totalTax;
+    const savings = anexoV.totalTaxValue - fatorROpt.totalTaxValue;
 
     // Custos individuais para explicar o trade-off
-    const taxPJ_V = anexoV.taxBreakdown.reduce((acc, item) => acc + item.value, 0); // Isso inclui DAS
+    const taxPJ_V = anexoV.taxBreakdown.reduce((acc, item) => acc + item.value, 0);
     const taxPF_V = (anexoV.proLaboreAnalysis?.inssValue ?? 0) + (anexoV.proLaboreAnalysis?.irpfValue ?? 0);
 
     const taxPJ_III = fatorROpt.taxBreakdown.reduce((acc, item) => acc + item.value, 0);
     const taxPF_III = (fatorROpt.proLaboreAnalysis?.inssValue ?? 0) + (fatorROpt.proLaboreAnalysis?.irpfValue ?? 0);
-
-    // Dados para o Gráfico de "Ponto Doce" (Conceitual)
-    // Mostra a queda abrupta do imposto TOTAL ao atingir 28%
-    const chartDataSimple = [
-        { name: '10%', tax: anexoV.totalTax + 2000 }, // Ficticio alto
-        { name: '20%', tax: anexoV.totalTax + 1000 },
-        { name: '27%', tax: anexoV.totalTax },       // Ponto atual (Anexo V)
-        { name: '28%', tax: fatorROpt.totalTax },     // Ponto Doce (Queda brusca)
-        { name: '35%', tax: fatorROpt.totalTax + 800 }, // Sobe devagar por causa do INSS/IR
-    ];
 
     return (
         <div className="glass-card flex flex-col rounded-xl p-6 space-y-8">
@@ -139,6 +151,7 @@ export function ProLaboreOptimizer({ initialRevenue }: ProLaboreOptimizerProps) 
                     Otimizador de Pró-Labore (Fator R)
                 </CardTitle>
                 <CardDescription>
+                    Comparativo entre Anexo V (sem Fator R) e Anexo III (com Fator R {'>'} 28%).
                     Encontre o ponto exato onde pagar mais pró-labore gera economia tributária real.
                 </CardDescription>
             </CardHeader>
@@ -204,7 +217,7 @@ export function ProLaboreOptimizer({ initialRevenue }: ProLaboreOptimizerProps) 
                                 </div>
                                 <div className="flex justify-between pt-1">
                                     <span>Custo Total:</span>
-                                    <span className="font-bold">{formatCurrency(anexoV.totalTax)}</span>
+                                    <span className="font-bold">{formatCurrency(anexoV.totalTaxValue)}</span>
                                 </div>
                             </div>
 
@@ -221,7 +234,7 @@ export function ProLaboreOptimizer({ initialRevenue }: ProLaboreOptimizerProps) 
                                 </div>
                                 <div className="flex justify-between pt-1">
                                     <span>Custo Total:</span>
-                                    <span className="font-bold text-brand-700">{formatCurrency(fatorROpt.totalTax)}</span>
+                                    <span className="font-bold text-brand-700">{formatCurrency(fatorROpt.totalTaxValue)}</span>
                                 </div>
                             </div>
                         </div>
