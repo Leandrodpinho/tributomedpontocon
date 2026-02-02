@@ -8,7 +8,7 @@ import { LEGAL_CONSTANTS_2025 } from '@/ai/flows/legal-constants';
  */
 export function calculateLucroPresumido(
     monthlyRevenue: number,
-    type: 'Geral' | 'Hospitalar' | 'Comercio',
+    type: 'Geral' | 'Hospitalar' | 'Comercio' | 'ComercioMonofasico',
     issRate: number = 5,
     icmsRate: number = 0 // Usado apenas se for comércio
 ) {
@@ -16,6 +16,7 @@ export function calculateLucroPresumido(
     switch (type) {
         case 'Hospitalar': rules = LEGAL_CONSTANTS_2025.presumidoHospitalar; break;
         case 'Comercio': rules = LEGAL_CONSTANTS_2025.presumidoComercio; break;
+        case 'ComercioMonofasico': rules = LEGAL_CONSTANTS_2025.presumidoMonofasico; break;
         default: rules = LEGAL_CONSTANTS_2025.presumidoGeral;
     }
 

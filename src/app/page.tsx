@@ -1,160 +1,102 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { Loader2, Pencil } from "lucide-react";
-import { getAnalysis, type AnalysisState } from "@/app/actions";
-import { useToast } from "@/hooks/use-toast";
-import { LogoIcon } from "@/components/icons/logo";
-import { DashboardResults } from "@/components/dashboard-results";
-import { AnalysisForm } from "@/components/analysis-form";
-import { Button } from "@/components/ui/button";
+import { Stethoscope, Building2, ShoppingCart, Tractor, Briefcase } from "lucide-react";
+import { ModuleCard } from "@/components/module-card";
+import { AnimatedBackground } from "@/components/ui/animated-background";
 
-const initialState: AnalysisState = {
-  aiResponse: null,
-  transcribedText: null,
-  irpfImpacts: null,
-  webhookResponse: null,
-  error: null,
-  historyRecordId: null,
-  historyError: null,
-};
-
-export default function Home() {
-  const [state, setState] = useState<AnalysisState>(initialState);
-  const [pending, startTransition] = useTransition();
-  const [showForm, setShowForm] = useState(true);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    if (state.error) {
-      toast({
-        variant: "destructive",
-        title: "Erro na Análise",
-        description: state.error,
-      });
+export default function HubPage() {
+  const modules = [
+    {
+      title: "Saúde & Clínicas",
+      description: "Otimização tributária para médicos, dentistas e clínicas. Simulação completa de Simples, Presumido e Carnê Leão.",
+      href: "/medico",
+      icon: <Stethoscope className="h-6 w-6" />,
+      colorClass: "text-cyan-400",
+      gradientClass: "bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-600"
+    },
+    {
+      title: "Holding Patrimonial",
+      description: "Estruturação e proteção de patrimônio imobiliário. Planejamento sucessório (ITCMD) e eficiência em aluguéis.",
+      href: "/holding",
+      icon: <Building2 className="h-6 w-6" />,
+      colorClass: "text-amber-400",
+      gradientClass: "bg-gradient-to-br from-amber-400 via-orange-500 to-red-500"
+    },
+    {
+      title: "Varejo & Postos",
+      description: "Soluções fiscais para comércio varejista e revendedores de combustíveis (Monofásico).",
+      href: "/varejo",
+      icon: <ShoppingCart className="h-6 w-6" />,
+      colorClass: "text-violet-400",
+      gradientClass: "bg-gradient-to-br from-violet-500 via-purple-600 to-fuchsia-600"
+    },
+    {
+      title: "Produtor Rural",
+      description: "Planejamento tributário especializado para o agronegócio. Gestão de receitas, despesas e Livro Caixa Digital.",
+      href: "/agro",
+      icon: <Tractor className="h-6 w-6" />,
+      colorClass: "text-emerald-400",
+      gradientClass: "bg-gradient-to-br from-emerald-400 via-green-500 to-teal-600"
+    },
+    {
+      title: "Serviços & Tech",
+      description: "Inteligência tributária para TI, Advocacia e Engenharia. Análise de Fator R e Sociedade Uniprofissional (ISS Fixo).",
+      href: "/servicos",
+      icon: <Briefcase className="h-6 w-6" />,
+      colorClass: "text-cyan-400",
+      gradientClass: "bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-600"
     }
-    if (state.aiResponse && !state.error) {
-      setShowForm(false);
-    }
-  }, [state, toast]);
-
-  // Efeito para restaurar estado anterior (Persistência)
-  useEffect(() => {
-    const saved = sessionStorage.getItem('last_tax_analysis');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Verifica se o timestamp é recente (ex: menor que 24h) para não carregar lixo muito antigo
-        if (Date.now() - parsed.timestamp < 1000 * 60 * 60 * 24) {
-          setState(prev => ({
-            ...prev,
-            aiResponse: parsed.analysis,
-            // Podes restaurar outros campos se salvos, mas o principal é o aiResponse
-          }));
-          setShowForm(false);
-          toast({
-            title: "Análise Restaurada",
-            description: "Recuperamos sua última simulação.",
-          });
-        }
-      } catch (e) {
-        console.error("Erro ao restaurar análise", e);
-      }
-    }
-  }, [toast]); // Executa apenas uma vez no mount
-
-  const handleFormSubmit = async (formData: FormData) => {
-    startTransition(async () => {
-      const newState = await getAnalysis(state, formData);
-      setState(newState);
-    });
-  };
+  ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-[hsl(var(--background))] bg-app-gradient text-[hsl(var(--foreground))] transition-colors duration-300">
-      <header className="sticky top-0 z-10 flex h-20 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl transition-all duration-300 md:px-10 dark:bg-slate-950/90 dark:border-slate-800/50">
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-white">
-              <span className="bg-gradient-to-r from-slate-900 via-blue-800 to-blue-600 bg-clip-text text-transparent dark:from-white dark:via-blue-300 dark:to-blue-400">
-                Planejador
-              </span>
-              {" "}
-              <span className="bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-                Tributário
-              </span>
-            </h1>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 tracking-wide">
-              Estratégia fiscal para a área da saúde
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {!showForm && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setShowForm(true);
-                setState(initialState); // Reseta estado ao voltar
-              }}
-              className="hidden md:flex"
-            >
-              <Pencil className="mr-2 h-4 w-4" /> Nova Simulação
-            </Button>
-          )}
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => window.location.href = '/reforma-tributaria'}
-            className="flex items-center gap-2"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="relative min-h-screen bg-slate-950 text-white overflow-hidden font-sans">
+      <AnimatedBackground />
+
+      {/* Ambient Glows */}
+      <div className="absolute top-0 left-1/4 -z-10 h-[500px] w-[500px] rounded-full bg-blue-600/20 blur-[120px]" />
+      <div className="absolute bottom-0 right-1/4 -z-10 h-[500px] w-[500px] rounded-full bg-purple-600/20 blur-[120px]" />
+
+      <header className="flex h-20 items-center justify-between px-6 md:px-12 border-b border-white/5 backdrop-blur-sm z-50">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            <span className="hidden sm:inline">Reforma Tributária</span>
-            <span className="sm:hidden">Reforma</span>
-          </Button>
+          </div>
+          <span className="text-xl font-bold tracking-tight text-white">
+            Planejador <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Tributário</span>
+          </span>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button onClick={() => window.location.href = '/reforma-tributaria'} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+            Reforma Tributária
+          </button>
+          <div className="h-9 w-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
+            <span className="text-xs font-bold text-slate-300">LP</span>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto mt-8 flex w-full max-w-7xl flex-1 flex-col gap-10 px-4 pb-12 md:px-8">
-        {showForm ? (
-          <>
-            <div className="text-center space-y-2 mb-4">
-              <h2 className="text-3xl font-bold tracking-tight">Comece seu Planejamento</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Preencha os dados essenciais abaixo. Nossa IA analisará automaticamente os cenários de Simples Nacional, Lucro Presumido (incluindo SUP e Hospitalar), Lucro Real e Carnê Leão.
-              </p>
-            </div>
-            <AnalysisForm onSubmit={handleFormSubmit} isPending={pending} />
+      <main className="container mx-auto px-6 py-16 md:py-24 max-w-6xl relative z-10">
+        <div className="text-center mb-16 space-y-4">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
+            Qual módulo você deseja acessar?
+          </h1>
+          <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+            Selecione o perfil do seu cliente para iniciar uma simulação otimizada com as regras tributárias específicas de cada setor.
+          </p>
+        </div>
 
-            {pending && !state.aiResponse && (
-              <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
-                <div className="flex flex-col items-center space-y-4 p-8 rounded-xl bg-card border shadow-2xl animate-in fade-in zoom-in duration-300">
-                  <Loader2 className="h-12 w-12 animate-spin text-brand-600" />
-                  <div className="text-center space-y-1">
-                    <h3 className="text-lg font-semibold">Gerando Planejamento...</h3>
-                    <p className="text-sm text-muted-foreground">Calculando impostos e gerando relatórios.</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="relative animate-in slide-in-from-bottom-4 duration-500">
-            <DashboardResults
-              analysis={state.aiResponse!}
-              clientName={state.initialParameters?.clientName || state.aiResponse?.scenarios?.[0]?.name.split(":")[0]?.replace("Cenário para ", "").trim() || "Cliente"}
-              consultingFirm="Doctor.con"
-              irpfImpacts={state.irpfImpacts}
-              webhookResponse={state.webhookResponse}
-              historyRecordId={state.historyRecordId}
-              historyError={state.historyError}
-              initialParameters={state.initialParameters}
-            />
-          </div>
-        )}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:gap-8">
+          {modules.map((module) => (
+            <ModuleCard key={module.title} {...module} />
+          ))}
+        </div>
+
+        <footer className="mt-20 text-center text-sm text-slate-600">
+          © {new Date().getFullYear()} Planejador Tributário. Sistema Inteligente de Apoio à Decisão.
+        </footer>
       </main>
     </div>
   );

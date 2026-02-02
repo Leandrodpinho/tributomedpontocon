@@ -125,6 +125,18 @@ export const LEGAL_CONSTANTS_2025 = {
     additionalIrpjRate: 0.10,
   },
 
+  // --- Lucro Presumido (Comércio Monofásico - ex: Postos de Gasolina) ---
+  presumidoMonofasico: {
+    irpjBase: 0.08,    // 8% Base padrão comércio
+    csllBase: 0.12,    // 12% Base padrão comércio
+    irpjRate: 0.15,
+    csllRate: 0.09,
+    pisRate: 0.00,     // ZERADO (Monofásico - pago na origem)
+    cofinsRate: 0.00,  // ZERADO (Monofásico - pago na origem)
+    additionalIrpjThreshold: 20000.00,
+    additionalIrpjRate: 0.10,
+  },
+
   // --- Lucro Real (Estimativa Simplificada para Serviços) ---
   realServicos: {
     pisRate: 0.0165,
