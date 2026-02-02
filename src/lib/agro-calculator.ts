@@ -193,6 +193,7 @@ export function compareArrendamentoVsParceria(input: LandContractInput): {
 export interface HarvestAnalysisInput extends AgroInput {
     funruralRevenue: number; // Base Funrural (geralmente = annualRevenue)
     itr: ITRInput;
+    isSubrogation?: boolean; // Flag para taxa de sub-rogação (2.3% vs 1.5%)
 }
 
 export interface HarvestDRE {
@@ -207,7 +208,7 @@ export interface HarvestDRE {
 }
 
 export function calculateHarvestDRE(input: HarvestAnalysisInput): HarvestDRE {
-    const funrural = calculateFunrural(input.funruralRevenue);
+    const funrural = calculateFunrural(input.funruralRevenue, input.isSubrogation ?? false);
     const itr = calculateITR(input.itr).tax;
     const agroAnalysis = calculateAgroScenario(input);
 

@@ -49,6 +49,7 @@ export default function AgroPage() {
         const dre = calculateHarvestDRE({
             ...inputs,
             funruralRevenue: inputs.annualRevenue,
+            isSubrogation: inputs.isSubrogation,
             itr: {
                 vtn: inputs.vtn,
                 totalArea: inputs.totalArea,

@@ -182,11 +182,25 @@ export default function HoldingPage() {
 
                             {/* ABA 1: DIAGNÓSTICO GERAL */}
                             <TabsContent value="diagnosis" className="space-y-8 mt-6">
+                                {/* Alerta de Viabilidade */}
+                                {!analysis.holdingWorthIt && (
+                                    <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 flex items-start gap-3">
+                                        <span className="text-xl">⚠️</span>
+                                        <div>
+                                            <p className="font-semibold text-amber-400">Holding pode não ser vantajosa para este perfil</p>
+                                            <p className="text-sm text-slate-400">
+                                                A economia mensal é insuficiente para compensar os custos de manutenção.
+                                                Avalie se o benefício sucessório justifica a estrutura.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <Card className="md:col-span-12 border-amber-500/30 bg-gradient-to-br from-slate-900 to-slate-950">
                                     <CardHeader>
                                         <CardTitle className="text-amber-500">Resumo da Viabilidade</CardTitle>
                                     </CardHeader>
-                                    <CardContent className="grid gap-8 md:grid-cols-3">
+                                    <CardContent className="grid gap-8 md:grid-cols-4">
                                         <div className="space-y-1">
                                             <span className="text-xs text-slate-500 uppercase">Lucro Projetado (10 Anos)</span>
                                             <div className="text-3xl font-bold text-emerald-400">{formatCurrency(totalProjectedProfit)}</div>
@@ -196,14 +210,37 @@ export default function HoldingPage() {
                                             <div className="text-3xl font-bold text-emerald-400">{formatCurrency(analysis.savings.successionAmount)}</div>
                                         </div>
                                         <div className="space-y-1">
-                                            <span className="text-xs text-slate-500 uppercase">Status de Compliance</span>
-                                            <div className={`text-xl font-bold ${Object.values(state.compliance).some(v => !v) ? 'text-amber-400' : 'text-blue-400'}`}>
-                                                {Object.values(state.compliance).some(v => !v) ? '⚠️ Pendências' : '✅ 100% Regular'}
+                                            <span className="text-xs text-slate-500 uppercase">Breakeven (Anos)</span>
+                                            <div className={`text-3xl font-bold ${analysis.breakevenYears && analysis.breakevenYears < 10 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                                {analysis.breakevenYears !== null ? `${analysis.breakevenYears} anos` : '∞'}
                                             </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-xs text-slate-500 uppercase">Economia Mensal</span>
+                                            <div className={`text-3xl font-bold ${analysis.savings.monthlyAmount >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                {analysis.savings.monthlyAmount >= 0 ? '+' : ''}{formatCurrency(analysis.savings.monthlyAmount)}
+                                            </div>
+                                            <p className="text-xs text-slate-500">
+                                                {analysis.savings.monthlyAmount < 0 ? 'PF é mais barato' : 'Holding é mais barata'}
+                                            </p>
                                         </div>
                                     </CardContent>
                                 </Card>
-                                {/* Inserir aqui os outros cards breakdown que já existiam, se desejar */}
+
+                                <Card className="border-white/10 bg-white/5">
+                                    <CardContent className="pt-6 grid gap-4 md:grid-cols-2">
+                                        <div className="flex justify-between items-center p-3 rounded-lg bg-slate-900">
+                                            <span className="text-slate-400">Custo Anual Holding (Est.)</span>
+                                            <span className="font-bold text-white">{formatCurrency(analysis.annualHoldingCost)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center p-3 rounded-lg bg-slate-900">
+                                            <span className="text-slate-400">Status de Compliance</span>
+                                            <span className={`font-bold ${Object.values(state.compliance).some(v => !v) ? 'text-amber-400' : 'text-blue-400'}`}>
+                                                {Object.values(state.compliance).some(v => !v) ? '⚠️ Pendências' : '✅ 100% Regular'}
+                                            </span>
+                                        </div>
+                                    </CardContent>
+                                </Card>
                             </TabsContent>
 
                             {/* ABA 2: FINANCEIRO (NOVO) */}

@@ -64,7 +64,7 @@ export function AssetGrid({ assets, onChange }: AssetGridProps) {
                 </div>
                 <div className="space-y-2">
                     <Label className="text-xs text-slate-400">Tipo</Label>
-                    <Select value={newAsset.type} onValueChange={(v: any) => setNewAsset({ ...newAsset, type: v })}>
+                    <Select value={newAsset.type} onValueChange={(v: string) => setNewAsset({ ...newAsset, type: v as AssetType })}>
                         <SelectTrigger className="bg-slate-900 border-white/20"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="REAL_ESTATE">Imóvel</SelectItem>
@@ -150,7 +150,7 @@ export function AssetGrid({ assets, onChange }: AssetGridProps) {
                         <div className="md:col-span-2 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 px-4 flex items-center justify-between">
                             <div>
                                 <span className="block text-xs text-amber-500 uppercase font-bold">Risco Sucessório (Gap)</span>
-                                <span className="block text-xs text-amber-300/70">Base tributável "extra" no inventário</span>
+                                <span className="block text-xs text-amber-300/70">Base tributável &quot;extra&quot; no inventário</span>
                             </div>
                             <span className="text-xl font-bold text-amber-400">{formatCurrency(riskGap)}</span>
                         </div>

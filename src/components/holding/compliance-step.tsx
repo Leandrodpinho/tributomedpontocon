@@ -29,7 +29,7 @@ export function ComplianceStep({ data, onChange }: ComplianceStepProps) {
                         {riskScore === 0 ? "Patrimônio Apto para Integralização" : `${riskScore} Pendências Identificadas`}
                     </h3>
                     <p className="text-xs text-slate-400">
-                        A Holding só blinda o que é "limpo". Passivos anteriores à constituição podem contaminar a empresa (Fraude à Execução).
+                        A Holding só blinda o que é &quot;limpo&quot;. Passivos anteriores à constituição podem contaminar a empresa (Fraude à Execução).
                     </p>
                 </div>
             </div>

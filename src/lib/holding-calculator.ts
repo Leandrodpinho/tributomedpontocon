@@ -40,6 +40,9 @@ export interface HoldingAnalysis {
         successionAmount: number;
         successionPercentage: number;
     };
+    holdingWorthIt: boolean; // Indica se a holding faz sentido financeiro
+    breakevenYears: number | null; // Em quantos anos a holding "se paga"
+    annualHoldingCost: number; // Custo anual estimado de manutenção
 }
 
 // Tabelas de ITCMD (Simplificadas para 2025/2026)
@@ -72,10 +75,10 @@ function calculateIRPF(income: number): number {
 function calculateITCMD(value: number, state: 'SP' | 'RJ' | 'MG' | 'OTHER') {
     // Simplificação: Aplicar tabela do estado. 
     // Na prática é estado-a-estado, aqui usamos as principais ou default.
-    const table = (ITCMD_RATES as any)[state] || ITCMD_RATES.OTHER;
+    const stateKey = state as keyof typeof ITCMD_RATES;
+    const table = ITCMD_RATES[stateKey] || ITCMD_RATES.OTHER;
 
     // Cálculo Progressivo ou Fixo
-    let tax = 0;
     // Se for array de 1 item e limite Infinity, é fixo (ex: SP)
     if (table.length === 1 && table[0].limit === Infinity) {
         return value * table[0].rate;
@@ -86,7 +89,7 @@ function calculateITCMD(value: number, state: 'SP' | 'RJ' | 'MG' | 'OTHER') {
     // que é comum em ITCMD, diferente do IRPF que é "por fatias".
     // Em muitos estados (ex: RJ), a alíquota incide sobre o TOTAL baseado na faixa.
 
-    const bracket = table.find((b: any) => value <= b.limit) || table[table.length - 1];
+    const bracket = table.find((b) => value <= b.limit) || table[table.length - 1];
     return value * bracket.rate;
 }
 
@@ -99,7 +102,7 @@ export function calculateHoldingScenario(input: HoldingInput): HoldingAnalysis {
 
     // Sucessão PF
     // Base: Valor de Mercado
-    const itcmdPf = calculateITCMD(input.estateValueMarket, input.state as any);
+    const itcmdPf = calculateITCMD(input.estateValueMarket, input.state as 'SP' | 'RJ' | 'MG' | 'OTHER');
     const lawyerFees = input.estateValueMarket * 0.06; // Média de 6% honorários + custas
     const pfSuccessionCost = itcmdPf + lawyerFees;
 
@@ -126,10 +129,33 @@ export function calculateHoldingScenario(input: HoldingInput): HoldingAnalysis {
     // Doação com Reserva de Usufruto
     // Em SP, paga-se 4% sobre 2/3 do valor na doação da nu-propriedade. No falecimento, paga o resto.
     // Vamos simplificar assumindo Doação Total em Vida para estancar o risco.
-    const itcmdHolding = calculateITCMD(input.estateValueBook, input.state as any);
+    const itcmdHolding = calculateITCMD(input.estateValueBook, input.state as 'SP' | 'RJ' | 'MG' | 'OTHER');
     const holdingSetupCost = 15000; // Custo estimado abertura/contador (valor fixo simbólico para a simulação)
     // Na holding não tem "inventário" dos imóveis, eles já são da empresa. Tem alteração contratual.
     const holdingSuccessionCost = itcmdHolding + holdingSetupCost;
+
+    // Análise de Viabilidade
+    const monthlyDifference = pfMonthlyTax - holdingMonthlyTax;
+    const annualHoldingCost = 15000; // Custo anual estimado (contador + manutenção)
+    const annualSavingsFromRental = monthlyDifference * 12;
+
+    // Breakeven: Em quantos anos a economia de sucessão + aluguel paga o custo da holding
+    const totalSuccessionSavings = pfSuccessionCost - holdingSuccessionCost;
+    const netAnnualBenefit = annualSavingsFromRental; // Se negativo, só tem sentido se sucessão compensar
+
+    let breakevenYears = Infinity;
+    if (netAnnualBenefit > 0) {
+        // Holding "se paga" pelo benefício mensal
+        breakevenYears = annualHoldingCost / netAnnualBenefit;
+    } else if (totalSuccessionSavings > 0) {
+        // Prejuízo mensal, mas ganho na sucessão. Quantos anos de prejuízo até a sucessão?
+        // Se o prejuízo anual * X anos superar o ganho de sucessão, não vale.
+        // Vamos calcular "em quantos anos o prejuízo come o benefício da sucessão"
+        breakevenYears = totalSuccessionSavings / Math.abs(netAnnualBenefit - annualHoldingCost);
+    }
+
+    // Recomendação: Vale a pena se breakeven < 10 anos ou se há grande ganho de sucessão
+    const holdingWorthIt = breakevenYears < 10 || totalSuccessionSavings > 100000;
 
     return {
         pf: {
@@ -143,11 +169,14 @@ export function calculateHoldingScenario(input: HoldingInput): HoldingAnalysis {
             successionCost: holdingSuccessionCost
         },
         savings: {
-            monthlyAmount: pfMonthlyTax - holdingMonthlyTax,
-            monthlyPercentage: ((pfMonthlyTax - holdingMonthlyTax) / pfMonthlyTax) * 100,
-            successionAmount: pfSuccessionCost - holdingSuccessionCost,
-            successionPercentage: ((pfSuccessionCost - holdingSuccessionCost) / pfSuccessionCost) * 100
-        }
+            monthlyAmount: monthlyDifference,
+            monthlyPercentage: pfMonthlyTax > 0 ? ((monthlyDifference) / pfMonthlyTax) * 100 : 0,
+            successionAmount: totalSuccessionSavings,
+            successionPercentage: pfSuccessionCost > 0 ? ((totalSuccessionSavings) / pfSuccessionCost) * 100 : 0
+        },
+        holdingWorthIt,
+        breakevenYears: isFinite(breakevenYears) ? Math.round(breakevenYears * 10) / 10 : null,
+        annualHoldingCost
     };
 }
 
@@ -167,7 +196,7 @@ export function calculateHoldingProjections(
     assumptions: { appreciation: number; vacancy: number; maintenance: number; admin: number }
 ): FinancialProjectionYear[] {
     const projection: FinancialProjectionYear[] = [];
-    let currentAttributes = {
+    const currentAttributes = {
         value: estateValue,
         rent: monthlyRent * 12
     };
