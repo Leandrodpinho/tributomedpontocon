@@ -286,10 +286,33 @@ async function generateTaxScenariosLogic(input: GenerateTaxScenariosInput): Prom
 
     // 2. Geração Determinística dos Cenários (Correção da Alucinação Numérica)
     // Usamos as atividades extraídas pela IA (ou do input original) para alimentar a engine
+    let activitiesForEngine = (output.activities && output.activities.length > 0) ? output.activities : input.activities;
+
+    // 2.1 Pós-processamento: Marcar atividades regulamentadas como MEI-INELEGÍVEIS
+    // Médicos, advogados, contadores, engenheiros, etc. NÃO podem ser MEI por lei
+    const regulatedProfessions = [
+      'médic', 'medic', 'saúde', 'saude', 'clínic', 'clinic', 'hospital', 'odont', 'dentist',
+      'advog', 'jurídic', 'juridic', 'advocac', 'direito',
+      'contab', 'contador', 'contado', 'audit',
+      'engenh', 'arquitet', 'agronôm', 'agronom',
+      'psicolog', 'fisioter', 'fonoaud', 'nutricion', 'farmac',
+      'veterin', 'bioméd', 'biomed'
+    ];
+
+    if (activitiesForEngine && activitiesForEngine.length > 0) {
+      activitiesForEngine = activitiesForEngine.map(act => {
+        const nameLC = (act.name || '').toLowerCase();
+        const isRegulated = regulatedProfessions.some(prof => nameLC.includes(prof));
+        return {
+          ...act,
+          isMeiEligible: isRegulated ? false : (act.isMeiEligible ?? false)
+        };
+      });
+    }
+
     const engineInput = {
       ...input,
-      // Prioriza as atividades extraídas pela IA, se houver
-      activities: (output.activities && output.activities.length > 0) ? output.activities : input.activities,
+      activities: activitiesForEngine,
       // Atualiza monthlyRevenue se a IA tiver corrigido com base nos documentos
       monthlyRevenue: output.monthlyRevenue || input.monthlyRevenue
     };
