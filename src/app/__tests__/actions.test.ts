@@ -117,7 +117,8 @@ describe('getAnalysis Server Action', () => {
     const result = await getAnalysis(initialState, formData);
 
     expect(result.error).toBeNull();
-    expect(result.aiResponse).toEqual(JSON.parse(JSON.stringify(mockAiResponse)));
+    expect(result.aiResponse).toMatchObject(JSON.parse(JSON.stringify(mockAiResponse)));
+    expect(result.aiResponse?.reformImpact).toBeDefined();
     expect(result.transcribedText).toBe('');
     expect(mockExtractTextFromDocument).not.toHaveBeenCalled();
     expect(mockGenerateTaxScenarios).toHaveBeenCalledWith(
@@ -180,7 +181,8 @@ describe('getAnalysis Server Action', () => {
     const result = await getAnalysis(initialState, formData);
 
     expect(result.error).toBeNull();
-    expect(result.aiResponse).toEqual(JSON.parse(JSON.stringify(mockAiResponse)));
+    expect(result.aiResponse).toMatchObject(JSON.parse(JSON.stringify(mockAiResponse)));
+    expect(result.aiResponse?.reformImpact).toBeDefined();
     expect(result.transcribedText).toBe('Texto extraído do documento.');
     expect(mockExtractTextFromDocument).toHaveBeenCalledTimes(1);
     expect(mockGenerateTaxScenarios).toHaveBeenCalledWith(
@@ -279,7 +281,7 @@ describe('generateDocx Server Action', () => {
   it('deve retornar um erro se a geração do DOCX falhar', async () => {
     const htmlContent = '<h1>Teste</h1>';
     mockHtmlToDocx.mockRejectedValue(new Error('Erro na geração do DOCX'));
- 
+
     const result = await generateDocx(htmlContent);
 
     expect(result.docx).toBeNull();

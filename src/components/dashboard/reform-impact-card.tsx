@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Calendar, Info, TrendingUp, TrendingDown, Scale } from "lucide-react";
-import { formatCurrency, formatPercentage } from "@/lib/utils";
+import { formatCurrency, formatPercentage } from "@/lib/formatters";
 import { Progress } from "@/components/ui/progress";
 
 interface ReformImpactCardProps {
@@ -20,7 +20,7 @@ export function ReformImpactCard({ currentMonthlyTax, monthlyRevenue, sector, is
 
         let effectiveReformRate = standardRate;
         let discount = 0;
-        let notes = [];
+        const notes = [];
 
         // Apply reductions
         if (['HEALTH', 'EDUCATION', 'AGRO'].includes(sector)) {
@@ -152,6 +152,4 @@ export function ReformImpactCard({ currentMonthlyTax, monthlyRevenue, sector, is
     );
 }
 
-function formatPercentage(value: number) {
-    return (value * 100).toFixed(1) + "%";
-}
+

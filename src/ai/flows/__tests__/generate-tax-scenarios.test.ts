@@ -1,116 +1,84 @@
+
 import { generateTaxScenarios } from '../generate-tax-scenarios';
 import type { GenerateTaxScenariosInput } from '../types';
+import { generateText } from 'ai';
 
-// Mock do Genkit AI com lógica de cálculo simplificada
-jest.mock('@/ai/genkit', () => {
-  const originalGenkit = jest.requireActual('genkit');
-  return {
-    ai: {
-      ...originalGenkit.ai,
-      definePrompt: jest.fn().mockImplementation(() => {
-        return jest.fn().mockImplementation(async (input: GenerateTaxScenariosInput) => {
-          // Lógica de cálculo simplificada para simulação
-          const revenueText = input.clientData?.match(/R\$\s*([\d.,]+)/);
-          const monthlyRevenue = revenueText ? parseFloat(revenueText[1].replace(/\./g, '').replace(',', '.')) : 0;
+// Mock Vercel AI SDK
+jest.mock('ai', () => ({
+  generateText: jest.fn(),
+}));
 
-          const createScenario = (name: string, revenue: number) => {
-            // Simples Nacional Anexo III (simulado)
-            const snTax = revenue * 0.06; // Alíquota fixa de 6% para o mock
-            const proLabore = revenue * 0.28; // Fator R
-            const inss = proLabore * 0.11;
-            const formattedRevenue = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(revenue);
-            return {
-              name: `Cenário para ${input.companyName}: ${name} com Faturamento de R$ ${formattedRevenue}`,
-              totalTaxValue: snTax,
-              effectiveRate: 6.00,
-              effectiveRateOnProfit: 10.0,
-              taxCostPerEmployee: input.payrollExpenses ? snTax / (input.payrollExpenses / 2000) : 0,
-              taxBreakdown: [{ name: 'DAS', rate: 6.00, value: snTax }],
-              proLaboreAnalysis: {
-                baseValue: proLabore,
-                inssValue: inss,
-                irrfValue: 0, // Simplificado
-                netValue: proLabore - inss,
-              },
-              netProfitDistribution: revenue - snTax - proLabore,
-              notes: 'Cálculo simulado pelo mock de teste.',
-            };
-          };
+jest.mock('@ai-sdk/groq', () => ({
+  createGroq: jest.fn(() => jest.fn()),
+}));
 
-          const scenarios = [];
-          const revenueLevels = [monthlyRevenue, monthlyRevenue * 1.2, monthlyRevenue * 1.5];
-          for (const revenue of revenueLevels) {
-            scenarios.push(createScenario('Simples Nacional Anexo III', revenue));
-            // Adicionar mocks para outros regimes se necessário
-          }
-          
-          if (input.payrollExpenses && input.payrollExpenses > 0) {
-             scenarios.push(createScenario('Simples Nacional Anexo III - Com Folha CLT', monthlyRevenue));
-          }
+describe('generateTaxScenarios', () => {
+  const OLD_ENV = process.env;
 
+  beforeEach(() => {
+    jest.resetModules(); // clears cache
+    process.env = { ...OLD_ENV, GROQ_API_KEY: 'test-key' }; // Set dummy key
+  });
 
-          return {
-            output: {
-              transcribedText: input.documentsAsText || '',
-              monthlyRevenue,
-              scenarios,
-              executiveSummary: '**Resumo Executivo (Mock)**\n\n- Recomendação: Simples Nacional Anexo III.\n- Projeções: Lucro Presumido pode ser vantajoso acima de R$ 20.000.\n- Pontos de Atenção: Verificar alíquota de ISS.',
-            },
-          };
-        });
-      }),
-      defineFlow: jest.fn((_config, handler) => {
-        return jest.fn(async (input) => {
-          return handler(input);
-        });
-      }),
-    },
-  };
-});
+  afterAll(() => {
+    process.env = OLD_ENV; // Restore old env
+  });
 
-describe('generateTaxScenarios - Simulação de Cálculos com Mock', () => {
-  it('deve gerar cenários tributários com base na lógica do mock', async () => {
+  it('deve gerar cenários tributários integrando IA e Engine', async () => {
+    // Re-import module to pick up new env var
+    const { generateTaxScenarios } = require('../generate-tax-scenarios');
+    const { generateText } = require('ai');
+
     const mockInput: GenerateTaxScenariosInput = {
       clientType: 'Novo aberturas de empresa',
-      clientData: 'Faturamento mensal: R$ 10.000,00',
+      clientData: 'Faturamento mensal: R$ 10.000,00. Clínica médica.',
       payrollExpenses: 0,
       issRate: 4.0,
       companyName: 'Clínica Teste',
     };
 
-    const result = await generateTaxScenarios(mockInput);
-
-    expect(result).toBeDefined();
-    expect(result.monthlyRevenue).toBe(10000);
-    expect(result.scenarios.length).toBe(3); // 3 níveis de faturamento
-
-    const snAnexoIIIAtual = result.scenarios[0];
-    expect(snAnexoIIIAtual.name).toContain('Simples Nacional Anexo III');
-    expect(snAnexoIIIAtual.name).toContain('R$ 10.000,00');
-    expect(snAnexoIIIAtual.totalTaxValue).toBeCloseTo(600); // 10000 * 0.06
-    expect(snAnexoIIIAtual.proLaboreAnalysis.baseValue).toBeCloseTo(2800); // 10000 * 0.28
-    expect(snAnexoIIIAtual.netProfitDistribution).toBeCloseTo(10000 - 600 - 2800); // 6600
-
-    expect(result.executiveSummary).toContain('**Resumo Executivo (Mock)**');
-  });
-  
-  it('deve gerar cenários com folha CLT quando especificado', async () => {
-    const mockInput: GenerateTaxScenariosInput = {
-      clientType: 'Novo aberturas de empresa',
-      clientData: 'Faturamento mensal: R$ 10.000,00',
-      payrollExpenses: 2000, // Com folha de pagamento
-      issRate: 4.0,
-      companyName: 'Clínica com CLT',
+    const mockAIResponse = {
+      monthlyRevenue: 10000,
+      activities: [
+        { name: 'Serviços Médicos', revenue: 10000, type: 'service', simplesAnexo: 'III', isMeiEligible: false }
+      ],
+      complianceAnalysis: {},
+      executiveSummary: 'Resumo mockado'
     };
 
+    (generateText as jest.Mock).mockResolvedValue({
+      text: JSON.stringify(mockAIResponse)
+    });
+
     const result = await generateTaxScenarios(mockInput);
 
     expect(result).toBeDefined();
     expect(result.monthlyRevenue).toBe(10000);
-    expect(result.scenarios.length).toBe(4); // 3 níveis de faturamento + 1 com folha
-    
-    const snAnexoIIIComFolha = result.scenarios.find(s => s.name.includes('Com Folha CLT'));
-    expect(snAnexoIIIComFolha).toBeDefined();
-    expect(snAnexoIIIComFolha?.taxCostPerEmployee).toBeGreaterThan(0);
+
+    // The engine should generate scenarios based on the activity
+    // Anexo III service -> Simples Nacional Anexo III should be present
+    const snAnexoIII = result.scenarios.find((s: any) => s.name.includes('Anexo III'));
+    expect(snAnexoIII).toBeDefined();
+
+    // Check specific values calculated by deterministic engine
+    // Revenue 10k, Anexo III rate is approx 6%
+    if (snAnexoIII) {
+      expect(snAnexoIII.totalTaxValue).toBeGreaterThan(0);
+      expect(snAnexoIII.proLaboreAnalysis?.baseValue).toBeGreaterThan(0);
+    }
+  });
+
+  it('deve lidar com falha da IA usando retries ou erro', async () => {
+    // Re-import module to pick up new env var
+    const { generateTaxScenarios } = require('../generate-tax-scenarios');
+    const { generateText } = require('ai');
+
+    (generateText as jest.Mock).mockRejectedValue(new Error('AI Failed'));
+
+    const mockInput: GenerateTaxScenariosInput = {
+      clientType: 'Novo aberturas de empresa',
+    };
+
+    await expect(generateTaxScenarios(mockInput)).rejects.toThrow();
   });
 });

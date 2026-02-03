@@ -36,7 +36,7 @@ export interface TaxScenarioResult {
     proLaboreAnalysis?: {
         baseValue: number;
         inssValue: number;
-        irpfValue: number;
+        irrfValue: number;
     };
     notes: string[];
     isBest?: boolean;

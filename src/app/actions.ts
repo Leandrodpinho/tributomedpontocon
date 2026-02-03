@@ -12,6 +12,7 @@ import type { IrpfImpact } from "@/types/irpf";
 import { persistAnalysisRecord } from "@/lib/firebase-admin";
 import { generateImpactReport } from "@/lib/reform-impact-calculator";
 import type { SavedTaxAnalysis } from "@/types/reform-impact";
+import type { TaxScenarioResult } from "@/lib/tax-calculator";
 
 export interface AnalysisState {
   aiResponse: GenerateTaxScenariosOutput | null;
@@ -390,8 +391,23 @@ export async function getAnalysis(
     // ✨ NOVO: Calcular impacto da Reforma Tributária
     try {
       if (serializableResponse?.scenarios && serializableResponse.scenarios.length > 0) {
+
+        // Map ScenarioDetail to TaxScenarioResult to satisfy generateImpactReport
+        const mappedScenarios: TaxScenarioResult[] = serializableResponse.scenarios.map(s => ({
+          name: s.name,
+          totalTax: s.totalTaxValue ?? 0,
+          effectiveRate: s.effectiveRate ?? 0,
+          netProfit: s.netProfitDistribution ?? 0,
+          proLabore: s.proLaboreAnalysis?.baseValue ?? 0,
+          inssTax: s.proLaboreAnalysis?.inssValue ?? 0,
+          irpfTax: s.proLaboreAnalysis?.irrfValue ?? 0,
+          taxBreakdown: s.taxBreakdown?.map(t => ({ name: t.name, value: t.value })) ?? [],
+          proLaboreAnalysis: s.proLaboreAnalysis,
+          notes: s.notes ? [s.notes] : [],
+        }));
+
         const reformImpact = generateImpactReport(
-          serializableResponse.scenarios,
+          mappedScenarios,
           {
             companyName: companyName ?? undefined,
             monthlyRevenue: monthlyRevenueNum!,
@@ -415,7 +431,7 @@ export async function getAnalysis(
         };
 
         // Retornar dados para serem salvos no client-side
-        (serializableResponse as any).reformImpact = reformImpact;
+        serializableResponse.reformImpact = reformImpact;
       }
     } catch (reformError) {
       console.error('Erro ao calcular impacto da reforma:', reformError);

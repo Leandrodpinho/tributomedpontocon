@@ -123,5 +123,6 @@ export const GenerateTaxScenariosOutputSchema = z.object({
   executiveSummary: z.string().optional().describe('Resumo executivo em Markdown com a recomendação final sobre o melhor cenário para o faturamento atual, e análise sobre os pontos de inflexão com base nas projeções de receita. Use ** para negrito nos títulos.'),
   breakEvenAnalysis: z.string().optional().describe('Análise textual sobre os pontos de equilíbrio de faturamento entre os regimes.'),
   complianceAnalysis: ComplianceAnalysisSchema.optional().describe('Auditoria de compliance tributário e societário baseada nos dados fornecidos.'),
+  reformImpact: z.any().optional().describe('Relatório de impacto da Reforma Tributária (injetado pós-processamento).'),
 }).strict();
 export type GenerateTaxScenariosOutput = z.infer<typeof GenerateTaxScenariosOutputSchema>;

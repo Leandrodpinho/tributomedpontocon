@@ -118,11 +118,11 @@ export function ProLaboreOptimizer({ initialRevenue }: ProLaboreOptimizerProps) 
     const chartDataSimple = useMemo(() => {
         if (!anexoV || !fatorROpt) return [];
         return [
-            { name: '10%', tax: anexoV.totalTaxValue * 1.05 },
-            { name: '20%', tax: anexoV.totalTaxValue * 1.02 },
-            { name: '27%', tax: anexoV.totalTaxValue },
-            { name: '28%', tax: fatorROpt.totalTaxValue },
-            { name: '35%', tax: fatorROpt.totalTaxValue * 1.05 },
+            { name: '10%', tax: anexoV.totalTax * 1.05 },
+            { name: '20%', tax: anexoV.totalTax * 1.02 },
+            { name: '27%', tax: anexoV.totalTax },
+            { name: '28%', tax: fatorROpt.totalTax },
+            { name: '35%', tax: fatorROpt.totalTax * 1.05 },
         ];
     }, [anexoV, fatorROpt]);
 
@@ -134,14 +134,14 @@ export function ProLaboreOptimizer({ initialRevenue }: ProLaboreOptimizerProps) 
         );
     }
 
-    const savings = anexoV.totalTaxValue - fatorROpt.totalTaxValue;
+    const savings = anexoV.totalTax - fatorROpt.totalTax;
 
     // Custos individuais para explicar o trade-off
     const taxPJ_V = anexoV.taxBreakdown.reduce((acc, item) => acc + item.value, 0);
-    const taxPF_V = (anexoV.proLaboreAnalysis?.inssValue ?? 0) + (anexoV.proLaboreAnalysis?.irpfValue ?? 0);
+    const taxPF_V = (anexoV.proLaboreAnalysis?.inssValue ?? 0) + (anexoV.proLaboreAnalysis?.irrfValue ?? 0);
 
     const taxPJ_III = fatorROpt.taxBreakdown.reduce((acc, item) => acc + item.value, 0);
-    const taxPF_III = (fatorROpt.proLaboreAnalysis?.inssValue ?? 0) + (fatorROpt.proLaboreAnalysis?.irpfValue ?? 0);
+    const taxPF_III = (fatorROpt.proLaboreAnalysis?.inssValue ?? 0) + (fatorROpt.proLaboreAnalysis?.irrfValue ?? 0);
 
     return (
         <div className="glass-card flex flex-col rounded-xl p-6 space-y-8">
@@ -217,7 +217,7 @@ export function ProLaboreOptimizer({ initialRevenue }: ProLaboreOptimizerProps) 
                                 </div>
                                 <div className="flex justify-between pt-1">
                                     <span>Custo Total:</span>
-                                    <span className="font-bold">{formatCurrency(anexoV.totalTaxValue)}</span>
+                                    <span className="font-bold">{formatCurrency(anexoV.totalTax)}</span>
                                 </div>
                             </div>
 
@@ -234,7 +234,7 @@ export function ProLaboreOptimizer({ initialRevenue }: ProLaboreOptimizerProps) 
                                 </div>
                                 <div className="flex justify-between pt-1">
                                     <span>Custo Total:</span>
-                                    <span className="font-bold text-brand-700">{formatCurrency(fatorROpt.totalTaxValue)}</span>
+                                    <span className="font-bold text-brand-700">{formatCurrency(fatorROpt.totalTax)}</span>
                                 </div>
                             </div>
                         </div>

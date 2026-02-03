@@ -137,7 +137,7 @@ export default function MedicalPage() {
                     <div className="relative animate-in slide-in-from-bottom-4 duration-500">
                         <DashboardResults
                             analysis={state.aiResponse!}
-                            clientName={state.initialParameters?.clientName || state.aiResponse?.scenarios?.[0]?.name.split(":")[0]?.replace("Cenário para ", "").trim() || "Cliente"}
+                            clientName={state.initialParameters?.clientName || state.aiResponse?.companyName || "Cliente"}
                             consultingFirm="Doctor.con"
                             irpfImpacts={state.irpfImpacts}
                             webhookResponse={state.webhookResponse}

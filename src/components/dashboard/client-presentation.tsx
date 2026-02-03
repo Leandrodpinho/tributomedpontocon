@@ -32,6 +32,11 @@ export function ClientPresentation({ analysis, clientName, consultingFirm, onClo
     }, undefined);
 
     const worstScenario = scenarios.reduce<ScenarioDetail | undefined>((acc, scenario) => {
+        // Ignorar CLT (é apenas simulação, não um cenário real para abertura de empresa)
+        if (scenario.scenarioType === 'clt') return acc;
+        // Ignorar MEI inelegível
+        if (scenario.scenarioType === 'mei' && scenario.isEligible === false) return acc;
+
         if (!acc) return scenario;
         return (scenario.totalTaxValue ?? 0) > (acc.totalTaxValue ?? 0) ? scenario : acc;
     }, undefined);

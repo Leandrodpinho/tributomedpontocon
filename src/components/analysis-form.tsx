@@ -56,7 +56,7 @@ export function AnalysisForm({ onSubmit, isPending }: AnalysisFormProps) {
     const [payroll, setPayroll] = useState<string>("");
     const [partners, setPartners] = useState(1);
     const [realMargin, setRealMargin] = useState(30);
-    const [issRate, setIssRate] = useState(4); // Padrão: 4% (Montes Claros)
+    const [issRate, setIssRate] = useState(5); // Padrão: 5% (São Paulo - máximo permitido)
     const [municipioInfo, setMunicipioInfo] = useState<string | null>(null);
 
     const handleSearchCnpj = async () => {

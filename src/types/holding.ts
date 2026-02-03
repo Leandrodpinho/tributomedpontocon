@@ -33,9 +33,35 @@ export interface Liability {
     description?: string;
 }
 
+export interface GovernanceRules {
+    allowInLaws: boolean;
+    forcedMediation: boolean;
+    saleApprovalRatio: number;
+    mandatoryDividend: number;
+    managementSuccession: 'FAMILY' | 'VOTE' | 'PROFESSIONAL';
+}
+
+export interface ComplianceChecklist {
+    federalDebt: boolean;
+    laborDebt: boolean;
+    propertyDeeds: boolean;
+    environmentalRisk: boolean;
+    tenantContracts: boolean;
+}
+
+export interface FinancialAssumptions {
+    appreciationRate: number;
+    vacancyRate: number;
+    maintenanceCost: number;
+    adminCost: number;
+}
+
 export interface HoldingDiagnosisState {
     family: FamilyMember[];
     assets: Asset[];
     liabilities: Liability[];
+    governance: GovernanceRules;
+    compliance: ComplianceChecklist;
+    financial: FinancialAssumptions;
     step: number; // 1=Family, 2=Assets, 3=Report
 }

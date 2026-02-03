@@ -33,7 +33,7 @@ export function SavingsHighlight({ monthlySavings, annualSavings, currentTax, pr
                         </h2>
 
                         <p className="text-emerald-100/80 text-lg max-w-xl">
-                            Valor estimado que sua empresa pode deixar de pagar anualmente ao migrar para o regime tributário recomendado.
+                            Valor estimado de economia anual ao adotar o regime tributário mais eficiente para seu perfil.
                         </p>
                     </div>
 

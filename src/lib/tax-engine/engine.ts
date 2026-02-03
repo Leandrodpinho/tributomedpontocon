@@ -39,7 +39,7 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
             revenue: monthlyRevenue,
             type: 'service',
             simplesAnexo: 'III',
-            isMeiEligible: true // Assume elegível por padrão se não especificado
+            isMeiEligible: false // Padrão conservador: assume inelegível até explicitamente marcado
         }];
     } else if (activities.length > 0) {
         // Recalcula monthlyRevenue com base nas atividades
@@ -168,8 +168,8 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
     }));
 
     // Adiciona encargos do pró-labore
-    simplesBreakdown.push({ name: 'INSS Pró-labore', value: inssProLaboreSimples, rate: 0 });
-    simplesBreakdown.push({ name: 'IRRF Pró-labore', value: irrfProLaboreSimples, rate: 0 });
+    simplesBreakdown.push({ name: 'INSS Pró-labore', value: inssProLaboreSimples, rate: (inssProLaboreSimples / targetPayrollFatorR) * 100 });
+    simplesBreakdown.push({ name: 'IRRF Pró-labore', value: irrfProLaboreSimples, rate: (irrfProLaboreSimples / targetPayrollFatorR) * 100 });
 
     // Verificação real de Misto/Segregado
     const uniqueAnexos = new Set(adjustedActivities.map(a => a.simplesAnexo));
@@ -181,7 +181,7 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
     scenarios.push({
         name: simplesName,
         scenarioCategory: 'pj',
-        scenarioType: isSimplesMisto ? 'simples_misto' : `simples_anexo_${([...uniqueAnexos][0] || 'iii').toLowerCase()}` as any,
+        scenarioType: isSimplesMisto ? 'simples_misto' : `simples_anexo_${([...uniqueAnexos][0] || 'iii').toLowerCase()}` as ScenarioDetail['scenarioType'],
         isEligible: true,
         eligibilityNote: hasFatorR
             ? `Fator R: ${(fatorR * 100).toFixed(1)}%. Atividades do Anexo V beneficiadas.`
