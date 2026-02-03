@@ -59,6 +59,11 @@ export function AnalysisForm({ onSubmit, isPending }: AnalysisFormProps) {
     const [issRate, setIssRate] = useState(5); // Padrão: 5% (São Paulo - máximo permitido)
     const [municipioInfo, setMunicipioInfo] = useState<string | null>(null);
 
+    // Perfil de Renda Expandido (CLT+PJ, RPA)
+    const [hasMultipleIncome, setHasMultipleIncome] = useState(false);
+    const [cltIncome, setCltIncome] = useState<string>("");
+    const [rpaIncome, setRpaIncome] = useState<string>("");
+
     const handleSearchCnpj = async () => {
         const cnpj = cnpjRef.current?.value;
         if (!cnpj) return;
@@ -329,8 +334,62 @@ export function AnalysisForm({ onSubmit, isPending }: AnalysisFormProps) {
                                             <Label htmlFor="isUniprofessionalSociety">Sociedade Uniprofissional</Label>
                                         </div>
                                     </div>
+
+                                    {/* Perfil de Renda Expandido */}
+                                    <Separator className="my-4" />
+                                    <div className="space-y-4">
+                                        <div className="flex items-center space-x-2">
+                                            <Switch
+                                                id="hasMultipleIncome"
+                                                checked={hasMultipleIncome}
+                                                onCheckedChange={setHasMultipleIncome}
+                                            />
+                                            <Label htmlFor="hasMultipleIncome" className="font-medium">
+                                                Possui outras fontes de renda? (CLT + PJ / RPA)
+                                            </Label>
+                                        </div>
+
+                                        {hasMultipleIncome && (
+                                            <div className="grid sm:grid-cols-2 gap-4 pl-8 border-l-2 border-brand-200 dark:border-brand-800">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="cltIncome">Renda CLT Mensal (R$)</Label>
+                                                    <Input
+                                                        id="cltIncome"
+                                                        type="text"
+                                                        inputMode="decimal"
+                                                        placeholder="0,00"
+                                                        className="bg-white/50"
+                                                        value={cltIncome}
+                                                        onChange={(e) => setCltIncome(e.target.value.replace(/[^0-9,.]/g, ''))}
+                                                    />
+                                                    <p className="text-xs text-muted-foreground">Salário bruto como empregado</p>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="rpaIncome">Renda RPA Mensal (R$)</Label>
+                                                    <Input
+                                                        id="rpaIncome"
+                                                        type="text"
+                                                        inputMode="decimal"
+                                                        placeholder="0,00"
+                                                        className="bg-white/50"
+                                                        value={rpaIncome}
+                                                        onChange={(e) => setRpaIncome(e.target.value.replace(/[^0-9,.]/g, ''))}
+                                                    />
+                                                    <p className="text-xs text-muted-foreground">Recibo Pagamento Autônomo</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     {/* Hidden default value fallbacks */}
                                     <input type="hidden" name="issRate" value={issRate} />
+                                    <input type="hidden" name="hasMultipleIncomeSources" value={hasMultipleIncome ? "true" : "false"} />
+                                    {hasMultipleIncome && cltIncome && (
+                                        <input type="hidden" name="cltIncome" value={cltIncome.replace(/\./g, '').replace(',', '.')} />
+                                    )}
+                                    {hasMultipleIncome && rpaIncome && (
+                                        <input type="hidden" name="rpaIncome" value={rpaIncome.replace(/\./g, '').replace(',', '.')} />
+                                    )}
                                     {municipioInfo && (
                                         <p className="text-xs text-muted-foreground mt-2">
                                             ISS: {issRate}% ({municipioInfo})

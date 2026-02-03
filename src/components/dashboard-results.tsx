@@ -17,6 +17,8 @@ import { ScenarioComparisonChart } from './scenario-comparison-chart';
 import { SimulatorPanel } from '@/components/dashboard/simulator-panel';
 import { AnnualTimeline } from '@/components/dashboard/annual-timeline';
 import { SavingsHighlight } from '@/components/dashboard/savings-highlight';
+import { DecisionMatrix } from '@/components/dashboard/decision-matrix';
+import { DiagnosticChecklist } from '@/components/dashboard/diagnostic-checklist';
 import { MarkdownRenderer } from './markdown-renderer';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';

@@ -33,6 +33,10 @@ export const GenerateTaxScenariosInputSchema = z.object({
       'Flag para indicar se a empresa é uma Sociedade Uniprofissional (SUP) para fins de ISS Fixo.'
     ),
   numberOfPartners: z.number().optional().describe('Número de sócios profissionais (para cálculo de ISS Fixo em SUP).'),
+  // Perfil de Renda Expandido (CLT+PJ, RPA)
+  hasMultipleIncomeSources: z.boolean().optional().describe('Se o profissional possui múltiplas fontes de renda (ex: CLT + PJ).'),
+  cltIncome: z.number().optional().describe('Renda mensal como empregado CLT (se houver).'),
+  rpaIncome: z.number().optional().describe('Renda mensal como autônomo via RPA - Recibo de Pagamento Autônomo (se houver).'),
 }).strict();
 export type GenerateTaxScenariosInput = z.infer<typeof GenerateTaxScenariosInputSchema>;
 

@@ -1,6 +1,6 @@
 'use server';
 
-import { runComplianceRules, generateNaturezaJuridicaAnalysis } from './compliance-rules';
+import { runComplianceRules, runComplianceRulesWithScenarios, generateNaturezaJuridicaAnalysis } from './compliance-rules';
 /**
  * @fileOverview Generates potential tax scenarios tailored for medical professionals and clinics.
  *
@@ -337,6 +337,20 @@ async function generateTaxScenariosLogic(input: GenerateTaxScenariosInput): Prom
 
     // Injeção dos cálculos exatos
     output.scenarios = deterministicScenarios;
+
+    // 3.1 Alertas baseados em comparação de cenários (ex: Anexo V vs LP)
+    // Executar PÓS-cenários para ter dados de comparação
+    const scenarioBasedAlerts = runComplianceRulesWithScenarios(engineInput, deterministicScenarios);
+
+    // Mesclar alertas novos com existentes (evitar duplicatas por título)
+    if (output.complianceAnalysis && scenarioBasedAlerts.length > 0) {
+      const existingTitles = new Set(output.complianceAnalysis.alerts.map(a => a.title));
+      for (const newAlert of scenarioBasedAlerts) {
+        if (!existingTitles.has(newAlert.title)) {
+          output.complianceAnalysis.alerts.push(newAlert);
+        }
+      }
+    }
 
     // 3. Validação final de schema (Opcional, pois deterministicScenarios já é tipado, mas output da IA não)
     // Vamos confiar no output do parseAndFixJSON para os campos extras e no scenarios injetado.
