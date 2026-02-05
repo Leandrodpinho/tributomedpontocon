@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Calculator, BarChart3, Leaf, Sprout, Tractor, TrendingDown, Wheat, Presentation } from "lucide-react";
+import { ArrowLeft, Calculator, BarChart3, Leaf, Tractor, TrendingDown, Wheat, Presentation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,15 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency } from "@/lib/utils";
-import { SectorPresentation, SectorAnalysis } from "@/components/dashboard/sector-presentation";
+import { SectorPresentation } from "@/components/dashboard/sector-presentation";
 import { ReformImpactCard } from "@/components/dashboard/reform-impact-card";
 import {
-    calculateAgroScenario,
-    calculateFunrural,
-    calculateITR,
     compareArrendamentoVsParceria,
     calculateHarvestDRE,
-    AgroAnalysis,
     HarvestDRE
 } from "@/lib/agro-calculator";
 

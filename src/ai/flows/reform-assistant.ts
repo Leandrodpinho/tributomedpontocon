@@ -58,7 +58,7 @@ function buildKnowledgeContext(): string {
 
     // Conceitos-Chave
     context.push('\n## CONCEITOS-CHAVE\n');
-    Object.entries(KEY_CONCEPTS).forEach(([key, concept]) => {
+    Object.entries(KEY_CONCEPTS).forEach(([, concept]) => {
         if (typeof concept === 'object' && 'title' in concept && 'description' in concept) {
             context.push(`**${concept.title}**: ${concept.description}`);
         }

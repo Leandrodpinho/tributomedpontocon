@@ -13,10 +13,21 @@ interface ScenarioComparisonChartProps {
   data: ChartData[];
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface TooltipPayloadItem {
+  dataKey: string;
+  value: number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
-    const totalTax = payload.find((p: any) => p.dataKey === 'totalTax')?.value || 0;
-    const netProfit = payload.find((p: any) => p.dataKey === 'netProfit')?.value || 0;
+    const totalTax = payload.find((p) => p.dataKey === 'totalTax')?.value || 0;
+    const netProfit = payload.find((p) => p.dataKey === 'netProfit')?.value || 0;
     const total = totalTax + netProfit;
 
     return (

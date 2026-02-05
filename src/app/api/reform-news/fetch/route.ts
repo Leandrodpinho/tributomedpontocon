@@ -151,7 +151,7 @@ async function saveNewsToFirestore(newsItems: ReformNewsInput[]): Promise<{ save
  * API Route: Buscar e salvar notícias
  * GET /api/reform-news/fetch
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
     try {
         console.log('🔍 Iniciando busca de notícias sobre Reforma Tributária...');
 

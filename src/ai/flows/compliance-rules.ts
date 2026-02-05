@@ -4,8 +4,21 @@
 
 export type NaturezaJuridica = 'EI' | 'EIRELI' | 'LTDA' | 'SLU' | 'SA' | 'COOPERATIVA' | 'MEI' | 'UNKNOWN';
 
+// Tipo para dados de entrada de compliance
+export interface ComplianceData {
+    documentsAsText?: string;
+    companyName?: string;
+    clientData?: string;
+    cnaes?: string[];
+    activities?: Array<{ name?: string; revenue?: number; type?: string }>;
+    scenarios?: Array<{ scenarioType?: string; name?: string; totalTaxValue?: number }>;
+    monthlyRevenue?: number;
+    payrollExpenses?: number;
+    numberOfPartners?: number;
+}
+
 export interface ComplianceRule {
-    check: (data: any) => boolean;
+    check: (data: ComplianceData) => boolean;
     alert: {
         type: 'danger' | 'warning' | 'info' | 'opportunity';
         title: string;
@@ -21,7 +34,7 @@ export interface ComplianceRule {
  * - Nomes completos (ex: "Sociedade Empresária Limitada")
  * - Siglas (ex: LTDA, SLU, EIRELI)
  */
-export function detectNaturezaJuridica(textOrData: string | any): NaturezaJuridica {
+export function detectNaturezaJuridica(textOrData: string | ComplianceData): NaturezaJuridica {
     let textUpper = '';
 
     if (typeof textOrData === 'string') {
@@ -233,7 +246,7 @@ export const MEDICAL_COMPLIANCE_RULES: ComplianceRule[] = [
         check: (data) => {
             const revenue = data.monthlyRevenue || 0;
             const partners = data.numberOfPartners || 1;
-            const hasRealEstate = (data.documentsAsText || '').toLowerCase().match(/imóvel|aluguel|locação|imovel|locacao|patrimôn|patrimon/);
+            const hasRealEstate = !!(data.documentsAsText || '').toLowerCase().match(/imóvel|aluguel|locação|imovel|locacao|patrimôn|patrimon/);
 
             // Gatilhos: alta renda OU múltiplos sócios OU menção a imóveis
             return revenue >= 80000 || partners >= 2 || hasRealEstate;

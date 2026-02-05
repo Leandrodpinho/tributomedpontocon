@@ -1,23 +1,26 @@
 
 // Polyfill DOMMatrix for pdf-parse in Node environment
 if (typeof DOMMatrix === "undefined") {
-    (global as any).DOMMatrix = class DOMMatrix {
+    (global as unknown as Record<string, unknown>).DOMMatrix = class DOMMatrix {
         constructor() { }
         toString() { return ""; }
     };
 }
 
-// Dynamic require for pdf-parse to work with Next.js/Turbopack
-let pdf: any;
-try {
-    pdf = require("pdf-parse");
-    // Handle both default and named exports
-    if (pdf && typeof pdf === 'object' && pdf.default) {
-        pdf = pdf.default;
+// Dynamic import for pdf-parse to work with Next.js/Turbopack
+type PdfParseResult = { text: string };
+type PdfParseFunction = (buffer: Buffer) => Promise<PdfParseResult>;
+let pdf: PdfParseFunction | null = null;
+
+async function loadPdfParse(): Promise<PdfParseFunction | null> {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const pdfParse = require("pdf-parse");
+        return pdfParse as PdfParseFunction;
+    } catch (e) {
+        console.error("Failed to load pdf-parse:", e);
+        return null;
     }
-} catch (e) {
-    console.error("Failed to load pdf-parse:", e);
-    pdf = null;
 }
 
 import { fromBuffer } from "pdf2pic";
@@ -30,8 +33,12 @@ import path from "node:path";
 const execFileAsync = promisify(execFile);
 
 export async function extractTextFromPdfBuffer(buffer: Buffer): Promise<string> {
+    // Load pdf-parse dynamically
+    const pdfParser = pdf || await loadPdfParse();
+    pdf = pdfParser;
+
     // If pdf-parse failed to load, skip directly to OCR
-    if (!pdf || typeof pdf !== 'function') {
+    if (!pdfParser) {
         console.warn("pdf-parse not available, using OCR directly");
         return await ocrPdf(buffer);
     }
@@ -39,7 +46,7 @@ export async function extractTextFromPdfBuffer(buffer: Buffer): Promise<string> 
     try {
         // 1. Try fast extraction with pdf-parse
         // pdf-parse library acts on a buffer and returns a promise with text
-        const data = await pdf(buffer);
+        const data = await pdfParser(buffer);
         const text = (data.text || "").trim();
 
         // Heuristic: If generated text is too short (< 50 chars) or seems like garbage,
@@ -82,12 +89,11 @@ export async function ocrPdf(buffer: Buffer): Promise<string> {
         // We execute sequentially to keep order
         for (const pageNum of pagesToScan) {
             try {
-                // @ts-ignore - pdf2pic types can be tricky
                 const result = await converter(pageNum, { responseType: "image" });
                 if (result && result.path) {
                     imgs.push(result.path);
                 }
-            } catch (e) {
+            } catch {
                 // Page might not exist (e.g. 1 page pdf), just continue
             }
         }
