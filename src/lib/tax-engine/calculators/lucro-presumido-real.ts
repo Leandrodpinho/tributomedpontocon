@@ -63,7 +63,8 @@ export function calculateLucroPresumido(
 export function calculateMixedPresumido(
     activities: Array<{ revenue: number, type: 'commerce' | 'service' | 'industry' }>,
     issRate: number = 5,
-    icmsRate: number = 18
+    icmsRate: number = 18,
+    isHospitalar: boolean = false
 ) {
     let totalRevenue = 0;
     let totalPis = 0;
@@ -78,7 +79,12 @@ export function calculateMixedPresumido(
 
         // Regras baseadas no tipo
         let rules;
-        if (activity.type === 'service') rules = LEGAL_CONSTANTS_2025.presumidoGeral;
+        if (activity.type === 'service') {
+            // Se for hospitalar, usa bases reduzidas (8%/12%)
+            rules = isHospitalar
+                ? LEGAL_CONSTANTS_2025.presumidoHospitalar
+                : LEGAL_CONSTANTS_2025.presumidoGeral;
+        }
         // Indústria e Comércio tem bases iguais para IRPJ/CSLL na regra geral (8%/12%)
         else rules = LEGAL_CONSTANTS_2025.presumidoComercio;
 

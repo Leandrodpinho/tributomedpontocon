@@ -201,7 +201,7 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
 
     // 5. Lucro Presumido Misto
     // Calcula PIS/COFINS/IRPJ/CSLL considerando as bases corretas (Serviço=32%, Comércio=8%)
-    const lpMisto = calculateMixedPresumido(activities, issRate);
+    const lpMisto = calculateMixedPresumido(activities, issRate, 18, isHospitalar);
 
     const cppGeral = calculateCPP(minimumWage);
     const inssProLaboreLP = calculateINSS(minimumWage);
@@ -224,7 +224,9 @@ export function generateDeterministicScenarios(input: GenerateTaxScenariosInput)
         totalTaxValue: totalLPMisto,
         effectiveRate: (totalLPMisto / monthlyRevenue) * 100,
         netProfitDistribution: monthlyRevenue - totalLPMisto - minimumWage,
-        notes: 'Base de presunção ajustada por atividade (32% Serviços, 8% Comércio).',
+        notes: isHospitalar
+            ? 'Base de presunção ajustada por Equiparação Hospitalar (8% IRPJ, 12% CSLL).'
+            : 'Base de presunção ajustada por atividade (32% Serviços, 8% Comércio).',
         proLaboreAnalysis: {
             baseValue: minimumWage,
             inssValue: inssProLaboreLP,
